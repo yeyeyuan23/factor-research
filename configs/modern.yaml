@@ -42,3 +42,8 @@ quality:
   membership_coverage: 0.95
   announcement_coverage: 0.95
   factor_coverage: 0.80
+
+evaluation:
+  factor_columns: [bp, roe, paper_score]
+  return_column: forward_return
+  industry_column: industry
