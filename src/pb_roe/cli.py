@@ -40,6 +40,10 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--factor-file")
     train_parser.add_argument("--model", choices=("elastic-net", "lightgbm"), required=True)
 
+    optimize_parser = subparsers.add_parser("optimize", help="Build constrained portfolios")
+    optimize_parser.add_argument("--config", required=True)
+    optimize_parser.add_argument("--prediction-file")
+
     return parser
 
 
@@ -82,6 +86,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             from pb_roe.models.runner import train_from_cli
 
             return train_from_cli(args.config, args.factor_file, args.model)
+
+        if args.command == "optimize":
+            from pb_roe.portfolio.runner import optimize_from_cli
+
+            return optimize_from_cli(args.config, args.prediction_file)
     except ConfigError as exc:
         LOGGER.error("%s", exc)
         return 2

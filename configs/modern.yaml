@@ -67,3 +67,12 @@ models:
     reg_alpha: 0.10
     reg_lambda: 1.00
     early_stopping_rounds: 50
+
+portfolio:
+  covariance_lookback_days: 252
+  minimum_return_observations: 60
+  risk_aversion: 10.0
+  turnover_penalty: 0.001
+  max_weight: 0.03
+  max_industry_deviation: 0.05
+  max_turnover: 0.30
