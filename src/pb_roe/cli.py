@@ -44,6 +44,10 @@ def build_parser() -> argparse.ArgumentParser:
     optimize_parser.add_argument("--config", required=True)
     optimize_parser.add_argument("--prediction-file")
 
+    report_parser = subparsers.add_parser("report", help="Generate an offline research dashboard")
+    report_parser.add_argument("--config", required=True)
+    report_parser.add_argument("--run-dir")
+
     return parser
 
 
@@ -91,6 +95,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             from pb_roe.portfolio.runner import optimize_from_cli
 
             return optimize_from_cli(args.config, args.prediction_file)
+
+        if args.command == "report":
+            from pb_roe.reporting.runner import report_from_cli
+
+            return report_from_cli(args.config, args.run_dir)
     except ConfigError as exc:
         LOGGER.error("%s", exc)
         return 2
