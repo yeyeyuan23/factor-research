@@ -56,3 +56,14 @@ models:
     alpha: 0.001
     l1_ratio: 0.20
     max_iter: 10000
+  lightgbm:
+    n_estimators: 1000
+    learning_rate: 0.03
+    num_leaves: 15
+    max_depth: 4
+    min_child_samples: 30
+    subsample: 0.80
+    colsample_bytree: 0.80
+    reg_alpha: 0.10
+    reg_lambda: 1.00
+    early_stopping_rounds: 50
