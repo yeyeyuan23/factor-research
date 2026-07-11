@@ -7,7 +7,7 @@ from pb_roe.config import ConfigError, load_config
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize("name", ["paper.yaml", "modern.yaml", "smoke.yaml"])
+@pytest.mark.parametrize("name", ["paper.yaml", "paper_free.yaml", "modern.yaml", "smoke.yaml"])
 def test_project_configs_are_valid(name: str) -> None:
     config = load_config(REPOSITORY_ROOT / "configs" / name)
 

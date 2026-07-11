@@ -26,6 +26,10 @@ def build_parser() -> argparse.ArgumentParser:
     audit_parser = data_subparsers.add_parser("audit", help="Run data quality gates")
     audit_parser.add_argument("--config", required=True)
     audit_parser.add_argument("--input-dir")
+    ingest_parser = data_subparsers.add_parser("ingest", help="Build canonical BaoStock data")
+    ingest_parser.add_argument("--config", required=True)
+    ingest_parser.add_argument("--output-dir", required=True)
+    ingest_parser.add_argument("--max-securities", type=int)
 
     reproduce_parser = subparsers.add_parser("reproduce", help="Run paper reproduction")
     reproduce_parser.add_argument("--config", required=True)
@@ -81,6 +85,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             from pb_roe.data.audit import audit_from_cli
 
             return audit_from_cli(args.config, args.input_dir)
+
+        if args.command == "data" and args.data_command == "ingest":
+            from pb_roe.data.ingest_baostock import ingest_from_cli
+
+            return ingest_from_cli(args.config, args.output_dir, args.max_securities)
 
         if args.command == "reproduce":
             from pb_roe.reproduction.runner import reproduce_from_cli

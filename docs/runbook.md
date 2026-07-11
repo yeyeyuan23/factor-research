@@ -51,6 +51,20 @@ fundamentals.parquet
 
 当前真实数据适配层提供 BaoStock 行情与沪深 300 快照读取能力；财务公告时点、历史成分区间重建和正式全量下载仍需先落为 canonical Parquet。任何一项覆盖率未达到配置阈值时，不得生成论文结论。
 
+实测免费接口的历史沪深 300 快照从 2006 年开始有效，而抽样股票的带公告日 ROE 从 2007 年开始达到稳定覆盖。因此：
+
+- `configs/paper.yaml` 保留原论文 2005–2011 目标口径，用于记录缺口；
+- `configs/paper_free.yaml` 使用 2007–2011 可审计区间，用于免费数据的严格复现；
+- 2005–2006 不得用当前成分或未来财务数据回填。
+
+构建免费数据：
+
+```bash
+.venv/bin/python -m pb_roe data ingest \
+  --config configs/paper_free.yaml \
+  --output-dir data/processed/paper_free
+```
+
 ## 4. 结果冻结
 
 正式运行结束后依次生成模型、优化和报告，再执行：
@@ -67,4 +81,3 @@ fundamentals.parquet
 - `result_manifest.json`；
 - `dashboard.html`；
 - 对应 Git commit。
-
