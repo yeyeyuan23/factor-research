@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pb-roe-research"
+version = "0.1.0"
+description = "Point-in-time PB-ROE reproduction and modern factor evaluation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.1",
+  "pyarrow>=14",
+  "PyYAML>=6.0",
+  "scipy>=1.11",
+  "statsmodels>=0.14",
+]
+
+[project.optional-dependencies]
+data = ["akshare>=1.16", "baostock>=0.8.9"]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6"]
+
+[project.scripts]
+pb-roe = "pb_roe.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q -p no:cacheprovider"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

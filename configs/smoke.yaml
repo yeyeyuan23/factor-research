@@ -1,0 +1,38 @@
+project:
+  run_id: smoke
+  mode: smoke
+  random_seed: 42
+
+data:
+  root: data
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  results_dir: results/runs
+  providers:
+    prices: fixture
+    fundamentals: fixture
+    membership: fixture
+
+universe:
+  id: CSI300
+  minimum_coverage: 0.80
+
+research:
+  start_date: 2022-01-01
+  end_date: 2023-12-31
+  frequency: month_end
+  signal_cutoff: close
+  execution_lag_days: 1
+  execution_price: open
+  quantiles: 5
+
+costs:
+  base_rate: 0.003
+  sensitivity_rates: [0.001, 0.003, 0.005]
+
+quality:
+  membership_coverage: 0.80
+  announcement_coverage: 0.80
+  factor_coverage: 0.70
+

@@ -1,0 +1,44 @@
+project:
+  run_id: modern-pb-roe
+  mode: modern
+  random_seed: 42
+
+data:
+  root: data
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  results_dir: results/runs
+  providers:
+    prices: baostock
+    fundamentals: akshare
+    membership: baostock
+
+universe:
+  id: CSI300
+  minimum_coverage: 0.95
+
+research:
+  start_date: 2010-01-01
+  development_end: 2022-12-31
+  oos_start: 2023-01-01
+  end_date: 2025-12-31
+  frequency: month_end
+  non_trading_day: previous
+  signal_cutoff: close
+  execution_lag_days: 1
+  execution_price: open
+  minimum_listing_days: 120
+  winsor_lower: 0.01
+  winsor_upper: 0.99
+  quantiles: 5
+
+costs:
+  base_rate: 0.003
+  sensitivity_rates: [0.001, 0.003, 0.005]
+
+quality:
+  membership_coverage: 0.95
+  announcement_coverage: 0.95
+  factor_coverage: 0.80
+
