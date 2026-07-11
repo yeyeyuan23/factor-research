@@ -35,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_parser.add_argument("--config", required=True)
     evaluate_parser.add_argument("--factor-file")
 
+    train_parser = subparsers.add_parser("train", help="Run a walk-forward prediction model")
+    train_parser.add_argument("--config", required=True)
+    train_parser.add_argument("--factor-file")
+    train_parser.add_argument("--model", choices=("elastic-net", "lightgbm"), required=True)
+
     return parser
 
 
@@ -72,6 +77,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             from pb_roe.evaluation.runner import evaluate_from_cli
 
             return evaluate_from_cli(args.config, args.factor_file)
+
+        if args.command == "train":
+            from pb_roe.models.runner import train_from_cli
+
+            return train_from_cli(args.config, args.factor_file, args.model)
     except ConfigError as exc:
         LOGGER.error("%s", exc)
         return 2

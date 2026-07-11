@@ -41,3 +41,12 @@ evaluation:
   factor_columns: [bp, roe, paper_score]
   return_column: forward_return
   industry_column: industry
+
+models:
+  train_months: 12
+  validation_months: 3
+  minimum_train_months: 6
+  elastic_net:
+    alpha: 0.001
+    l1_ratio: 0.20
+    max_iter: 10000
