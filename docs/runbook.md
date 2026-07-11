@@ -65,6 +65,8 @@ fundamentals.parquet
   --output-dir data/processed/paper_free
 ```
 
+BaoStock 登录会话不支持多进程并发，`download_workers` 必须为 1。下载器按股票和季度缓存，接口中断后重复同一命令即可续跑；不要通过并发绕过这一限制。
+
 ## 4. 结果冻结
 
 正式运行结束后依次生成模型、优化和报告，再执行：

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
 
 import baostock as bs
@@ -18,6 +19,7 @@ from pb_roe.evaluation.panel import month_end_dates
 from pb_roe.reproduction.schedule import DEFAULT_MONTH_DAYS, paper_rebalance_dates
 
 LOGGER = logging.getLogger(__name__)
+PRICE_FIELDS = "date,code,open,high,low,close,volume,amount,tradestatus,isST,pbMRQ"
 
 
 class BaoStockQueryError(RuntimeError):
@@ -48,6 +50,79 @@ def _quarter_for_signal(signal_date: pd.Timestamp) -> tuple[int, int]:
     return signal_date.year, 4
 
 
+def _download_price_job(job: tuple[str, str, str, str]) -> tuple[str, int]:
+    security_id, start, end, cache_text = job
+    cache = Path(cache_text)
+    if cache.is_file():
+        return security_id, len(pd.read_parquet(cache))
+    last_error: Exception | None = None
+    for attempt in range(3):
+        login = bs.login()
+        try:
+            if login.error_code != "0":
+                raise BaoStockQueryError(login.error_msg)
+            raw = _result_frame(
+                bs.query_history_k_data_plus(
+                    _vendor_code(security_id),
+                    PRICE_FIELDS,
+                    start_date=start,
+                    end_date=end,
+                    frequency="d",
+                    adjustflag="1",
+                )
+            )
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            raw.to_parquet(cache, index=False)
+            return security_id, len(raw)
+        except Exception as exc:  # network provider errors need bounded retries
+            last_error = exc
+            time.sleep(1 + attempt)
+        finally:
+            bs.logout()
+    raise BaoStockQueryError(f"price download failed for {security_id}: {last_error}")
+
+
+def _download_profit_job(job: tuple[str, tuple[tuple[int, int], ...], str]) -> tuple[str, int]:
+    security_id, periods, cache_root_text = job
+    cache_root = Path(cache_root_text)
+    missing = [
+        (year, quarter)
+        for year, quarter in periods
+        if not (cache_root / security_id / f"{year}Q{quarter}.parquet").is_file()
+    ]
+    if not missing:
+        return security_id, 0
+    login = bs.login()
+    if login.error_code != "0":
+        raise BaoStockQueryError(login.error_msg)
+    completed = 0
+    try:
+        for year, quarter in missing:
+            cache = cache_root / security_id / f"{year}Q{quarter}.parquet"
+            last_error: Exception | None = None
+            for attempt in range(3):
+                try:
+                    raw = _result_frame(
+                        bs.query_profit_data(
+                            code=_vendor_code(security_id), year=year, quarter=quarter
+                        )
+                    )
+                    cache.parent.mkdir(parents=True, exist_ok=True)
+                    raw.to_parquet(cache, index=False)
+                    completed += 1
+                    break
+                except Exception as exc:  # network provider errors need bounded retries
+                    last_error = exc
+                    time.sleep(1 + attempt)
+            else:
+                raise BaoStockQueryError(
+                    f"profit download failed for {security_id} {year}Q{quarter}: {last_error}"
+                )
+    finally:
+        bs.logout()
+    return security_id, completed
+
+
 def reconstruct_membership_intervals(snapshots: dict[pd.Timestamp, pd.DataFrame]) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     signal_dates = sorted(snapshots)
@@ -76,6 +151,11 @@ class BaoStockCanonicalIngestor:
         self.output_dir = Path(output_dir).expanduser().resolve()
         self.cache_dir = self.output_dir / "cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.workers = int(config.section("data").get("download_workers", 1))
+        if self.workers != 1:
+            raise ValueError(
+                "BaoStock sessions are not concurrency-safe; download_workers must be 1"
+            )
 
     def _cached_query(self, cache_path: Path, query) -> pd.DataFrame:
         if cache_path.is_file():
@@ -163,23 +243,22 @@ class BaoStockCanonicalIngestor:
         research = self.config.section("research")
         start = (pd.Timestamp(research["start_date"]) - pd.Timedelta(days=400)).date().isoformat()
         end = pd.Timestamp(research["end_date"]).date().isoformat()
+        price_cache = self.cache_dir / "prices"
+        jobs = [
+            (security_id, start, end, str(price_cache / f"{security_id}.parquet"))
+            for security_id in securities
+        ]
+        completed = 0
+        for job in jobs:
+            _download_price_job(job)
+            completed += 1
+            if completed % 25 == 0 or completed == len(jobs):
+                LOGGER.info("price downloads: %d/%d", completed, len(jobs))
+
         price_frames: list[pd.DataFrame] = []
         valuation_frames: list[pd.DataFrame] = []
-        fields = "date,code,open,high,low,close,volume,amount,tradestatus,isST,pbMRQ"
         for index, security_id in enumerate(securities, start=1):
-            cache = self.cache_dir / "prices" / f"{security_id}.parquet"
-            vendor_code = _vendor_code(security_id)
-            raw = self._cached_query(
-                cache,
-                lambda code=vendor_code: bs.query_history_k_data_plus(
-                    code,
-                    fields,
-                    start_date=start,
-                    end_date=end,
-                    frequency="d",
-                    adjustflag="1",
-                ),
-            )
+            raw = pd.read_parquet(price_cache / f"{security_id}.parquet")
             if raw.empty:
                 continue
             numeric = ["open", "high", "low", "close", "volume", "amount", "pbMRQ"]
@@ -221,8 +300,8 @@ class BaoStockCanonicalIngestor:
                     }
                 ).dropna(subset=["value"])
             )
-            if index % 25 == 0 or index == len(securities):
-                LOGGER.info("prices: %d/%d", index, len(securities))
+            if index % 100 == 0 or index == len(securities):
+                LOGGER.info("price transforms: %d/%d", index, len(securities))
         if not price_frames:
             raise BaoStockQueryError("No price data was returned")
         return pd.concat(price_frames, ignore_index=True), pd.concat(
@@ -232,19 +311,22 @@ class BaoStockCanonicalIngestor:
     def roe_fundamentals(
         self, securities: list[str], signal_dates: list[pd.Timestamp]
     ) -> pd.DataFrame:
-        required_periods = sorted({_quarter_for_signal(date) for date in signal_dates})
+        required_periods = tuple(sorted({_quarter_for_signal(date) for date in signal_dates}))
+        profit_cache = self.cache_dir / "profit"
+        jobs = [(security_id, required_periods, str(profit_cache)) for security_id in securities]
+        completed = 0
+        for job in jobs:
+            _download_profit_job(job)
+            completed += 1
+            if completed % 25 == 0 or completed == len(jobs):
+                LOGGER.info("profit downloads: %d/%d", completed, len(jobs))
+
         frames: list[pd.DataFrame] = []
         for index, security_id in enumerate(securities, start=1):
             stock_frames: list[pd.DataFrame] = []
-            vendor_code = _vendor_code(security_id)
             for year, quarter in required_periods:
-                cache = self.cache_dir / "profit" / security_id / f"{year}Q{quarter}.parquet"
-                raw = self._cached_query(
-                    cache,
-                    lambda code=vendor_code, y=year, q=quarter: bs.query_profit_data(
-                        code=code, year=y, quarter=q
-                    ),
-                )
+                cache = profit_cache / security_id / f"{year}Q{quarter}.parquet"
+                raw = pd.read_parquet(cache)
                 if not raw.empty:
                     stock_frames.append(raw)
             if stock_frames:
@@ -265,8 +347,8 @@ class BaoStockCanonicalIngestor:
                         }
                     ).dropna(subset=["effective_date", "value"])
                 )
-            if index % 25 == 0 or index == len(securities):
-                LOGGER.info("profit: %d/%d", index, len(securities))
+            if index % 100 == 0 or index == len(securities):
+                LOGGER.info("profit transforms: %d/%d", index, len(securities))
         return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
     def ingest(self, max_securities: int | None = None) -> DataBundle:
@@ -312,10 +394,7 @@ def ingest_from_cli(config_path: str, output_dir: str, max_securities: int | Non
     login = bs.login()
     if login.error_code != "0":
         raise BaoStockQueryError(f"BaoStock login failed: {login.error_msg}")
-    try:
-        bundle = BaoStockCanonicalIngestor(config, output_dir).ingest(max_securities)
-    finally:
-        bs.logout()
+    bundle = BaoStockCanonicalIngestor(config, output_dir).ingest(max_securities)
     summary = {name: len(frame) for name, frame in bundle.tables().items()}
     print(json.dumps({"output_dir": str(Path(output_dir).resolve()), "rows": summary}, indent=2))
     return 0
