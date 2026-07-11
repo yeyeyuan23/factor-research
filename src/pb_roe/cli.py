@@ -48,6 +48,12 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--config", required=True)
     report_parser.add_argument("--run-dir")
 
+    final_audit_parser = subparsers.add_parser(
+        "final-audit", help="Audit frozen outputs and leakage invariants"
+    )
+    final_audit_parser.add_argument("--config", required=True)
+    final_audit_parser.add_argument("--run-dir")
+
     return parser
 
 
@@ -100,6 +106,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             from pb_roe.reporting.runner import report_from_cli
 
             return report_from_cli(args.config, args.run_dir)
+
+        if args.command == "final-audit":
+            from pb_roe.validation.final_audit import final_audit_from_cli
+
+            return final_audit_from_cli(args.config, args.run_dir)
     except ConfigError as exc:
         LOGGER.error("%s", exc)
         return 2

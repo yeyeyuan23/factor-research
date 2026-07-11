@@ -1,0 +1,70 @@
+# 运行手册
+
+## 1. 环境
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+```
+
+macOS 使用 LightGBM 前执行：
+
+```bash
+brew install libomp
+```
+
+## 2. Smoke 全链路
+
+```bash
+./scripts/run_smoke.sh
+```
+
+预期结果：
+
+- 数据质量闸门通过；
+- 原文复现产生持仓、每期收益与汇总；
+- 现代评价产生 IC、分层、多空、成本和暴露；
+- Elastic Net 与 LightGBM 均产生严格 walk-forward 预测；
+- 组合优化产生约束持仓、净收益和求解诊断；
+- `dashboard.html` 可断网打开；
+- `final_audit.json` 的 `passed` 为 `true`。
+
+## 3. 正式数据运行前置条件
+
+正式结果不能使用 fixture。必须先生成满足 `docs/data_dictionary.md` 的五张 Parquet 表：
+
+```text
+security_master.parquet
+trading_calendar.parquet
+universe_membership.parquet
+prices.parquet
+fundamentals.parquet
+```
+
+随后执行：
+
+```bash
+.venv/bin/python -m pb_roe data audit --config configs/paper.yaml --input-dir <canonical-data>
+.venv/bin/python -m pb_roe reproduce --config configs/paper.yaml --input-dir <canonical-data>
+.venv/bin/python -m pb_roe evaluate --config configs/modern.yaml --factor-file <modern-factor-panel>
+```
+
+当前真实数据适配层提供 BaoStock 行情与沪深 300 快照读取能力；财务公告时点、历史成分区间重建和正式全量下载仍需先落为 canonical Parquet。任何一项覆盖率未达到配置阈值时，不得生成论文结论。
+
+## 4. 结果冻结
+
+正式运行结束后依次生成模型、优化和报告，再执行：
+
+```bash
+.venv/bin/python -m pb_roe final-audit --config <config> --run-dir <run-directory>
+```
+
+归档以下内容：
+
+- 使用的配置文件；
+- canonical 数据 manifest；
+- `final_audit.json`；
+- `result_manifest.json`；
+- `dashboard.html`；
+- 对应 Git commit。
+
