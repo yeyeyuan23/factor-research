@@ -15,4 +15,3 @@ def test_config_check_outputs_summary(capsys) -> None:
     assert exit_code == 0
     assert output["run_id"] == "smoke"
     assert output["mode"] == "smoke"
-

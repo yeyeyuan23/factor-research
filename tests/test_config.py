@@ -24,4 +24,3 @@ def test_fingerprint_is_deterministic() -> None:
 def test_missing_config_raises() -> None:
     with pytest.raises(ConfigError, match="does not exist"):
         load_config(REPOSITORY_ROOT / "configs" / "missing.yaml")
-

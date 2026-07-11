@@ -16,6 +16,7 @@ data:
 
 universe:
   id: CSI300
+  expected_size: 5
   minimum_coverage: 0.80
 
 research:
@@ -35,4 +36,3 @@ quality:
   membership_coverage: 0.80
   announcement_coverage: 0.80
   factor_coverage: 0.70
-
