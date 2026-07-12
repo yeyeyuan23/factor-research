@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -11,6 +12,8 @@ import numpy as np
 import pandas as pd
 
 from pb_roe.data.schema import SCHEMAS, canonical_security_id
+
+LOGGER = logging.getLogger(__name__)
 
 
 class AkShareQueryError(RuntimeError):
@@ -194,7 +197,8 @@ class AkShareFinancialIngestor:
         start = pd.Timestamp(start_date).normalize() - pd.Timedelta(days=400)
         end = pd.Timestamp(end_date).normalize()
         frames: list[pd.DataFrame] = []
-        for security_id in securities:
+        security_list = list(securities)
+        for index, security_id in enumerate(security_list, start=1):
             profit = self._statement(security_id, "profit")
             balance = self._statement(security_id, "balance")
             cashflow = self._statement(security_id, "cashflow")
@@ -229,6 +233,8 @@ class AkShareFinancialIngestor:
                     derive_ttm_roe(profit, balance, security_id),
                 ]
             )
+            if index % 10 == 0 or index == len(security_list):
+                LOGGER.info("AKShare financial downloads: %d/%d", index, len(security_list))
         result = pd.concat([frame for frame in frames if not frame.empty], ignore_index=True)
         result["report_period"] = pd.to_datetime(result["report_period"])
         return result[result["report_period"].between(start, end)].reset_index(drop=True)

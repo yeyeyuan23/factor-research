@@ -1,6 +1,13 @@
+from types import SimpleNamespace
+
 import pandas as pd
 
-from pb_roe.data.ingest_baostock import _quarter_for_signal, reconstruct_membership_intervals
+from pb_roe.data import ingest_baostock
+from pb_roe.data.ingest_baostock import (
+    _download_price_jobs,
+    _quarter_for_signal,
+    reconstruct_membership_intervals,
+)
 from pb_roe.reproduction.schedule import paper_rebalance_dates
 
 
@@ -36,3 +43,46 @@ def test_paper_schedule_can_use_pre_start_calendar_buffer() -> None:
     dates = paper_rebalance_dates("2005-04-30", "2005-05-02", calendar, ["04-30"])
 
     assert dates == [pd.Timestamp("2005-04-29")]
+
+
+def test_price_jobs_reuse_one_baostock_session(monkeypatch, tmp_path) -> None:
+    calls = {"login": 0, "logout": 0, "query": 0}
+
+    def login():
+        calls["login"] += 1
+        return SimpleNamespace(error_code="0", error_msg="")
+
+    def logout():
+        calls["logout"] += 1
+
+    def query(*args, **kwargs):
+        calls["query"] += 1
+        return object()
+
+    raw = pd.DataFrame(
+        {
+            "date": ["2023-01-03"],
+            "code": ["sh.600000"],
+            "open": ["10"],
+            "high": ["11"],
+            "low": ["9"],
+            "close": ["10.5"],
+            "volume": ["100"],
+            "amount": ["1000"],
+            "tradestatus": ["1"],
+            "isST": ["0"],
+            "pbMRQ": ["1.2"],
+        }
+    )
+    monkeypatch.setattr(ingest_baostock.bs, "login", login)
+    monkeypatch.setattr(ingest_baostock.bs, "logout", logout)
+    monkeypatch.setattr(ingest_baostock.bs, "query_history_k_data_plus", query)
+    monkeypatch.setattr(ingest_baostock, "_result_frame", lambda result: raw)
+    jobs = [
+        ("600000.SH", "2023-01-01", "2023-01-31", str(tmp_path / "600000.SH.parquet")),
+        ("000001.SZ", "2023-01-01", "2023-01-31", str(tmp_path / "000001.SZ.parquet")),
+    ]
+
+    _download_price_jobs(jobs)
+
+    assert calls == {"login": 1, "logout": 1, "query": 2}

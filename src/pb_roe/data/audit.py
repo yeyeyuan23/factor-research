@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -142,9 +143,16 @@ def _membership_coverage_check(
     universe_id: str,
     expected_size: int,
     threshold: float,
-    as_of: object,
+    as_of: object | Iterable[object],
 ) -> AuditCheck:
-    member_count = len(active_members(membership, pd.Timestamp(as_of), universe_id))
+    if isinstance(as_of, (str, pd.Timestamp)) or not isinstance(as_of, Iterable):
+        dates = [pd.Timestamp(as_of)]
+    else:
+        dates = [pd.Timestamp(value) for value in as_of]
+    counts = {
+        date.normalize(): len(active_members(membership, date, universe_id)) for date in dates
+    }
+    minimum_date, member_count = min(counts.items(), key=lambda item: item[1])
     coverage = member_count / expected_size if expected_size else 0.0
     return AuditCheck(
         "universe_membership.coverage",
@@ -153,7 +161,8 @@ def _membership_coverage_check(
         coverage >= threshold,
         round(coverage, 6),
         threshold,
-        f"{member_count}/{expected_size} active members on {pd.Timestamp(as_of).date()}",
+        f"minimum {member_count}/{expected_size} active members on {minimum_date.date()} "
+        f"across {len(dates)} signal dates",
     )
 
 
@@ -162,7 +171,7 @@ def audit_bundle(
     announcement_threshold: float = 0.95,
     membership_expected_size: int | None = None,
     membership_threshold: float = 0.95,
-    membership_as_of: object | None = None,
+    membership_as_of: object | Iterable[object] | None = None,
     universe_id: str = "CSI300",
 ) -> AuditReport:
     checks: list[AuditCheck] = []
@@ -193,6 +202,35 @@ def audit_bundle(
     return AuditReport(tuple(checks))
 
 
+def _price_anomalies(prices: pd.DataFrame, threshold: float = 0.50) -> pd.DataFrame:
+    working = prices.loc[~prices["is_suspended"].fillna(False)].copy()
+    working["trade_date"] = pd.to_datetime(working["trade_date"])
+    working = working.sort_values(["security_id", "trade_date"])
+    working["daily_return"] = working.groupby("security_id")["close"].pct_change(fill_method=None)
+    columns = ["trade_date", "security_id", "close", "daily_return", "source"]
+    return working.loc[working["daily_return"].abs() > threshold, columns].reset_index(drop=True)
+
+
+def _fundamental_audit_sample(
+    fundamentals: pd.DataFrame, sample_size: int = 10, random_seed: int = 42
+) -> pd.DataFrame:
+    columns = [
+        "security_id",
+        "report_period",
+        "announce_date",
+        "revision_date",
+        "effective_date",
+        "metric",
+        "value",
+        "source",
+    ]
+    available = fundamentals.loc[:, columns].dropna(subset=["effective_date", "metric", "value"])
+    count = min(sample_size, len(available))
+    return available.sample(n=count, random_state=random_seed).sort_values(
+        ["security_id", "report_period", "metric"]
+    )
+
+
 def audit_from_cli(config_path: str, input_dir: str | None) -> int:
     config = load_config(config_path)
     provider_names = config.section("data").get("providers", {})
@@ -207,15 +245,49 @@ def audit_from_cli(config_path: str, input_dir: str | None) -> int:
     quality = config.section("quality")
     universe = config.section("universe")
     research = config.section("research")
+    open_dates = bundle.trading_calendar.loc[bundle.trading_calendar["is_open"], "trade_date"]
+    if config.mode == "paper":
+        from pb_roe.reproduction.schedule import DEFAULT_MONTH_DAYS, paper_rebalance_dates
+
+        membership_dates = paper_rebalance_dates(
+            research["start_date"],
+            research["end_date"],
+            open_dates,
+            research.get("rebalance_month_days", DEFAULT_MONTH_DAYS),
+        )
+    else:
+        from pb_roe.evaluation.panel import month_end_dates
+
+        membership_dates = month_end_dates(
+            open_dates, research["start_date"], research["end_date"]
+        )
     report = audit_bundle(
         bundle,
         announcement_threshold=float(quality["announcement_coverage"]),
         membership_expected_size=int(universe["expected_size"]),
         membership_threshold=float(quality["membership_coverage"]),
-        membership_as_of=research["end_date"],
+        membership_as_of=membership_dates,
         universe_id=str(universe["id"]),
     )
     output = config.output_dir() / "data_audit.json"
     report.write_json(output)
-    print(json.dumps({**report.to_dict(), "output": str(output)}, ensure_ascii=False, indent=2))
+    anomalies_output = config.output_dir() / "price_anomalies.csv"
+    sample_output = config.output_dir() / "fundamental_audit_sample.csv"
+    _price_anomalies(bundle.prices).to_csv(anomalies_output, index=False)
+    _fundamental_audit_sample(
+        bundle.fundamentals,
+        random_seed=int(config.section("project").get("random_seed", 42)),
+    ).to_csv(sample_output, index=False)
+    print(
+        json.dumps(
+            {
+                **report.to_dict(),
+                "output": str(output),
+                "price_anomalies": str(anomalies_output),
+                "fundamental_audit_sample": str(sample_output),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0 if report.passed else 1

@@ -28,6 +28,22 @@ def test_membership_shortfall_fails_audit() -> None:
     assert "universe_membership.coverage" in failed_ids
 
 
+def test_membership_coverage_checks_every_signal_date() -> None:
+    bundle = fixture_bundle()
+    membership = bundle.universe_membership.copy()
+    membership.loc[membership.index[0], "member_to"] = "2023-06-01"
+
+    report = audit_bundle(
+        replace(bundle, universe_membership=membership),
+        membership_expected_size=5,
+        membership_threshold=0.90,
+        membership_as_of=["2023-05-31", "2023-12-29"],
+    )
+
+    failed_ids = {check.check_id for check in report.checks if not check.passed}
+    assert "universe_membership.coverage" in failed_ids
+
+
 def test_future_effective_date_fails_audit() -> None:
     bundle = fixture_bundle()
     fundamentals = bundle.fundamentals.copy()

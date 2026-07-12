@@ -50,36 +50,43 @@ def _quarter_for_signal(signal_date: pd.Timestamp) -> tuple[int, int]:
     return signal_date.year, 4
 
 
-def _download_price_job(job: tuple[str, str, str, str]) -> tuple[str, int]:
-    security_id, start, end, cache_text = job
-    cache = Path(cache_text)
-    if cache.is_file():
-        return security_id, len(pd.read_parquet(cache))
-    last_error: Exception | None = None
-    for attempt in range(3):
-        login = bs.login()
-        try:
-            if login.error_code != "0":
-                raise BaoStockQueryError(login.error_msg)
-            raw = _result_frame(
-                bs.query_history_k_data_plus(
-                    _vendor_code(security_id),
-                    PRICE_FIELDS,
-                    start_date=start,
-                    end_date=end,
-                    frequency="d",
-                    adjustflag="1",
-                )
-            )
-            cache.parent.mkdir(parents=True, exist_ok=True)
-            raw.to_parquet(cache, index=False)
-            return security_id, len(raw)
-        except Exception as exc:  # network provider errors need bounded retries
-            last_error = exc
-            time.sleep(1 + attempt)
-        finally:
-            bs.logout()
-    raise BaoStockQueryError(f"price download failed for {security_id}: {last_error}")
+def _download_price_jobs(jobs: list[tuple[str, str, str, str]]) -> None:
+    """Download sequentially in one BaoStock session and preserve per-stock caches."""
+
+    login = bs.login()
+    if login.error_code != "0":
+        raise BaoStockQueryError(login.error_msg)
+    try:
+        for index, (security_id, start, end, cache_text) in enumerate(jobs, start=1):
+            cache = Path(cache_text)
+            if not cache.is_file():
+                last_error: Exception | None = None
+                for attempt in range(3):
+                    try:
+                        raw = _result_frame(
+                            bs.query_history_k_data_plus(
+                                _vendor_code(security_id),
+                                PRICE_FIELDS,
+                                start_date=start,
+                                end_date=end,
+                                frequency="d",
+                                adjustflag="1",
+                            )
+                        )
+                        cache.parent.mkdir(parents=True, exist_ok=True)
+                        raw.to_parquet(cache, index=False)
+                        break
+                    except Exception as exc:  # provider errors need bounded retries
+                        last_error = exc
+                        time.sleep(1 + attempt)
+                else:
+                    raise BaoStockQueryError(
+                        f"price download failed for {security_id}: {last_error}"
+                    )
+            if index % 25 == 0 or index == len(jobs):
+                LOGGER.info("price downloads: %d/%d", index, len(jobs))
+    finally:
+        bs.logout()
 
 
 def _download_profit_job(job: tuple[str, tuple[tuple[int, int], ...], str]) -> tuple[str, int]:
@@ -248,12 +255,7 @@ class BaoStockCanonicalIngestor:
             (security_id, start, end, str(price_cache / f"{security_id}.parquet"))
             for security_id in securities
         ]
-        completed = 0
-        for job in jobs:
-            _download_price_job(job)
-            completed += 1
-            if completed % 25 == 0 or completed == len(jobs):
-                LOGGER.info("price downloads: %d/%d", completed, len(jobs))
+        _download_price_jobs(jobs)
 
         price_frames: list[pd.DataFrame] = []
         valuation_frames: list[pd.DataFrame] = []
