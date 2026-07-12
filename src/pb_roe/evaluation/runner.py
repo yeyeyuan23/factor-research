@@ -8,6 +8,7 @@ import pandas as pd
 
 from pb_roe.config import load_config
 from pb_roe.data.providers.fixture import fixture_bundle
+from pb_roe.data.store import ParquetStore
 from pb_roe.evaluation.exposures import mean_factor_correlation, top_quantile_industry_exposure
 from pb_roe.evaluation.ic import calculate_ic, summarize_ic
 from pb_roe.evaluation.panel import build_modern_panel
@@ -16,18 +17,32 @@ from pb_roe.evaluation.preprocessing import winsorize_zscore
 from pb_roe.evaluation.quantiles import long_short_spread, quantile_backtest
 
 
-def evaluate_from_cli(config_path: str, factor_file: str | None) -> int:
+def evaluate_from_cli(
+    config_path: str, factor_file: str | None, input_dir: str | None = None
+) -> int:
     config = load_config(config_path)
     research = config.section("research")
     evaluation = config.section("evaluation")
     raw_factors = list(evaluation["factor_columns"])
     if factor_file:
         panel = pd.read_parquet(factor_file)
+    elif input_dir:
+        panel = build_modern_panel(
+            ParquetStore(input_dir, immutable=False).read_bundle(),
+            research.get("factor_start_date", research["start_date"]),
+            research["end_date"],
+        )
     else:
         providers = config.section("data").get("providers", {})
         if not all(value == "fixture" for value in providers.values()):
             raise FileNotFoundError("--factor-file is required unless all providers are fixture")
         panel = build_modern_panel(fixture_bundle(), research["start_date"], research["end_date"])
+
+    panel["signal_date"] = pd.to_datetime(panel["signal_date"]).dt.normalize()
+    factor_start = pd.Timestamp(
+        research.get("factor_start_date", research["start_date"])
+    ).normalize()
+    panel = panel[panel["signal_date"] >= factor_start].copy()
 
     processed = winsorize_zscore(
         panel,
@@ -56,22 +71,35 @@ def evaluate_from_cli(config_path: str, factor_file: str | None) -> int:
     ic_series = calculate_ic(processed, factor_columns, return_column=return_column)
     ic_summary = summarize_ic(ic_series)
     quantiles = int(research.get("quantiles", 5))
-    cost_rate = float(config.section("costs").get("base_rate", 0.0))
-    quantile_frames = [
-        quantile_backtest(
-            processed,
-            factor,
-            return_column=return_column,
-            quantiles=quantiles,
-            cost_rate=cost_rate,
+    cost_rates = [
+        float(value)
+        for value in config.section("costs").get(
+            "sensitivity_rates", [config.section("costs").get("base_rate", 0.0)]
         )
-        for factor in factor_columns
     ]
+    quantile_frames: list[pd.DataFrame] = []
+    for cost_rate in cost_rates:
+        for factor in factor_columns:
+            frame = quantile_backtest(
+                processed,
+                factor,
+                return_column=return_column,
+                quantiles=quantiles,
+                cost_rate=cost_rate,
+            )
+            frame["cost_rate"] = cost_rate
+            frame["cost_bps"] = int(round(cost_rate * 10_000))
+            quantile_frames.append(frame)
     quantile_returns = pd.concat(quantile_frames, ignore_index=True)
     spreads = long_short_spread(quantile_returns)
     performance_rows = [
-        {"factor": factor, **performance_metrics(group["net_spread"])}
-        for factor, group in spreads.groupby("factor")
+        {
+            "factor": factor,
+            "cost_rate": cost_rate,
+            "cost_bps": int(round(float(cost_rate) * 10_000)),
+            **performance_metrics(group["net_spread"]),
+        }
+        for (factor, cost_rate), group in spreads.groupby(["factor", "cost_rate"])
     ]
     performance = pd.DataFrame(performance_rows)
     industry_column = str(evaluation.get("industry_column", "industry"))
@@ -85,6 +113,12 @@ def evaluate_from_cli(config_path: str, factor_file: str | None) -> int:
         ignore_index=True,
     )
     correlations = mean_factor_correlation(processed, factor_columns)
+    annual_ic = (
+        ic_series.assign(year=pd.to_datetime(ic_series["signal_date"]).dt.year)
+        .groupby(["factor", "year"])["ic"]
+        .agg(["mean", "std", "count"])
+        .reset_index()
+    )
 
     output = config.output_dir()
     output.mkdir(parents=True, exist_ok=True)
@@ -92,6 +126,7 @@ def evaluate_from_cli(config_path: str, factor_file: str | None) -> int:
     coverage.to_csv(output / "factor_coverage.csv", index=False)
     ic_series.to_csv(output / "ic_timeseries.csv", index=False)
     ic_summary.to_csv(output / "ic_summary.csv", index=False)
+    annual_ic.to_csv(output / "ic_annual.csv", index=False)
     quantile_returns.to_csv(output / "quantile_returns.csv", index=False)
     spreads.to_csv(output / "long_short_spreads.csv", index=False)
     performance.to_csv(output / "long_short_performance.csv", index=False)

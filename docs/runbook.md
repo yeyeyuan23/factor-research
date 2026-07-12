@@ -46,7 +46,7 @@ fundamentals.parquet
 ```bash
 .venv/bin/python -m pb_roe data audit --config configs/paper.yaml --input-dir <canonical-data>
 .venv/bin/python -m pb_roe reproduce --config configs/paper.yaml --input-dir <canonical-data>
-.venv/bin/python -m pb_roe evaluate --config configs/modern.yaml --factor-file <modern-factor-panel>
+.venv/bin/python -m pb_roe evaluate --config configs/modern.yaml --input-dir data/processed/modern_sample/canonical
 ```
 
 当前真实数据适配层提供 BaoStock 行情与沪深 300 快照读取能力；财务公告时点、历史成分区间重建和正式全量下载仍需先落为 canonical Parquet。任何一项覆盖率未达到配置阈值时，不得生成论文结论。

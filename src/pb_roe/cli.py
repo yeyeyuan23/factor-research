@@ -38,6 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_parser = subparsers.add_parser("evaluate", help="Run modern factor evaluation")
     evaluate_parser.add_argument("--config", required=True)
     evaluate_parser.add_argument("--factor-file")
+    evaluate_parser.add_argument("--input-dir")
 
     train_parser = subparsers.add_parser("train", help="Run a walk-forward prediction model")
     train_parser.add_argument("--config", required=True)
@@ -99,7 +100,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "evaluate":
             from pb_roe.evaluation.runner import evaluate_from_cli
 
-            return evaluate_from_cli(args.config, args.factor_file)
+            return evaluate_from_cli(args.config, args.factor_file, args.input_dir)
 
         if args.command == "train":
             from pb_roe.models.runner import train_from_cli

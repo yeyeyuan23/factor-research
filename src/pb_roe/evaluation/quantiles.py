@@ -85,19 +85,33 @@ def quantile_backtest(
 def long_short_spread(quantile_returns: pd.DataFrame) -> pd.DataFrame:
     require_columns(
         quantile_returns,
-        ("signal_date", "factor", "quantile", "gross_return", "net_return"),
+        (
+            "signal_date",
+            "factor",
+            "quantile",
+            "gross_return",
+            "transaction_cost",
+        ),
         "quantile_returns",
     )
     rows: list[dict[str, object]] = []
-    for (signal_date, factor), group in quantile_returns.groupby(["signal_date", "factor"]):
+    grouping = ["signal_date", "factor"]
+    if "cost_rate" in quantile_returns:
+        grouping.append("cost_rate")
+    for keys, group in quantile_returns.groupby(grouping):
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        key_values = dict(zip(grouping, keys, strict=True))
         bottom = group.loc[group["quantile"].idxmin()]
         top = group.loc[group["quantile"].idxmax()]
+        gross_spread = float(top["gross_return"] - bottom["gross_return"])
+        total_cost = float(top["transaction_cost"] + bottom["transaction_cost"])
         rows.append(
             {
-                "signal_date": signal_date,
-                "factor": factor,
-                "gross_spread": float(top["gross_return"] - bottom["gross_return"]),
-                "net_spread": float(top["net_return"] - bottom["net_return"]),
+                **key_values,
+                "gross_spread": gross_spread,
+                "transaction_cost": total_cost,
+                "net_spread": gross_spread - total_cost,
             }
         )
     return pd.DataFrame(rows)

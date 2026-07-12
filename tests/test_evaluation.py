@@ -128,6 +128,28 @@ def test_quantile_returns_turnover_cost_and_spread() -> None:
         .all()
     )
     assert np.allclose(spreads["gross_spread"], 0.02)
+    assert np.allclose(
+        spreads["net_spread"], spreads["gross_spread"] - spreads["transaction_cost"]
+    )
+
+
+def test_long_short_cost_is_paid_on_both_legs() -> None:
+    panel = pd.DataFrame(
+        {
+            "signal_date": ["2022-01-31"] * 4,
+            "security_id": ["A", "B", "C", "D"],
+            "factor": [1, 2, 3, 4],
+            "forward_return": [0.01, 0.02, 0.03, 0.04],
+        }
+    )
+    low_cost = long_short_spread(
+        quantile_backtest(panel, "factor", quantiles=2, cost_rate=0.001)
+    )
+    high_cost = long_short_spread(
+        quantile_backtest(panel, "factor", quantiles=2, cost_rate=0.005)
+    )
+
+    assert high_cost.iloc[0]["net_spread"] < low_cost.iloc[0]["net_spread"]
 
 
 def test_performance_metrics_capture_drawdown() -> None:
