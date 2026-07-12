@@ -4,7 +4,7 @@ import pandas as pd
 from pb_roe.data.providers.fixture import fixture_bundle
 from pb_roe.evaluation.exposures import mean_factor_correlation
 from pb_roe.evaluation.ic import calculate_ic, summarize_ic
-from pb_roe.evaluation.panel import month_end_dates, next_open_forward_returns
+from pb_roe.evaluation.panel import build_modern_panel, month_end_dates, next_open_forward_returns
 from pb_roe.evaluation.performance import performance_metrics
 from pb_roe.evaluation.preprocessing import neutralize_cross_section, winsorize_zscore
 from pb_roe.evaluation.quantiles import long_short_spread, quantile_backtest
@@ -24,6 +24,26 @@ def test_month_end_and_next_open_return_timing() -> None:
     assert returns["signal_date"].nunique() == 2
     assert (returns["entry_date"] > returns["signal_date"]).all()
     assert (returns["exit_date"] > returns["entry_date"]).all()
+
+
+def test_modern_panel_applies_signal_date_tradability_filters() -> None:
+    bundle = fixture_bundle()
+    prices = bundle.prices.copy()
+    signal_date = pd.Timestamp("2022-04-29")
+    security_id = prices["security_id"].iloc[0]
+    prices.loc[
+        (prices["trade_date"] == signal_date) & (prices["security_id"] == security_id),
+        "is_st",
+    ] = True
+    from dataclasses import replace
+
+    panel = build_modern_panel(
+        replace(bundle, prices=prices), "2022-04-01", "2022-06-30"
+    )
+
+    assert not (
+        (panel["signal_date"] == signal_date) & (panel["security_id"] == security_id)
+    ).any()
 
 
 def test_winsorized_zscores_are_cross_sectionally_standardized() -> None:

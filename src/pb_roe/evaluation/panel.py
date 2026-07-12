@@ -72,7 +72,12 @@ def next_open_forward_returns(
     return pd.DataFrame(rows)
 
 
-def build_modern_panel(bundle: DataBundle, start_date: object, end_date: object) -> pd.DataFrame:
+def build_modern_panel(
+    bundle: DataBundle,
+    start_date: object,
+    end_date: object,
+    minimum_listing_days: int = 0,
+) -> pd.DataFrame:
     calendar = bundle.trading_calendar.loc[bundle.trading_calendar["is_open"], "trade_date"]
     signals = month_end_dates(calendar, start_date, end_date)
     if len(signals) < 2:
@@ -83,6 +88,30 @@ def build_modern_panel(bundle: DataBundle, start_date: object, end_date: object)
         bundle.fundamentals,
     )
     factors["bp"] = np.where(factors["pb"] > 0, 1 / factors["pb"], np.nan)
+    prices = bundle.prices.copy()
+    prices["trade_date"] = pd.to_datetime(prices["trade_date"]).dt.normalize()
+    prices = prices.sort_values(["security_id", "trade_date"])
+    prices["listing_days"] = prices.groupby("security_id").cumcount() + 1
+    status_columns = [
+        column
+        for column in ("trade_date", "security_id", "is_suspended", "is_st", "listing_days")
+        if column in prices
+    ]
+    signal_status = prices.loc[prices["trade_date"].isin(signals), status_columns].rename(
+        columns={"trade_date": "signal_date"}
+    )
+    factors = factors.merge(
+        signal_status,
+        on=["signal_date", "security_id"],
+        how="left",
+        validate="one_to_one",
+    )
+    eligible = factors["listing_days"].ge(minimum_listing_days)
+    if "is_suspended" in factors:
+        eligible &= ~factors["is_suspended"].fillna(True)
+    if "is_st" in factors:
+        eligible &= ~factors["is_st"].fillna(True)
+    factors = factors.loc[eligible].copy()
     forward = next_open_forward_returns(signals, bundle.prices)
     return factors.merge(
         forward,

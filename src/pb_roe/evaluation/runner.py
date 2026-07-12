@@ -13,7 +13,7 @@ from pb_roe.evaluation.exposures import mean_factor_correlation, top_quantile_in
 from pb_roe.evaluation.ic import calculate_ic, summarize_ic
 from pb_roe.evaluation.panel import build_modern_panel
 from pb_roe.evaluation.performance import performance_metrics
-from pb_roe.evaluation.preprocessing import winsorize_zscore
+from pb_roe.evaluation.preprocessing import neutralize_cross_section, winsorize_zscore
 from pb_roe.evaluation.quantiles import long_short_spread, quantile_backtest
 
 
@@ -31,6 +31,7 @@ def evaluate_from_cli(
             ParquetStore(input_dir, immutable=False).read_bundle(),
             research.get("factor_start_date", research["start_date"]),
             research["end_date"],
+            minimum_listing_days=int(research.get("minimum_listing_days", 0)),
         )
     else:
         providers = config.section("data").get("providers", {})
@@ -67,6 +68,18 @@ def evaluate_from_cli(
     if processed.empty:
         raise ValueError("No signal date passed the configured factor coverage gate")
     factor_columns = [f"{factor}_z" for factor in raw_factors]
+    industry_column = str(evaluation.get("industry_column", "industry"))
+    industry_neutral_columns: list[str] = []
+    if industry_column in processed:
+        for factor in factor_columns:
+            column = f"{factor}_industry_neutral"
+            processed[column] = neutralize_cross_section(
+                processed,
+                factor,
+                industry_column=industry_column,
+            )
+            industry_neutral_columns.append(column)
+    factor_columns.extend(industry_neutral_columns)
     return_column = str(evaluation.get("return_column", "forward_return"))
     ic_series = calculate_ic(processed, factor_columns, return_column=return_column)
     ic_summary = summarize_ic(ic_series)
@@ -102,7 +115,6 @@ def evaluate_from_cli(
         for (factor, cost_rate), group in spreads.groupby(["factor", "cost_rate"])
     ]
     performance = pd.DataFrame(performance_rows)
-    industry_column = str(evaluation.get("industry_column", "industry"))
     exposures = pd.concat(
         [
             top_quantile_industry_exposure(
