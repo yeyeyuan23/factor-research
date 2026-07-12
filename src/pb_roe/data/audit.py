@@ -166,6 +166,55 @@ def _membership_coverage_check(
     )
 
 
+def _factor_coverage_check(
+    bundle: DataBundle,
+    signal_dates: Iterable[object],
+    threshold: float,
+) -> AuditCheck:
+    from pb_roe.reproduction.factors import build_paper_factor_panel
+
+    dates = [pd.Timestamp(value) for value in signal_dates]
+    panel = build_paper_factor_panel(
+        dates,
+        bundle.universe_membership,
+        bundle.fundamentals,
+    )
+    factors = [column for column in ("pb", "roe") if column in panel]
+    if not factors or panel.empty:
+        return AuditCheck(
+            "fundamentals.factor_coverage",
+            "fundamentals",
+            "error",
+            False,
+            {},
+            threshold,
+            "no PB/ROE factor observations",
+        )
+    coverage = (
+        panel.groupby("signal_date")[factors]
+        .count()
+        .div(panel.groupby("signal_date").size(), axis=0)
+    )
+    eligible = coverage.ge(threshold).all(axis=1)
+    continuous = eligible.iloc[::-1].cummin().iloc[::-1]
+    valid_dates = coverage.index[continuous]
+    passed = bool(len(valid_dates))
+    valid_start = pd.Timestamp(valid_dates.min()).date() if passed else None
+    observed = {
+        factor: round(float(coverage.loc[valid_dates, factor].min()), 6)
+        for factor in factors
+    } if passed else {factor: round(float(coverage[factor].max()), 6) for factor in factors}
+    return AuditCheck(
+        "fundamentals.factor_coverage",
+        "fundamentals",
+        "error",
+        passed,
+        observed,
+        threshold,
+        f"first continuous passing month: {valid_start}; {len(coverage)} months checked",
+    )
+
+
 def audit_bundle(
     bundle: DataBundle,
     announcement_threshold: float = 0.95,
@@ -173,6 +222,8 @@ def audit_bundle(
     membership_threshold: float = 0.95,
     membership_as_of: object | Iterable[object] | None = None,
     universe_id: str = "CSI300",
+    factor_coverage_threshold: float | None = None,
+    factor_signal_dates: Iterable[object] | None = None,
 ) -> AuditReport:
     checks: list[AuditCheck] = []
     for name, frame in bundle.tables().items():
@@ -198,6 +249,10 @@ def audit_bundle(
                 membership_threshold,
                 as_of,
             )
+        )
+    if factor_coverage_threshold is not None and factor_signal_dates is not None:
+        checks.append(
+            _factor_coverage_check(bundle, factor_signal_dates, factor_coverage_threshold)
         )
     return AuditReport(tuple(checks))
 
@@ -225,6 +280,12 @@ def _fundamental_audit_sample(
         "source",
     ]
     available = fundamentals.loc[:, columns].dropna(subset=["effective_date", "metric", "value"])
+    public_reports = available[available["source"].eq("akshare_eastmoney_yjbb")]
+    if not public_reports.empty:
+        available = public_reports
+    available = available.sort_values(
+        ["security_id", "report_period", "metric"]
+    ).drop_duplicates(["security_id", "report_period"], keep="first")
     count = min(sample_size, len(available))
     return available.sample(n=count, random_state=random_seed).sort_values(
         ["security_id", "report_period", "metric"]
@@ -268,6 +329,10 @@ def audit_from_cli(config_path: str, input_dir: str | None) -> int:
         membership_threshold=float(quality["membership_coverage"]),
         membership_as_of=membership_dates,
         universe_id=str(universe["id"]),
+        factor_coverage_threshold=(
+            float(quality["factor_coverage"]) if config.mode == "modern" else None
+        ),
+        factor_signal_dates=membership_dates if config.mode == "modern" else None,
     )
     output = config.output_dir() / "data_audit.json"
     report.write_json(output)

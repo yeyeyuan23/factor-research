@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from pathlib import Path
 
 import akshare as ak
@@ -164,77 +164,160 @@ def derive_ttm_roe(
 
 
 class AkShareFinancialIngestor:
-    """Download each statement once per security and reuse local Parquet caches."""
-
-    ENDPOINTS: dict[str, Callable[[str], pd.DataFrame]] = {
-        "profit": ak.stock_profit_sheet_by_report_em,
-        "balance": ak.stock_balance_sheet_by_report_em,
-        "cashflow": ak.stock_cash_flow_sheet_by_report_em,
-    }
+    """Download quarterly all-market reports and reuse local Parquet caches."""
 
     def __init__(self, cache_dir: str | Path) -> None:
         self.cache_dir = Path(cache_dir).expanduser().resolve()
 
-    def _statement(self, security_id: str, name: str) -> pd.DataFrame:
-        cache = self.cache_dir / name / f"{canonical_security_id(security_id)}.parquet"
+    def _quarterly_report(self, report_period: pd.Timestamp) -> pd.DataFrame:
+        key = report_period.strftime("%Y%m%d")
+        cache = self.cache_dir / "yjbb" / f"{key}.parquet"
         if cache.is_file():
             return pd.read_parquet(cache)
         last_error: Exception | None = None
         for attempt in range(3):
             try:
-                frame = self.ENDPOINTS[name](akshare_symbol(security_id))
+                frame = ak.stock_yjbb_em(key)
                 cache.parent.mkdir(parents=True, exist_ok=True)
                 frame.to_parquet(cache, index=False)
                 return frame
             except Exception as exc:  # provider failures need bounded retries
                 last_error = exc
                 time.sleep(1 + attempt)
-        raise AkShareQueryError(f"{name} download failed for {security_id}: {last_error}")
+        raise AkShareQueryError(f"quarterly report download failed for {key}: {last_error}")
 
     def fundamentals(
         self, securities: Iterable[str], start_date: object, end_date: object
     ) -> pd.DataFrame:
-        start = pd.Timestamp(start_date).normalize() - pd.Timedelta(days=400)
+        start = max(
+            pd.Timestamp(start_date).normalize() - pd.Timedelta(days=400),
+            pd.Timestamp("2010-03-31"),
+        )
         end = pd.Timestamp(end_date).normalize()
+        periods = pd.period_range(start=start, end=end, freq="Q")
+        report_dates = [period.end_time.normalize() for period in periods]
+        security_set = {canonical_security_id(value) for value in securities}
         frames: list[pd.DataFrame] = []
-        security_list = list(securities)
-        for index, security_id in enumerate(security_list, start=1):
-            profit = self._statement(security_id, "profit")
-            balance = self._statement(security_id, "balance")
-            cashflow = self._statement(security_id, "cashflow")
-            frames.extend(
+        for index, report_period in enumerate(report_dates, start=1):
+            report = self._quarterly_report(report_period)
+            frame = quarterly_report_to_long(report, report_period)
+            frames.append(frame[frame["security_id"].isin(security_set)])
+            if index % 4 == 0 or index == len(report_dates):
+                LOGGER.info("AKShare quarterly reports: %d/%d", index, len(report_dates))
+        result = pd.concat([frame for frame in frames if not frame.empty], ignore_index=True)
+        roe = derive_ttm_roe_from_per_share(result)
+        return pd.concat([result, roe], ignore_index=True).reset_index(drop=True)
+
+
+def quarterly_report_to_long(report: pd.DataFrame, report_period: object) -> pd.DataFrame:
+    """Convert one all-market performance report into canonical PIT metrics."""
+
+    if report.empty:
+        return pd.DataFrame(columns=SCHEMAS["fundamentals"])
+    base = pd.DataFrame(
+        {
+            "security_id": report["股票代码"].map(canonical_security_id),
+            "report_period": pd.Timestamp(report_period).normalize(),
+            "announce_date": pd.to_datetime(report["最新公告日期"], errors="coerce"),
+        }
+    )
+    base["revision_date"] = pd.NaT
+    base["effective_date"] = base["announce_date"]
+    definitions = {
+        "eps_cumulative": ("每股收益", "CNY/share", 1.0),
+        "revenue_cumulative": ("营业总收入-营业总收入", "CNY", 1.0),
+        "net_income_cumulative": ("净利润-净利润", "CNY", 1.0),
+        "book_value_per_share": ("每股净资产", "CNY/share", 1.0),
+        "roe_reported": ("净资产收益率", "ratio", 0.01),
+        "operating_cash_flow_per_share": ("每股经营现金流量", "CNY/share", 1.0),
+        "gross_margin": ("销售毛利率", "ratio", 0.01),
+        "revenue_growth": ("营业总收入-同比增长", "ratio", 0.01),
+        "earnings_growth": ("净利润-同比增长", "ratio", 0.01),
+    }
+    frames: list[pd.DataFrame] = []
+    for metric, (column, unit, scale) in definitions.items():
+        selected = base.copy()
+        selected["metric"] = metric
+        selected["value"] = pd.to_numeric(report[column], errors="coerce") * scale
+        selected["unit"] = unit
+        selected["statement_type"] = "performance_report_cumulative"
+        selected["source"] = "akshare_eastmoney_yjbb"
+        frames.append(selected.dropna(subset=["effective_date", "value"]))
+    return pd.concat(frames, ignore_index=True).drop_duplicates(
+        ["security_id", "report_period", "effective_date", "metric", "source"],
+        keep="last",
+    )
+
+
+def derive_ttm_roe_from_per_share(fundamentals: pd.DataFrame) -> pd.DataFrame:
+    """Derive TTM ROE from cumulative EPS and average book value per share."""
+
+    selected = fundamentals[fundamentals["metric"].isin(["eps_cumulative", "book_value_per_share"])]
+    values = selected.pivot_table(
+        index=["security_id", "report_period"], columns="metric", values="value", aggfunc="last"
+    )
+    dates = selected.pivot_table(
+        index=["security_id", "report_period"],
+        columns="metric",
+        values="effective_date",
+        aggfunc="max",
+    )
+    rows: list[dict[str, object]] = []
+    for security_id, stock in values.groupby(level="security_id"):
+        stock = stock.droplevel("security_id").sort_index()
+        stock_dates = dates.xs(security_id, level="security_id").sort_index()
+        for report_period, current in stock.iterrows():
+            prior_same = report_period - pd.DateOffset(years=1)
+            if prior_same not in stock.index:
+                continue
+            if report_period.month == 12:
+                ttm_eps = current.get("eps_cumulative")
+                component_dates = [stock_dates.loc[report_period, "eps_cumulative"]]
+            else:
+                prior_annual = pd.Timestamp(report_period.year - 1, 12, 31)
+                if prior_annual not in stock.index:
+                    continue
+                ttm_eps = (
+                    current.get("eps_cumulative")
+                    + stock.loc[prior_annual, "eps_cumulative"]
+                    - stock.loc[prior_same, "eps_cumulative"]
+                )
+                component_dates = [
+                    stock_dates.loc[report_period, "eps_cumulative"],
+                    stock_dates.loc[prior_annual, "eps_cumulative"],
+                    stock_dates.loc[prior_same, "eps_cumulative"],
+                ]
+            average_equity = (
+                current.get("book_value_per_share")
+                + stock.loc[prior_same, "book_value_per_share"]
+            ) / 2
+            component_dates.extend(
                 [
-                    statement_metrics_to_long(
-                        profit,
-                        security_id,
-                        {
-                            "net_income_cumulative": ("PARENT_NETPROFIT", "NETPROFIT"),
-                            "revenue_cumulative": ("TOTAL_OPERATE_INCOME", "OPERATE_INCOME"),
-                            "operating_cost_cumulative": ("OPERATE_COST",),
-                        },
-                        "income_statement_cumulative",
-                    ),
-                    statement_metrics_to_long(
-                        balance,
-                        security_id,
-                        {
-                            "book_equity": ("TOTAL_PARENT_EQUITY", "TOTAL_EQUITY"),
-                            "total_assets": ("TOTAL_ASSETS",),
-                            "share_capital": ("SHARE_CAPITAL",),
-                        },
-                        "balance_sheet",
-                    ),
-                    statement_metrics_to_long(
-                        cashflow,
-                        security_id,
-                        {"operating_cash_flow_cumulative": ("NETCASH_OPERATE",)},
-                        "cash_flow_statement_cumulative",
-                    ),
-                    derive_ttm_roe(profit, balance, security_id),
+                    stock_dates.loc[report_period, "book_value_per_share"],
+                    stock_dates.loc[prior_same, "book_value_per_share"],
                 ]
             )
-            if index % 10 == 0 or index == len(security_list):
-                LOGGER.info("AKShare financial downloads: %d/%d", index, len(security_list))
-        result = pd.concat([frame for frame in frames if not frame.empty], ignore_index=True)
-        result["report_period"] = pd.to_datetime(result["report_period"])
-        return result[result["report_period"].between(start, end)].reset_index(drop=True)
+            if (
+                not np.isfinite(ttm_eps)
+                or not np.isfinite(average_equity)
+                or abs(average_equity) <= 1e-12
+            ):
+                continue
+            effective_date = max(
+                pd.Timestamp(value) for value in component_dates if pd.notna(value)
+            )
+            rows.append(
+                {
+                    "security_id": security_id,
+                    "report_period": report_period,
+                    "announce_date": effective_date,
+                    "revision_date": pd.NaT,
+                    "effective_date": effective_date,
+                    "metric": "roe",
+                    "value": float(ttm_eps / average_equity),
+                    "unit": "ratio",
+                    "statement_type": "derived_ttm_per_share",
+                    "source": "akshare_eastmoney_yjbb_derived",
+                }
+            )
+    return pd.DataFrame(rows, columns=SCHEMAS["fundamentals"])

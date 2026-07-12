@@ -86,3 +86,32 @@ def test_price_jobs_reuse_one_baostock_session(monkeypatch, tmp_path) -> None:
     _download_price_jobs(jobs)
 
     assert calls == {"login": 1, "logout": 1, "query": 2}
+
+
+def test_price_jobs_reconnect_after_query_failure(monkeypatch, tmp_path) -> None:
+    calls = {"login": 0, "logout": 0, "query": 0}
+
+    def login():
+        calls["login"] += 1
+        return SimpleNamespace(error_code="0", error_msg="")
+
+    def logout():
+        calls["logout"] += 1
+
+    def query(*args, **kwargs):
+        calls["query"] += 1
+        if calls["query"] == 1:
+            raise ConnectionResetError("connection reset")
+        return object()
+
+    raw = pd.DataFrame({field: [] for field in ingest_baostock.PRICE_FIELDS.split(",")})
+    monkeypatch.setattr(ingest_baostock.bs, "login", login)
+    monkeypatch.setattr(ingest_baostock.bs, "logout", logout)
+    monkeypatch.setattr(ingest_baostock.bs, "query_history_k_data_plus", query)
+    monkeypatch.setattr(ingest_baostock, "_result_frame", lambda result: raw)
+
+    _download_price_jobs(
+        [("600000.SH", "2023-01-01", "2023-01-31", str(tmp_path / "price.parquet"))]
+    )
+
+    assert calls == {"login": 2, "logout": 2, "query": 2}

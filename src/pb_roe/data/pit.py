@@ -47,12 +47,21 @@ def fundamentals_asof(
     right["effective_date"] = pd.to_datetime(right["effective_date"]).dt.normalize()
     right["report_period"] = pd.to_datetime(right["report_period"]).dt.normalize()
 
-    candidates = left.merge(right, on="security_id", how="left", validate="many_to_many")
-    candidates = candidates[candidates["effective_date"] <= candidates["signal_date"]]
-    candidates = candidates.sort_values(
-        ["signal_date", "security_id", "metric", "effective_date", "report_period"]
-    )
-    selected = candidates.drop_duplicates(["signal_date", "security_id", "metric"], keep="last")
+    metrics = right[["metric"]].drop_duplicates()
+    candidates = left.merge(metrics, how="cross")
+    right = right.sort_values(
+        ["effective_date", "security_id", "metric", "report_period"]
+    ).drop_duplicates(["security_id", "metric", "effective_date"], keep="last")
+    candidates = candidates.sort_values(["signal_date", "security_id", "metric"])
+    selected = pd.merge_asof(
+        candidates,
+        right,
+        left_on="signal_date",
+        right_on="effective_date",
+        by=["security_id", "metric"],
+        direction="backward",
+        allow_exact_matches=True,
+    ).dropna(subset=["effective_date"])
     if not selected.empty and (selected["effective_date"] > selected["signal_date"]).any():
         raise AssertionError("Point-in-time selection leaked future fundamentals")
     return selected.reset_index(drop=True)

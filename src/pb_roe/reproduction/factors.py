@@ -37,8 +37,8 @@ def build_paper_factor_panel(
 ) -> pd.DataFrame:
     members = membership_panel(signal_dates, membership, universe_id=universe_id)
     signals = members[["signal_date", "security_id"]].drop_duplicates()
-    selected = fundamentals_asof(signals, fundamentals)
-    selected = selected[selected["metric"].isin(("pb", "roe"))]
+    paper_fundamentals = fundamentals[fundamentals["metric"].isin(("pb", "roe"))]
+    selected = fundamentals_asof(signals, paper_fundamentals)
     values = selected.pivot_table(
         index=["signal_date", "security_id"],
         columns="metric",

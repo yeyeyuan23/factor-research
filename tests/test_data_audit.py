@@ -78,3 +78,18 @@ def test_tradable_missing_volume_fails_ohlc_audit() -> None:
 
     failed_ids = {check.check_id for check in report.checks if not check.passed}
     assert "prices.ohlc_logic" in failed_ids
+
+
+def test_factor_coverage_reports_first_continuous_passing_month() -> None:
+    bundle = fixture_bundle()
+    report = audit_bundle(
+        bundle,
+        factor_coverage_threshold=0.80,
+        factor_signal_dates=["2023-03-31", "2023-06-30", "2023-09-29"],
+    )
+
+    check = next(
+        check for check in report.checks if check.check_id == "fundamentals.factor_coverage"
+    )
+    assert check.passed
+    assert "first continuous passing month" in check.details

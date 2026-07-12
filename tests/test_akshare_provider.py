@@ -4,6 +4,8 @@ import pandas as pd
 from pb_roe.data.providers.akshare import (
     akshare_symbol,
     derive_ttm_roe,
+    derive_ttm_roe_from_per_share,
+    quarterly_report_to_long,
     statement_metrics_to_long,
 )
 
@@ -50,3 +52,33 @@ def test_ttm_roe_uses_only_components_available_by_effective_date() -> None:
 
     assert np.isclose(row["value"], (30.0 + 100.0 - 20.0) / 230.0)
     assert row["effective_date"] == pd.Timestamp("2023-05-10")
+
+
+def test_quarterly_bulk_report_derives_ttm_roe() -> None:
+    frames = []
+    for report_period, eps, book_value in [
+        ("2022-03-31", 0.2, 2.0),
+        ("2022-12-31", 1.0, 2.4),
+        ("2023-03-31", 0.3, 2.6),
+    ]:
+        report = pd.DataFrame(
+            {
+                "股票代码": ["600519"],
+                "每股收益": [eps],
+                "营业总收入-营业总收入": [100.0],
+                "净利润-净利润": [10.0],
+                "每股净资产": [book_value],
+                "净资产收益率": [10.0],
+                "每股经营现金流量": [0.5],
+                "销售毛利率": [50.0],
+                "营业总收入-同比增长": [5.0],
+                "净利润-同比增长": [6.0],
+                "最新公告日期": [pd.Timestamp(report_period) + pd.Timedelta(days=30)],
+            }
+        )
+        frames.append(quarterly_report_to_long(report, report_period))
+
+    result = derive_ttm_roe_from_per_share(pd.concat(frames, ignore_index=True))
+    row = result[result["report_period"] == pd.Timestamp("2023-03-31")].iloc[0]
+
+    assert np.isclose(row["value"], (0.3 + 1.0 - 0.2) / 2.3)

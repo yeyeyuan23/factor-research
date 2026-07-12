@@ -53,9 +53,12 @@ def _quarter_for_signal(signal_date: pd.Timestamp) -> tuple[int, int]:
 def _download_price_jobs(jobs: list[tuple[str, str, str, str]]) -> None:
     """Download sequentially in one BaoStock session and preserve per-stock caches."""
 
-    login = bs.login()
-    if login.error_code != "0":
-        raise BaoStockQueryError(login.error_msg)
+    def login_session() -> None:
+        login = bs.login()
+        if login.error_code != "0":
+            raise BaoStockQueryError(login.error_msg)
+
+    login_session()
     try:
         for index, (security_id, start, end, cache_text) in enumerate(jobs, start=1):
             cache = Path(cache_text)
@@ -78,7 +81,9 @@ def _download_price_jobs(jobs: list[tuple[str, str, str, str]]) -> None:
                         break
                     except Exception as exc:  # provider errors need bounded retries
                         last_error = exc
+                        bs.logout()
                         time.sleep(1 + attempt)
+                        login_session()
                 else:
                     raise BaoStockQueryError(
                         f"price download failed for {security_id}: {last_error}"
