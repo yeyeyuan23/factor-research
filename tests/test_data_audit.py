@@ -37,3 +37,28 @@ def test_future_effective_date_fails_audit() -> None:
 
     failed_ids = {check.check_id for check in report.checks if not check.passed}
     assert "fundamentals.effective_after_period" in failed_ids
+
+
+def test_suspended_vendor_price_mismatch_does_not_fail_ohlc_audit() -> None:
+    bundle = fixture_bundle()
+    prices = bundle.prices.copy()
+    prices.loc[0, ["open", "high", "low"]] = 11.0
+    prices.loc[0, "close"] = 10.0
+    prices.loc[0, "volume"] = None
+    prices.loc[0, "is_suspended"] = True
+
+    report = audit_bundle(replace(bundle, prices=prices))
+
+    check = next(check for check in report.checks if check.check_id == "prices.ohlc_logic")
+    assert check.passed
+
+
+def test_tradable_missing_volume_fails_ohlc_audit() -> None:
+    bundle = fixture_bundle()
+    prices = bundle.prices.copy()
+    prices.loc[0, "volume"] = None
+
+    report = audit_bundle(replace(bundle, prices=prices))
+
+    failed_ids = {check.check_id for check in report.checks if not check.passed}
+    assert "prices.ohlc_logic" in failed_ids

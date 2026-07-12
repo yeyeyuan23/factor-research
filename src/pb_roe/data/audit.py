@@ -74,13 +74,24 @@ def _schema_check(name: str, frame: pd.DataFrame) -> AuditCheck:
 
 
 def _ohlc_check(prices: pd.DataFrame) -> AuditCheck:
-    require_columns(prices, ("open", "high", "low", "close", "volume"), "prices")
-    invalid = (
-        (prices[["open", "high", "low", "close"]].le(0).any(axis=1))
-        | (prices["high"] < prices[["open", "close", "low"]].max(axis=1))
-        | (prices["low"] > prices[["open", "close", "high"]].min(axis=1))
-        | (prices["volume"] < 0)
+    require_columns(
+        prices,
+        ("open", "high", "low", "close", "volume", "is_suspended"),
+        "prices",
     )
+    price_columns = ["open", "high", "low", "close"]
+    tradable = ~prices["is_suspended"].fillna(False)
+    tradable_prices = prices.loc[tradable, price_columns]
+    invalid_tradable = (
+        tradable_prices.isna().any(axis=1)
+        | tradable_prices.le(0).any(axis=1)
+        | (tradable_prices["high"] < tradable_prices[["open", "close", "low"]].max(axis=1))
+        | (tradable_prices["low"] > tradable_prices[["open", "close", "high"]].min(axis=1))
+        | prices.loc[tradable, "volume"].isna()
+        | prices.loc[tradable, "volume"].lt(0)
+    )
+    invalid_suspended = prices.loc[~tradable, price_columns].lt(0).any(axis=1)
+    invalid = pd.concat((invalid_tradable, invalid_suspended))
     count = int(invalid.sum())
     return AuditCheck("prices.ohlc_logic", "prices", "error", count == 0, count, 0)
 
