@@ -151,9 +151,7 @@ def evaluate_from_cli(
     for column in ("entry_delay_days", "exit_delay_days"):
         if column in processed:
             delayed = processed[column].gt(0).groupby(processed["signal_date"]).sum().astype(int)
-            execution_coverage[f"{column}_delayed"] = execution_coverage["signal_date"].map(
-                delayed
-            )
+            execution_coverage[f"{column}_delayed"] = execution_coverage["signal_date"].map(delayed)
     annual_ic = (
         ic_series.assign(year=pd.to_datetime(ic_series["signal_date"]).dt.year)
         .groupby(["factor", "year"])["ic"]
@@ -167,13 +165,54 @@ def evaluate_from_cli(
     }
     segment_frames: list[pd.DataFrame] = []
     for segment, (start, end) in segment_boundaries.items():
-        selected = ic_series[
-            pd.to_datetime(ic_series["signal_date"]).between(start, end)
-        ]
+        selected = ic_series[pd.to_datetime(ic_series["signal_date"]).between(start, end)]
         summary = summarize_ic(selected)
         summary.insert(0, "segment", segment)
         segment_frames.append(summary)
     segment_ic = pd.concat(segment_frames, ignore_index=True)
+
+    validation_rows: list[dict[str, object]] = []
+    for factor in factor_columns:
+        full = ic_summary[ic_summary["factor"] == factor].iloc[0]
+        development = segment_ic[
+            (segment_ic["segment"] == "development") & (segment_ic["factor"] == factor)
+        ].iloc[0]
+        frozen_oos = segment_ic[
+            (segment_ic["segment"] == "frozen_oos") & (segment_ic["factor"] == factor)
+        ].iloc[0]
+        quantile_means = (
+            quantile_returns[
+                (quantile_returns["factor"] == factor) & (quantile_returns["cost_bps"] == 30)
+            ]
+            .groupby("quantile")["net_return"]
+            .mean()
+            .reindex(range(1, quantiles + 1))
+        )
+        costs = performance[performance["factor"] == factor].set_index("cost_bps")
+        validation_rows.append(
+            {
+                "factor": factor,
+                "full_ic_mean": full["ic_mean"],
+                "full_newey_west_t": full["newey_west_t"],
+                "development_ic_mean": development["ic_mean"],
+                "development_newey_west_t": development["newey_west_t"],
+                "frozen_oos_ic_mean": frozen_oos["ic_mean"],
+                "frozen_oos_newey_west_t": frozen_oos["newey_west_t"],
+                "quantile_monotonicity_30bp": quantile_means.corr(
+                    pd.Series(range(1, quantiles + 1), index=quantile_means.index),
+                    method="spearman",
+                ),
+                **{
+                    f"long_short_annual_return_{cost_bps}bp": costs.loc[cost_bps, "annual_return"]
+                    for cost_bps in (10, 30, 50)
+                },
+                **{
+                    f"quantile_{quantile}_mean_monthly_return_30bp": quantile_means.loc[quantile]
+                    for quantile in range(1, quantiles + 1)
+                },
+            }
+        )
+    validation = pd.DataFrame(validation_rows).round(6)
 
     output = config.output_dir()
     output.mkdir(parents=True, exist_ok=True)
@@ -183,6 +222,9 @@ def evaluate_from_cli(
     ic_summary.to_csv(output / "ic_summary.csv", index=False)
     annual_ic.to_csv(output / "ic_annual.csv", index=False)
     segment_ic.to_csv(output / "ic_segments.csv", index=False)
+    validation.to_csv(
+        output / "core_factor_validation.csv", index=False, float_format="%.6f"
+    )
     quantile_returns.to_csv(output / "quantile_returns.csv", index=False)
     spreads.to_csv(output / "long_short_spreads.csv", index=False)
     performance.to_csv(output / "long_short_performance.csv", index=False)

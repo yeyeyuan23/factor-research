@@ -12,7 +12,7 @@
 | 02 | 建立配置、CLI、日志、目录、smoke fixture 与测试框架；smoke 只验工程链路 | `c743421` | 已完成 |
 | 03 | 构建历史沪深300、行情和财务PIT数据管线，执行质量闸门并缓存 canonical Parquet | `e104f5f` | 已完成；复现闸门15/15、现代闸门16/16通过，现代因子有效起点为2012-05-31 |
 | 04 | 严格按原文构造2005–2011组合，统一成本口径并逐项对照原研报结果 | `25dc6dd` | 已完成；早期ROE披露截止假设已披露 |
-| 05 | 仅评价原研报核心信号BP、ROE、PB-ROE：IC、分层、成本、显著性、稳定性与暴露 | `1e3407c` | 已完成；市值暴露因可靠历史总市值缺失而降级披露 |
+| 05 | 仅评价原研报核心信号BP、ROE、PB-ROE：IC、分层、成本、显著性、稳定性与暴露 | `1e3407c` | 已重新完成；48,560个观测、162个月，正式汇总已补齐；市值暴露降级披露 |
 | 06 | 按5类Barra-style框架构建扩展因子；只在2015–2022开发期完成单因子验证、筛选、冻结和等权多因子基准 | `f5fe62f` | **未完成**；已构建9个扩展变量并计算全样本IC，但缺少开发期筛选、分层/成本/稳定性检验和等权基准 |
 | 07 | 仅使用Commit 06冻结的因子，按相同walk-forward口径训练Elastic Net和唯一树模型LightGBM | `648dde5` | **待重跑**；现有结果使用了仅通过覆盖率闸门的全部12列，保留为初版实验，不作为最终结论 |
 | 08 | 使用Commit 07冻结预测做Ledoit-Wolf风险估计、CVXPY约束组合、失败回退及10/30/50bp成本检验 | `9f37564` | **待重跑**；工程与初版结果存在，须随冻结因子模型更新 |
@@ -51,7 +51,7 @@ Commit 03 的现代全量数据实际覆盖 2010–2025 年逐月历史沪深 30
 
 ## 原研报核心信号的现代证据（Commit 05，已完成）
 
-当前可提交摘要见 [`docs/results/modern_factor_baseline.csv`](docs/results/modern_factor_baseline.csv)，分段稳定性见 [`docs/results/modern_factor_segments.csv`](docs/results/modern_factor_segments.csv)。结果使用 2012-05-31 至 2025-10-31 的 162 个月、48,560 个可交易截面观测，配置指纹为 `6799e05ac4e93d9c`。这里的行业调整是截面去除行业均值后的现代检验，不等同于原研报每行业前 5 的组合。
+完整小型汇总见 [`docs/results/core_factor_validation.csv`](docs/results/core_factor_validation.csv)，原有摘要见 [`docs/results/modern_factor_baseline.csv`](docs/results/modern_factor_baseline.csv)，分段稳定性见 [`docs/results/modern_factor_segments.csv`](docs/results/modern_factor_segments.csv)。结果使用2012-05-31至2025-10-31的162个月、48,560个可交易截面观测；新汇总同时列出全样本、2015–2022开发期、2023–2025冻结期IC，五分组30bp成本后月均收益、单调性和10/30/50bp多空年化。这里的行业调整是截面去除行业均值后的现代检验，不等同于原研报每行业前5的组合。Commit 05只评价既定核心信号，不据此选择Commit 06扩展因子。
 
 - BP 的 Rank IC 均值为 4.56%，Newey-West t 值为 2.50；行业调整后分别为 3.13% 和 2.83，说明价值信号不完全由行业差异解释。
 - ROE TTM 的 Rank IC 均值仅为 0.50%，t 值为 0.43，当前数据不支持其作为独立现代选股信号。
