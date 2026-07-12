@@ -364,10 +364,23 @@ class BaoStockCanonicalIngestor:
             membership = membership[membership["security_id"].isin(securities)].copy()
         master = self.security_master(securities)
         prices, pb = self.prices(securities)
-        roe = self.roe_fundamentals(securities, signals)
-        if roe.empty:
-            raise BaoStockQueryError("No ROE fundamentals were returned")
-        fundamentals = pd.concat([pb, roe], ignore_index=True)
+        fundamental_provider = str(
+            self.config.section("data").get("providers", {}).get("fundamentals", "")
+        )
+        if fundamental_provider == "baostock":
+            financials = self.roe_fundamentals(securities, signals)
+        elif fundamental_provider == "akshare":
+            from pb_roe.data.providers.akshare import AkShareFinancialIngestor
+
+            research = self.config.section("research")
+            financials = AkShareFinancialIngestor(
+                self.cache_dir / "akshare"
+            ).fundamentals(securities, research["start_date"], research["end_date"])
+        else:
+            raise ValueError(f"Unsupported fundamentals provider: {fundamental_provider}")
+        if financials.empty:
+            raise BaoStockQueryError("No financial fundamentals were returned")
+        fundamentals = pd.concat([pb, financials], ignore_index=True)
         bundle = DataBundle(master, calendar, membership, prices, fundamentals)
         canonical = self.output_dir / "canonical"
         ParquetStore(canonical, immutable=False).write_bundle(bundle, overwrite=True)
@@ -381,6 +394,7 @@ class BaoStockCanonicalIngestor:
                 "CSI300 historical weights are unavailable; "
                 "membership weights are equal-weight proxies",
                 "prices use BaoStock adjustflag=1 and adjustment_factor is stored as 1.0",
+                f"fundamentals provider: {fundamental_provider}",
             ],
         }
         (self.output_dir / "ingestion_run.json").write_text(
