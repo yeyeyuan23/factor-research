@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from pb_roe.evaluation.quantiles import quantile_backtest
+
 
 def monthly_rank_ic(panel: pd.DataFrame, score_column: str) -> pd.Series:
     return panel.groupby("signal_date").apply(
@@ -23,6 +25,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--quantile-output", required=True)
     args = parser.parse_args()
     run_dir = Path(args.run_dir)
     panel = pd.read_parquet(run_dir / "model_factor_panel.parquet")
@@ -75,6 +78,46 @@ def main() -> int:
     figure.tight_layout()
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(args.output, bbox_inches="tight")
+    plt.close(figure)
+
+    grouped = []
+    for segment, start, end in (
+        ("开发期（2015–2022）", "2015-01-01", "2022-12-31"),
+        ("冻结期（2023–2025）", "2023-01-01", "2025-12-31"),
+    ):
+        sample = panel[pd.to_datetime(panel["signal_date"]).between(start, end)]
+        quantiles = quantile_backtest(
+            sample,
+            "equal_weight_score",
+            return_column="target_return",
+            quantiles=5,
+            cost_rate=0.003,
+        )
+        mean_returns = quantiles.groupby("quantile")["net_return"].mean() * 100
+        grouped.append((segment, mean_returns))
+
+    figure, axes = plt.subplots(1, 2, figsize=(11, 4.8), dpi=160, sharey=True)
+    colors = ["#d65a61", "#d65a61", "#9aa4b2", "#4f86c6", "#4f86c6"]
+    for axis, (segment, mean_returns) in zip(axes, grouped, strict=True):
+        bars = axis.bar(mean_returns.index.astype(str), mean_returns, color=colors)
+        axis.axhline(0, color="#333333", linewidth=1)
+        axis.set_title(segment, fontweight="bold")
+        axis.set_xlabel("分组（Q1低 → Q5高）")
+        axis.grid(axis="y", alpha=0.25)
+        axis.set_axisbelow(True)
+        for bar, value in zip(bars, mean_returns, strict=True):
+            axis.text(
+                bar.get_x() + bar.get_width() / 2,
+                value + (0.015 if value >= 0 else -0.04),
+                f"{value:.2f}%",
+                ha="center",
+                va="bottom" if value >= 0 else "top",
+                fontsize=9,
+            )
+    axes[0].set_ylabel("30bp成本后平均月收益（%）")
+    figure.suptitle("六因子等权综合：五分组收益与单调性", fontsize=15, fontweight="bold")
+    figure.tight_layout()
+    figure.savefig(args.quantile_output, bbox_inches="tight")
     plt.close(figure)
     return 0
 

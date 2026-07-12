@@ -48,6 +48,8 @@
 
 展示用基础IC图见 [`docs/results/figures/equal-weight-ic-matplotlib.png`](docs/results/figures/equal-weight-ic-matplotlib.png)：蓝/红柱表示正/负Rank IC，橙色虚线为IC均值，黑线为累计IC，竖向虚线标出2023年冻结样本外起点。
 
+Commit 06的完整方法、候选淘汰原因、单因子证据和五分组单调性见 [`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)。
+
 
 完整项目计划以 [`docs/project_plan.md`](docs/project_plan.md) 为唯一正式版本；原研报的固定方法与结果笔记见 [`docs/paper_notes.md`](docs/paper_notes.md)，研究口径见 [`docs/research_spec.md`](docs/research_spec.md)，字段约定见 [`docs/data_dictionary.md`](docs/data_dictionary.md)。后续优先查固定笔记，仅在笔记未覆盖或需要逐字核验时重新读取原 PDF。
 
