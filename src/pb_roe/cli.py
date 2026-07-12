@@ -43,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     train_parser = subparsers.add_parser("train", help="Run a walk-forward prediction model")
     train_parser.add_argument("--config", required=True)
     train_parser.add_argument("--factor-file")
+    train_parser.add_argument("--input-dir")
     train_parser.add_argument("--model", choices=("elastic-net", "lightgbm"), required=True)
 
     optimize_parser = subparsers.add_parser("optimize", help="Build constrained portfolios")
@@ -105,7 +106,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "train":
             from pb_roe.models.runner import train_from_cli
 
-            return train_from_cli(args.config, args.factor_file, args.model)
+            return train_from_cli(args.config, args.factor_file, args.model, args.input_dir)
 
         if args.command == "optimize":
             from pb_roe.portfolio.runner import optimize_from_cli

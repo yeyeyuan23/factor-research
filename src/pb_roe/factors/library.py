@@ -77,36 +77,40 @@ def compute_price_factors(
     working = prices.loc[~prices["is_suspended"].fillna(False)].copy()
     working["trade_date"] = pd.to_datetime(working["trade_date"]).dt.normalize()
     working = working.sort_values(["security_id", "trade_date"])
-    working["daily_return"] = working.groupby("security_id")["close"].pct_change()
+    working["daily_return"] = working.groupby("security_id")["close"].pct_change(
+        fill_method=None
+    )
     market = working.groupby("trade_date")["daily_return"].mean().rename("market_return")
-    rows: list[dict[str, object]] = []
-    for signal_date in sorted(pd.Timestamp(value).normalize() for value in signal_dates):
-        history = working[working["trade_date"] <= signal_date]
-        for security_id, stock in history.groupby("security_id"):
-            stock = stock.tail(252).set_index("trade_date")
-            returns = stock["daily_return"].dropna()
-            aligned = pd.concat([returns, market], axis=1, join="inner").dropna().tail(252)
-            beta = np.nan
-            idiosyncratic_volatility = np.nan
-            if len(aligned) >= minimum_beta_observations and aligned["market_return"].var() > 0:
-                beta = float(
-                    aligned["daily_return"].cov(aligned["market_return"])
-                    / aligned["market_return"].var()
-                )
-                residual = aligned["daily_return"] - beta * aligned["market_return"]
-                idiosyncratic_volatility = float(residual.std(ddof=1) * np.sqrt(252))
-            rows.append(
-                {
-                    "signal_date": signal_date,
-                    "security_id": security_id,
-                    "momentum_12_1": _trailing_return(stock["close"], 252, end_offset=21),
-                    "reversal_1m": -_trailing_return(stock["close"], 21),
-                    "volatility_60d": float(returns.tail(60).std(ddof=1) * np.sqrt(252))
-                    if len(returns) >= 20
-                    else np.nan,
-                    "liquidity_20d": float(np.log1p(stock["amount"].tail(20).mean())),
-                    "beta_252d": beta,
-                    "idiosyncratic_volatility": idiosyncratic_volatility,
-                }
-            )
-    return pd.DataFrame(rows)
+    signals = {pd.Timestamp(value).normalize() for value in signal_dates}
+    frames: list[pd.DataFrame] = []
+    for security_id, stock in working.groupby("security_id", sort=False):
+        stock = stock.set_index("trade_date").sort_index()
+        returns = stock["daily_return"]
+        market_returns = market.reindex(stock.index)
+        covariance = returns.rolling(252, min_periods=minimum_beta_observations).cov(
+            market_returns
+        )
+        market_variance = market_returns.rolling(
+            252, min_periods=minimum_beta_observations
+        ).var()
+        stock_variance = returns.rolling(
+            252, min_periods=minimum_beta_observations
+        ).var()
+        beta = covariance / market_variance.where(market_variance > 0)
+        residual_variance = (stock_variance - covariance.pow(2) / market_variance).clip(
+            lower=0
+        )
+        factors = pd.DataFrame(
+            {
+                "signal_date": stock.index,
+                "security_id": security_id,
+                "momentum_12_1": stock["close"].shift(21) / stock["close"].shift(252) - 1,
+                "reversal_1m": -(stock["close"] / stock["close"].shift(21) - 1),
+                "volatility_60d": returns.rolling(60, min_periods=20).std() * np.sqrt(252),
+                "liquidity_20d": np.log1p(stock["amount"].rolling(20, min_periods=5).mean()),
+                "beta_252d": beta,
+                "idiosyncratic_volatility": np.sqrt(residual_variance * 252),
+            }
+        )
+        frames.append(factors[factors["signal_date"].isin(signals)])
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()

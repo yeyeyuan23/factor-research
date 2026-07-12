@@ -46,6 +46,16 @@ quality:
 
 evaluation:
   factor_columns: [bp, roe, paper_score]
+  expanded_factor_columns:
+    - gross_margin
+    - revenue_growth
+    - earnings_growth
+    - momentum_12_1
+    - reversal_1m
+    - volatility_60d
+    - liquidity_20d
+    - beta_252d
+    - idiosyncratic_volatility
   return_column: forward_return
   industry_column: industry
 

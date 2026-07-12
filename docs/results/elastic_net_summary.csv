@@ -1,0 +1,4 @@
+segment,prediction_months,rank_ic_mean,icir,ic_positive_rate,newey_west_t
+all,138,0.055360,1.718270,0.673913,6.854831
+development_2015_2022,96,0.052753,1.900943,0.666667,5.831273
+frozen_oos_2023_2025,34,0.060640,1.395648,0.676471,2.903277

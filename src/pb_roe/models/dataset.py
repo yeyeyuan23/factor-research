@@ -5,20 +5,68 @@ from __future__ import annotations
 import pandas as pd
 
 from pb_roe.config import ResearchConfig
+from pb_roe.data.pit import fundamentals_asof
 from pb_roe.data.providers.fixture import fixture_bundle
+from pb_roe.data.store import ParquetStore
 from pb_roe.evaluation.panel import build_modern_panel
 from pb_roe.evaluation.preprocessing import neutralize_cross_section, winsorize_zscore
 from pb_roe.factors.library import compute_price_factors
 
 
 def load_model_panel(
-    config: ResearchConfig, factor_file: str | None
+    config: ResearchConfig, factor_file: str | None, input_dir: str | None = None
 ) -> tuple[pd.DataFrame, list[str]]:
     research = config.section("research")
     evaluation = config.section("evaluation")
     raw_factors = list(evaluation["factor_columns"])
+    expanded_factors = list(evaluation.get("expanded_factor_columns", []))
     if factor_file:
         panel = pd.read_parquet(factor_file)
+        raw_factors.extend(expanded_factors)
+    elif input_dir:
+        bundle = ParquetStore(input_dir, immutable=False).read_bundle()
+        panel = build_modern_panel(
+            bundle,
+            research.get("factor_start_date", research["start_date"]),
+            research["end_date"],
+            minimum_listing_days=int(research.get("minimum_listing_days", 0)),
+        )
+        signals = panel[["signal_date", "security_id"]].drop_duplicates()
+        fundamental_names = [
+            factor
+            for factor in expanded_factors
+            if factor in {"gross_margin", "revenue_growth", "earnings_growth"}
+        ]
+        if fundamental_names:
+            selected = fundamentals_asof(
+                signals,
+                bundle.fundamentals[
+                    bundle.fundamentals["metric"].isin(fundamental_names)
+                ],
+            )
+            fundamental_panel = selected.pivot_table(
+                index=["signal_date", "security_id"],
+                columns="metric",
+                values="value",
+                aggfunc="last",
+            ).reset_index()
+            panel = panel.merge(
+                fundamental_panel,
+                on=["signal_date", "security_id"],
+                how="left",
+                validate="one_to_one",
+            )
+        price_factors = compute_price_factors(
+            bundle.prices,
+            panel["signal_date"].drop_duplicates(),
+        )
+        panel = panel.merge(
+            price_factors,
+            on=["signal_date", "security_id"],
+            how="left",
+            validate="one_to_one",
+        )
+        raw_factors.extend(expanded_factors)
     else:
         providers = config.section("data").get("providers", {})
         if not all(value == "fixture" for value in providers.values()):
@@ -36,16 +84,7 @@ def load_model_panel(
             how="left",
             validate="one_to_one",
         )
-        raw_factors.extend(
-            [
-                "momentum_12_1",
-                "reversal_1m",
-                "volatility_60d",
-                "liquidity_20d",
-                "beta_252d",
-                "idiosyncratic_volatility",
-            ]
-        )
+        raw_factors.extend(expanded_factors)
     available = [factor for factor in raw_factors if factor in panel]
     processed = winsorize_zscore(
         panel,
@@ -68,6 +107,6 @@ def load_model_panel(
     retained_features = [
         feature
         for feature in feature_columns
-        if float(coverage[feature].median()) >= coverage_threshold
+        if float(coverage[feature].min()) >= coverage_threshold
     ]
     return processed, retained_features
