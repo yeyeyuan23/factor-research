@@ -46,15 +46,7 @@
 - 冻结期等权得分IC为8.65%，但30bp成本后多空年化仅1.62%，50bp仅0.05%，说明预测显著性没有完全转化为交易收益。
 - 候选因子平均绝对行业主动权重约1.7%–2.4%，入选因子相关性绝对值最高约0.59；历史总市值缺失，规模暴露继续按停止条件降级披露，不以指数权重替代。
 
-展示用IC分析图同时提供PNG和SVG，均使用2015–2025正式月度数据，蓝/红柱表示正/负Rank IC，黑线为累计IC，竖向虚线标出2023年冻结样本外起点：
-
-- [六因子等权综合](docs/results/figures/factor-ic/equal-weight-ic.png)
-- [BP价值](docs/results/figures/factor-ic/bp-ic.png)
-- [PB-ROE综合](docs/results/figures/factor-ic/paper-score-ic.png)
-- [12–1月动量](docs/results/figures/factor-ic/momentum-12-1-ic.png)
-- [1月反转](docs/results/figures/factor-ic/reversal-1m-ic.png)
-- [低Beta](docs/results/figures/factor-ic/beta-252d-ic.png)
-- [低特异波动](docs/results/figures/factor-ic/idiosyncratic-volatility-ic.png)
+展示用基础IC图见 [`docs/results/figures/equal-weight-ic-matplotlib.png`](docs/results/figures/equal-weight-ic-matplotlib.png)：蓝/红柱表示正/负Rank IC，橙色虚线为IC均值，黑线为累计IC，竖向虚线标出2023年冻结样本外起点。
 
 完整项目计划以 [`docs/project_plan.md`](docs/project_plan.md) 为唯一正式版本；原研报的固定方法与结果笔记见 [`docs/paper_notes.md`](docs/paper_notes.md)，研究口径见 [`docs/research_spec.md`](docs/research_spec.md)，字段约定见 [`docs/data_dictionary.md`](docs/data_dictionary.md)。后续优先查固定笔记，仅在笔记未覆盖或需要逐字核验时重新读取原 PDF。
 

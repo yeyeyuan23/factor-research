@@ -65,12 +65,6 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument("--paper-run-dir")
     report_parser.add_argument("--static-dir")
 
-    factor_chart_parser = subparsers.add_parser(
-        "factor-charts", help="Generate IC analysis cards from frozen factor outputs"
-    )
-    factor_chart_parser.add_argument("--run-dir", required=True)
-    factor_chart_parser.add_argument("--output-dir", required=True)
-
     final_audit_parser = subparsers.add_parser(
         "final-audit", help="Audit frozen outputs and leakage invariants"
     )
@@ -142,11 +136,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             from pb_roe.reporting.runner import report_from_cli
 
             return report_from_cli(args.config, args.run_dir, args.paper_run_dir, args.static_dir)
-
-        if args.command == "factor-charts":
-            from pb_roe.reporting.factor_ic_cards import factor_charts_from_cli
-
-            return factor_charts_from_cli(args.run_dir, args.output_dir)
 
         if args.command == "final-audit":
             from pb_roe.validation.final_audit import final_audit_from_cli
