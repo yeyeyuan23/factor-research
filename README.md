@@ -21,7 +21,7 @@
 
 除上述 10 项外，不存在其他计划 Commit 编号。后续只会更新本表的状态，不会新建 C11、C12 等计划编号；任何额外 Git 提交仅是对既有 01–10 项的修复或补充，不改变项目计划。
 
-完整研究口径见 [`docs/research_spec.md`](docs/research_spec.md)，字段约定见 [`docs/data_dictionary.md`](docs/data_dictionary.md)。
+完整项目计划以 [`docs/project_plan.md`](docs/project_plan.md) 为唯一正式版本；研究口径见 [`docs/research_spec.md`](docs/research_spec.md)，字段约定见 [`docs/data_dictionary.md`](docs/data_dictionary.md)。
 
 ## 安装
 
