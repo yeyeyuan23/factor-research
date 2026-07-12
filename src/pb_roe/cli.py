@@ -49,6 +49,8 @@ def build_parser() -> argparse.ArgumentParser:
     optimize_parser = subparsers.add_parser("optimize", help="Build constrained portfolios")
     optimize_parser.add_argument("--config", required=True)
     optimize_parser.add_argument("--prediction-file")
+    optimize_parser.add_argument("--factor-file")
+    optimize_parser.add_argument("--input-dir")
 
     report_parser = subparsers.add_parser("report", help="Generate an offline research dashboard")
     report_parser.add_argument("--config", required=True)
@@ -111,7 +113,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "optimize":
             from pb_roe.portfolio.runner import optimize_from_cli
 
-            return optimize_from_cli(args.config, args.prediction_file)
+            return optimize_from_cli(
+                args.config, args.prediction_file, args.factor_file, args.input_dir
+            )
 
         if args.command == "report":
             from pb_roe.reporting.runner import report_from_cli

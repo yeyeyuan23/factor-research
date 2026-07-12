@@ -3,27 +3,35 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pandas as pd
 
 from pb_roe.config import load_config
 from pb_roe.data.providers.fixture import fixture_bundle
+from pb_roe.data.store import ParquetStore
+from pb_roe.evaluation.performance import performance_metrics
 from pb_roe.models.dataset import load_model_panel
 from pb_roe.models.lightgbm import walk_forward_lightgbm
 from pb_roe.portfolio.optimizer import PortfolioConstraints, optimize_portfolio
 from pb_roe.portfolio.risk import ledoit_wolf_covariance, trailing_return_matrix
 
 
-def optimize_from_cli(config_path: str, prediction_file: str | None) -> int:
+def optimize_from_cli(
+    config_path: str,
+    prediction_file: str | None,
+    factor_file: str | None = None,
+    input_dir: str | None = None,
+) -> int:
     config = load_config(config_path)
     providers = config.section("data").get("providers", {})
-    if not all(value == "fixture" for value in providers.values()):
+    is_fixture = all(value == "fixture" for value in providers.values())
+    if not is_fixture and not input_dir:
         raise FileNotFoundError(
-            "The current optimizer CLI needs fixture providers; "
-            "real runs require a canonical price input"
+            "--input-dir with canonical prices is required for real optimization"
         )
-    bundle = fixture_bundle()
-    panel, features = load_model_panel(config, None)
+    bundle = fixture_bundle() if is_fixture else ParquetStore(input_dir).read_bundle()
+    panel, features = load_model_panel(config, factor_file, input_dir if not factor_file else None)
     if prediction_file:
         predictions = pd.read_parquet(prediction_file)
     else:
@@ -36,11 +44,22 @@ def optimize_from_cli(config_path: str, prediction_file: str | None) -> int:
         max_industry_deviation=float(portfolio_config["max_industry_deviation"]),
         max_turnover=float(portfolio_config["max_turnover"]),
     )
-    metadata = panel[["signal_date", "security_id", "industry", "forward_return"]].drop_duplicates()
+    metadata_columns = [
+        column
+        for column in ("signal_date", "security_id", "industry", "weight", "forward_return")
+        if column in panel
+    ]
+    metadata = panel[metadata_columns].drop_duplicates()
     predictions = predictions.merge(
         metadata, on=["signal_date", "security_id"], how="left", validate="one_to_one"
     )
     previous_weights: pd.Series | None = None
+    cost_rates = [
+        float(value)
+        for value in config.section("costs").get(
+            "sensitivity_rates", [config.section("costs").get("base_rate", 0.0)]
+        )
+    ]
     holding_rows: list[dict[str, object]] = []
     return_rows: list[dict[str, object]] = []
     diagnostic_rows: list[dict[str, object]] = []
@@ -60,7 +79,11 @@ def optimize_from_cli(config_path: str, prediction_file: str | None) -> int:
         eligible = [security for security in securities if security in covariance.index]
         expected = snapshot.set_index("security_id")["prediction"].reindex(eligible)
         industries = snapshot.set_index("security_id")["industry"].reindex(eligible)
-        benchmark = pd.Series(1 / len(eligible), index=eligible)
+        if "weight" in snapshot:
+            benchmark = snapshot.set_index("security_id")["weight"].reindex(eligible).fillna(0.0)
+            benchmark = benchmark / benchmark.sum()
+        else:
+            benchmark = pd.Series(1 / len(eligible), index=eligible)
         result = optimize_portfolio(
             expected,
             covariance,
@@ -71,7 +94,8 @@ def optimize_from_cli(config_path: str, prediction_file: str | None) -> int:
         )
         realized = snapshot.set_index("security_id")["forward_return"].reindex(result.weights.index)
         gross_return = float((result.weights * realized).sum())
-        cost = result.turnover * float(config.section("costs").get("base_rate", 0.0))
+        benchmark_realized = snapshot.set_index("security_id")["forward_return"].reindex(eligible)
+        benchmark_return = float((benchmark * benchmark_realized).sum())
         holding_rows.extend(
             {
                 "signal_date": pd.Timestamp(signal_date),
@@ -87,8 +111,14 @@ def optimize_from_cli(config_path: str, prediction_file: str | None) -> int:
                 "signal_date": pd.Timestamp(signal_date),
                 "gross_return": gross_return,
                 "turnover": result.turnover,
-                "transaction_cost": cost,
-                "net_return": gross_return - cost,
+                "benchmark_return": benchmark_return,
+                "gross_excess_return": gross_return - benchmark_return,
+                **{
+                    f"net_return_{int(round(rate * 10_000))}bp": (
+                        gross_return - result.turnover * rate
+                    )
+                    for rate in cost_rates
+                },
             }
         )
         diagnostic_rows.append(
@@ -103,19 +133,59 @@ def optimize_from_cli(config_path: str, prediction_file: str | None) -> int:
 
     output = config.output_dir()
     output.mkdir(parents=True, exist_ok=True)
+    model_tag = (
+        Path(prediction_file).stem.replace("_predictions", "")
+        if prediction_file
+        else "lightgbm"
+    )
     holdings = pd.DataFrame(holding_rows)
     portfolio_returns = pd.DataFrame(return_rows)
     diagnostics = pd.DataFrame(diagnostic_rows)
-    holdings.to_parquet(output / "optimized_holdings.parquet", index=False)
-    portfolio_returns.to_csv(output / "optimized_returns.csv", index=False)
-    diagnostics.to_csv(output / "optimization_diagnostics.csv", index=False)
+    research = config.section("research")
+    segments = {
+        "all": (pd.Timestamp.min, pd.Timestamp.max),
+        "development": (pd.Timestamp("2015-01-01"), pd.Timestamp(research["development_end"])),
+        "frozen_oos": (pd.Timestamp(research["oos_start"]), pd.Timestamp(research["end_date"])),
+    }
+    summary_rows: list[dict[str, object]] = []
+    for segment, (start, end) in segments.items():
+        selected = portfolio_returns[
+            pd.to_datetime(portfolio_returns["signal_date"]).between(start, end)
+        ]
+        benchmark_metrics = performance_metrics(selected["benchmark_return"])
+        for rate in cost_rates:
+            bps = int(round(rate * 10_000))
+            net_column = f"net_return_{bps}bp"
+            metrics = performance_metrics(selected[net_column])
+            summary_rows.append(
+                {
+                    "segment": segment,
+                    "cost_bps": bps,
+                    "months": len(selected),
+                    "benchmark_annual_return": benchmark_metrics["annual_return"],
+                    "net_annual_return": metrics["annual_return"],
+                    "net_sharpe": metrics["sharpe"],
+                    "net_max_drawdown": metrics["max_drawdown"],
+                    "mean_annual_excess_return": float(
+                        (selected[net_column] - selected["benchmark_return"]).mean() * 12
+                    ),
+                    "average_monthly_turnover": float(selected["turnover"].mean()),
+                }
+            )
+    portfolio_summary = pd.DataFrame(summary_rows)
+    holdings.to_parquet(output / f"{model_tag}_optimized_holdings.parquet", index=False)
+    portfolio_returns.to_csv(output / f"{model_tag}_optimized_returns.csv", index=False)
+    diagnostics.to_csv(output / f"{model_tag}_optimization_diagnostics.csv", index=False)
+    portfolio_summary.to_csv(output / f"{model_tag}_portfolio_summary.csv", index=False)
     run_metadata = {
         "run_id": config.run_id,
+        "model": model_tag,
+        "config_fingerprint": config.fingerprint,
         "months": len(portfolio_returns),
         "fallback_months": int(diagnostics["used_fallback"].sum()),
         "output": str(output),
     }
-    (output / "optimization_run.json").write_text(
+    (output / f"{model_tag}_optimization_run.json").write_text(
         json.dumps(run_metadata, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(json.dumps(run_metadata, ensure_ascii=False, indent=2))
