@@ -11,7 +11,15 @@ def performance_metrics(returns: pd.Series, periods_per_year: int = 12) -> dict[
     if values.empty:
         return {
             name: np.nan
-            for name in ("annual_return", "annual_volatility", "sharpe", "max_drawdown", "calmar")
+            for name in (
+                "cumulative_return",
+                "annual_return",
+                "annual_volatility",
+                "sharpe",
+                "max_drawdown",
+                "calmar",
+                "monthly_win_rate",
+            )
         }
     wealth = (1 + values).cumprod()
     years = len(values) / periods_per_year
@@ -24,9 +32,11 @@ def performance_metrics(returns: pd.Series, periods_per_year: int = 12) -> dict[
     max_drawdown = float(drawdown.min())
     calmar = annual_return / abs(max_drawdown) if max_drawdown < 0 else np.nan
     return {
+        "cumulative_return": float(wealth.iloc[-1] - 1),
         "annual_return": annual_return,
         "annual_volatility": annual_volatility,
         "sharpe": sharpe,
         "max_drawdown": max_drawdown,
         "calmar": calmar,
+        "monthly_win_rate": float(values.gt(0).mean()),
     }

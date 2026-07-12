@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from pb_roe.data.providers.fixture import fixture_bundle
-from pb_roe.evaluation.exposures import mean_factor_correlation
+from pb_roe.evaluation.exposures import mean_factor_correlation, top_quantile_capacity
 from pb_roe.evaluation.ic import calculate_ic, summarize_ic
 from pb_roe.evaluation.panel import build_modern_panel, month_end_dates, next_open_forward_returns
 from pb_roe.evaluation.performance import performance_metrics
@@ -24,6 +24,30 @@ def test_month_end_and_next_open_return_timing() -> None:
     assert returns["signal_date"].nunique() == 2
     assert (returns["entry_date"] > returns["signal_date"]).all()
     assert (returns["exit_date"] > returns["entry_date"]).all()
+
+
+def test_locked_limit_entry_is_delayed_to_next_tradable_open() -> None:
+    bundle = fixture_bundle()
+    prices = bundle.prices.copy()
+    security_id = prices["security_id"].iloc[0]
+    entry_date = pd.Timestamp("2022-02-01")
+    previous = prices.loc[
+        (prices["security_id"] == security_id)
+        & (prices["trade_date"] < entry_date),
+        "close",
+    ].iloc[-1]
+    locked_price = previous * 1.10
+    mask = (prices["security_id"] == security_id) & (prices["trade_date"] == entry_date)
+    prices.loc[mask, ["open", "high", "low", "close"]] = locked_price
+
+    returns = next_open_forward_returns(
+        [pd.Timestamp("2022-01-31"), pd.Timestamp("2022-02-28")], prices
+    )
+    selected = returns[returns["security_id"] == security_id].iloc[0]
+
+    assert bool(selected["entry_locked_limit"])
+    assert selected["entry_delay_days"] == 1
+    assert np.isfinite(selected["forward_return"])
 
 
 def test_modern_panel_applies_signal_date_tradability_filters() -> None:
@@ -86,6 +110,24 @@ def test_factor_correlation_ignores_months_with_missing_values() -> None:
     correlation = mean_factor_correlation(panel, ["a", "b"])
 
     assert np.isclose(correlation.loc["a", "b"], -1.0)
+
+
+def test_capacity_estimate_uses_conservative_full_rebalance_limit() -> None:
+    panel = pd.DataFrame(
+        {
+            "signal_date": ["2022-01-31"] * 4,
+            "security_id": ["A", "B", "C", "D"],
+            "factor": [1, 2, 3, 4],
+            "adv_20d": [100.0, 200.0, 300.0, 400.0],
+        }
+    )
+
+    capacity = top_quantile_capacity(
+        panel, "factor", quantiles=2, participation_rate=0.10
+    )
+
+    assert capacity.iloc[0]["constituents"] == 2
+    assert np.isclose(capacity.iloc[0]["full_rebalance_capacity_cny"], 60.0)
 
 
 def test_industry_neutralization_removes_industry_means() -> None:
@@ -177,3 +219,4 @@ def test_performance_metrics_capture_drawdown() -> None:
 
     assert metrics["max_drawdown"] < 0
     assert np.isfinite(metrics["annual_volatility"])
+    assert np.isclose(metrics["monthly_win_rate"], 2 / 3)

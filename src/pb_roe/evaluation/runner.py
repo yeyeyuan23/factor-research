@@ -9,7 +9,11 @@ import pandas as pd
 from pb_roe.config import load_config
 from pb_roe.data.providers.fixture import fixture_bundle
 from pb_roe.data.store import ParquetStore
-from pb_roe.evaluation.exposures import mean_factor_correlation, top_quantile_industry_exposure
+from pb_roe.evaluation.exposures import (
+    mean_factor_correlation,
+    top_quantile_capacity,
+    top_quantile_industry_exposure,
+)
 from pb_roe.evaluation.ic import calculate_ic, summarize_ic
 from pb_roe.evaluation.panel import build_modern_panel
 from pb_roe.evaluation.performance import performance_metrics
@@ -110,6 +114,7 @@ def evaluate_from_cli(
             "factor": factor,
             "cost_rate": cost_rate,
             "cost_bps": int(round(float(cost_rate) * 10_000)),
+            "average_monthly_turnover": float(group["turnover"].mean()),
             **performance_metrics(group["net_spread"]),
         }
         for (factor, cost_rate), group in spreads.groupby(["factor", "cost_rate"])
@@ -125,12 +130,50 @@ def evaluate_from_cli(
         ignore_index=True,
     )
     correlations = mean_factor_correlation(processed, factor_columns)
+    capacity = pd.concat(
+        [
+            top_quantile_capacity(processed, factor, quantiles=quantiles)
+            for factor in factor_columns
+        ],
+        ignore_index=True,
+    )
+    execution_coverage = (
+        processed.groupby("signal_date")[return_column]
+        .agg(observations="size", executable="count")
+        .reset_index()
+    )
+    execution_coverage["coverage"] = (
+        execution_coverage["executable"] / execution_coverage["observations"]
+    )
+    if "entry_locked_limit" in processed:
+        locked = processed.groupby("signal_date")["entry_locked_limit"].sum().astype(int)
+        execution_coverage["locked_limit"] = execution_coverage["signal_date"].map(locked)
+    for column in ("entry_delay_days", "exit_delay_days"):
+        if column in processed:
+            delayed = processed[column].gt(0).groupby(processed["signal_date"]).sum().astype(int)
+            execution_coverage[f"{column}_delayed"] = execution_coverage["signal_date"].map(
+                delayed
+            )
     annual_ic = (
         ic_series.assign(year=pd.to_datetime(ic_series["signal_date"]).dt.year)
         .groupby(["factor", "year"])["ic"]
         .agg(["mean", "std", "count"])
         .reset_index()
     )
+    segment_boundaries = {
+        "warmup": (pd.Timestamp(factor_start), pd.Timestamp("2014-12-31")),
+        "development": (pd.Timestamp("2015-01-01"), pd.Timestamp(research["development_end"])),
+        "frozen_oos": (pd.Timestamp(research["oos_start"]), pd.Timestamp(research["end_date"])),
+    }
+    segment_frames: list[pd.DataFrame] = []
+    for segment, (start, end) in segment_boundaries.items():
+        selected = ic_series[
+            pd.to_datetime(ic_series["signal_date"]).between(start, end)
+        ]
+        summary = summarize_ic(selected)
+        summary.insert(0, "segment", segment)
+        segment_frames.append(summary)
+    segment_ic = pd.concat(segment_frames, ignore_index=True)
 
     output = config.output_dir()
     output.mkdir(parents=True, exist_ok=True)
@@ -139,11 +182,14 @@ def evaluate_from_cli(
     ic_series.to_csv(output / "ic_timeseries.csv", index=False)
     ic_summary.to_csv(output / "ic_summary.csv", index=False)
     annual_ic.to_csv(output / "ic_annual.csv", index=False)
+    segment_ic.to_csv(output / "ic_segments.csv", index=False)
     quantile_returns.to_csv(output / "quantile_returns.csv", index=False)
     spreads.to_csv(output / "long_short_spreads.csv", index=False)
     performance.to_csv(output / "long_short_performance.csv", index=False)
     exposures.to_csv(output / "industry_exposures.csv", index=False)
     correlations.to_csv(output / "factor_correlations.csv")
+    capacity.to_csv(output / "capacity_estimates.csv", index=False)
+    execution_coverage.to_csv(output / "execution_coverage.csv", index=False)
     metadata = {
         "run_id": config.run_id,
         "config_fingerprint": config.fingerprint,

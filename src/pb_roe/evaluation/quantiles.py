@@ -110,6 +110,7 @@ def long_short_spread(quantile_returns: pd.DataFrame) -> pd.DataFrame:
             {
                 **key_values,
                 "gross_spread": gross_spread,
+                "turnover": float(top["turnover"] + bottom["turnover"]),
                 "transaction_cost": total_cost,
                 "net_spread": gross_spread - total_cost,
             }
