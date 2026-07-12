@@ -40,6 +40,13 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_parser.add_argument("--factor-file")
     evaluate_parser.add_argument("--input-dir")
 
+    validate_parser = subparsers.add_parser(
+        "validate-factors", help="Validate and freeze development-sample factors"
+    )
+    validate_parser.add_argument("--config", required=True)
+    validate_parser.add_argument("--factor-file")
+    validate_parser.add_argument("--input-dir")
+
     train_parser = subparsers.add_parser("train", help="Run a walk-forward prediction model")
     train_parser.add_argument("--config", required=True)
     train_parser.add_argument("--factor-file")
@@ -107,6 +114,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             from pb_roe.evaluation.runner import evaluate_from_cli
 
             return evaluate_from_cli(args.config, args.factor_file, args.input_dir)
+
+        if args.command == "validate-factors":
+            from pb_roe.factors.validation import validate_factors_from_cli
+
+            return validate_factors_from_cli(args.config, args.factor_file, args.input_dir)
 
         if args.command == "train":
             from pb_roe.models.runner import train_from_cli

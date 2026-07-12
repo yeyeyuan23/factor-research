@@ -58,6 +58,26 @@ evaluation:
     - idiosyncratic_volatility
   return_column: forward_return
   industry_column: industry
+  factor_validation:
+    development_start: 2015-01-01
+    minimum_ic: 0.02
+    minimum_newey_west_t: 1.50
+    minimum_year_positive_rate: 0.50
+    minimum_quantile_monotonicity: 0.60
+    require_positive_30bp_spread: true
+    candidates:
+      bp: {category: Value, direction: 1}
+      paper_score: {category: Value, direction: 1}
+      roe: {category: Quality, direction: 1}
+      gross_margin: {category: Quality, direction: 1}
+      revenue_growth: {category: Growth, direction: 1}
+      earnings_growth: {category: Growth, direction: 1}
+      momentum_12_1: {category: Momentum, direction: 1}
+      reversal_1m: {category: Momentum, direction: 1}
+      volatility_60d: {category: Risk & Trading, direction: -1}
+      liquidity_20d: {category: Risk & Trading, direction: -1}
+      beta_252d: {category: Risk & Trading, direction: -1}
+      idiosyncratic_volatility: {category: Risk & Trading, direction: -1}
 
 models:
   train_months: 60

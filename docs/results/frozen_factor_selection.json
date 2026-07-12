@@ -1,0 +1,22 @@
+{
+  "config_fingerprint": "5b7553acbee36b1d",
+  "selection_sample": "2015-01-01/2022-12-31",
+  "selected_features": [
+    "momentum_12_1_z",
+    "reversal_1m_z",
+    "beta_252d_z",
+    "idiosyncratic_volatility_z",
+    "bp_z",
+    "paper_score_z"
+  ],
+  "selected_directions": {
+    "momentum_12_1_z": 1,
+    "reversal_1m_z": 1,
+    "beta_252d_z": -1,
+    "idiosyncratic_volatility_z": -1,
+    "bp_z": 1,
+    "paper_score_z": 1
+  },
+  "candidate_count": 12,
+  "selected_count": 6
+}
