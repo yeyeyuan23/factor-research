@@ -41,11 +41,11 @@ def _vendor_code(security_id: str) -> str:
 
 
 def _quarter_for_signal(signal_date: pd.Timestamp) -> tuple[int, int]:
-    if signal_date.month <= 4:
+    if signal_date.month <= 5:
         return signal_date.year, 1
-    if signal_date.month <= 8:
+    if signal_date.month <= 9:
         return signal_date.year, 2
-    if signal_date.month <= 10:
+    if signal_date.month <= 11:
         return signal_date.year, 3
     return signal_date.year, 4
 
@@ -210,12 +210,25 @@ class BaoStockCanonicalIngestor:
                 research["end_date"],
                 open_dates,
                 research.get("rebalance_month_days", DEFAULT_MONTH_DAYS),
+                str(research.get("non_trading_day", "previous")),
             )
         return month_end_dates(open_dates, research["start_date"], research["end_date"])
 
     def membership(self, signal_dates: list[pd.Timestamp]) -> pd.DataFrame:
         snapshots: dict[pd.Timestamp, pd.DataFrame] = {}
+        early_dates = [date for date in signal_dates if date.year == 2005]
+        early_snapshots: dict[pd.Timestamp, pd.DataFrame] = {}
+        if early_dates:
+            from pb_roe.data.providers.early_paper import EarlyPaperSource
+
+            early_snapshots = EarlyPaperSource(self.cache_dir / "early_fill").membership_snapshots(
+                early_dates
+            )
         for signal_date in signal_dates:
+            if signal_date in early_snapshots:
+                snapshots[signal_date] = early_snapshots[signal_date]
+                LOGGER.info("membership %s: %d", signal_date.date(), len(snapshots[signal_date]))
+                continue
             cache = self.cache_dir / "membership" / f"{signal_date.date()}.parquet"
             snapshots[signal_date] = self._cached_query(
                 cache,
@@ -253,19 +266,57 @@ class BaoStockCanonicalIngestor:
 
     def prices(self, securities: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
         research = self.config.section("research")
-        start = (pd.Timestamp(research["start_date"]) - pd.Timedelta(days=400)).date().isoformat()
+        buffer_days = 14 if self.config.mode == "paper" else 400
+        start = (
+            pd.Timestamp(research["start_date"]) - pd.Timedelta(days=buffer_days)
+        ).date().isoformat()
         end = pd.Timestamp(research["end_date"]).date().isoformat()
         price_cache = self.cache_dir / "prices"
-        jobs = [
-            (security_id, start, end, str(price_cache / f"{security_id}.parquet"))
-            for security_id in securities
-        ]
-        _download_price_jobs(jobs)
+        early_fill = (
+            self.config.section("data").get("providers", {}).get("fundamentals")
+            == "baostock_early_fill"
+        )
+        early_price_cache = self.cache_dir / "early_fill" / "prices"
+        if early_fill:
+            early_jobs: list[tuple[str, str, str, str]] = []
+            for security_id in securities:
+                base = price_cache / f"{security_id}.parquet"
+                if base.is_file():
+                    raw = pd.read_parquet(base, columns=["date"])
+                    first_date = pd.to_datetime(raw["date"], errors="coerce").min()
+                    early_end = first_date - pd.Timedelta(days=1)
+                else:
+                    early_end = pd.Timestamp("2006-12-31")
+                if pd.notna(early_end) and early_end >= pd.Timestamp(start):
+                    early_jobs.append(
+                        (
+                            security_id,
+                            start,
+                            early_end.date().isoformat(),
+                            str(early_price_cache / f"{security_id}.parquet"),
+                        )
+                    )
+            _download_price_jobs(early_jobs)
+        else:
+            jobs = [
+                (security_id, start, end, str(price_cache / f"{security_id}.parquet"))
+                for security_id in securities
+            ]
+            _download_price_jobs(jobs)
 
         price_frames: list[pd.DataFrame] = []
         valuation_frames: list[pd.DataFrame] = []
         for index, security_id in enumerate(securities, start=1):
-            raw = pd.read_parquet(price_cache / f"{security_id}.parquet")
+            paths = [
+                path
+                for path in (
+                    early_price_cache / f"{security_id}.parquet",
+                    price_cache / f"{security_id}.parquet",
+                )
+                if path.is_file()
+            ]
+            raw = pd.concat([pd.read_parquet(path) for path in paths], ignore_index=True)
+            raw = raw.drop_duplicates(["date", "code"], keep="last")
             if raw.empty:
                 continue
             numeric = ["open", "high", "low", "close", "volume", "amount", "pbMRQ"]
@@ -319,6 +370,11 @@ class BaoStockCanonicalIngestor:
         self, securities: list[str], signal_dates: list[pd.Timestamp]
     ) -> pd.DataFrame:
         required_periods = tuple(sorted({_quarter_for_signal(date) for date in signal_dates}))
+        if (
+            self.config.section("data").get("providers", {}).get("fundamentals")
+            == "baostock_early_fill"
+        ):
+            required_periods = tuple(period for period in required_periods if period[0] >= 2007)
         profit_cache = self.cache_dir / "profit"
         jobs = [(security_id, required_periods, str(profit_cache)) for security_id in securities]
         completed = 0
@@ -376,6 +432,37 @@ class BaoStockCanonicalIngestor:
         )
         if fundamental_provider == "baostock":
             financials = self.roe_fundamentals(securities, signals)
+        elif fundamental_provider == "baostock_early_fill":
+            from pb_roe.data.providers.early_paper import EarlyPaperSource
+
+            cached_securities = [
+                security_id
+                for security_id in securities
+                if (self.cache_dir / "profit" / security_id).is_dir()
+            ]
+            financials = self.roe_fundamentals(cached_securities, signals)
+            early_periods = sorted(
+                {
+                    pd.Timestamp(year, quarter * 3, 1) + pd.offsets.MonthEnd(0)
+                    for year, quarter in (_quarter_for_signal(date) for date in signals)
+                    if year <= 2006
+                }
+            )
+            early_securities = sorted(
+                membership.loc[
+                    pd.to_datetime(membership["member_from"]).dt.year.le(2006),
+                    "security_id",
+                ].unique()
+            )
+            early = EarlyPaperSource(
+                self.cache_dir / "early_fill"
+            ).roe_fundamentals(early_securities, early_periods)
+            existing_keys = set(
+                zip(financials["security_id"], financials["report_period"], strict=True)
+            ) if not financials.empty else set()
+            early_keys = list(zip(early["security_id"], early["report_period"], strict=True))
+            early = early[[key not in existing_keys for key in early_keys]]
+            financials = pd.concat([financials, early], ignore_index=True)
         elif fundamental_provider == "akshare":
             from pb_roe.data.providers.akshare import AkShareFinancialIngestor
 

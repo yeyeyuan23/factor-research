@@ -31,6 +31,20 @@ def test_schedule_uses_previous_trading_day() -> None:
     assert result == [pd.Timestamp("2022-04-29")]
 
 
+def test_schedule_can_roll_forward_to_next_trading_day() -> None:
+    calendar = pd.bdate_range("2022-04-01", "2022-05-02")
+
+    result = paper_rebalance_dates(
+        "2022-04-01",
+        "2022-05-02",
+        calendar,
+        ["04-30"],
+        non_trading_day="next",
+    )
+
+    assert result == [pd.Timestamp("2022-05-02")]
+
+
 def test_factor_panel_never_uses_future_financials() -> None:
     bundle = fixture_bundle()
     signal_dates = [pd.Timestamp("2022-04-20"), pd.Timestamp("2022-05-20")]

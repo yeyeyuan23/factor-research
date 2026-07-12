@@ -40,6 +40,7 @@ def reproduce_from_cli(config_path: str, input_dir: str | None) -> int:
         research["end_date"],
         calendar,
         research.get("rebalance_month_days", DEFAULT_MONTH_DAYS),
+        str(research.get("non_trading_day", "previous")),
     )
     if not signal_dates:
         raise ValueError("No paper rebalance dates exist in the configured interval")

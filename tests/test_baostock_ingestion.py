@@ -16,6 +16,9 @@ def test_signal_date_maps_to_latest_expected_reporting_quarter() -> None:
     assert _quarter_for_signal(pd.Timestamp("2022-08-31")) == (2022, 2)
     assert _quarter_for_signal(pd.Timestamp("2022-10-31")) == (2022, 3)
     assert _quarter_for_signal(pd.Timestamp("2022-12-30")) == (2022, 4)
+    assert _quarter_for_signal(pd.Timestamp("2022-05-09")) == (2022, 1)
+    assert _quarter_for_signal(pd.Timestamp("2022-09-01")) == (2022, 2)
+    assert _quarter_for_signal(pd.Timestamp("2022-11-01")) == (2022, 3)
 
 
 def test_membership_snapshots_become_half_open_intervals() -> None:

@@ -315,6 +315,7 @@ def audit_from_cli(config_path: str, input_dir: str | None) -> int:
             research["end_date"],
             open_dates,
             research.get("rebalance_month_days", DEFAULT_MONTH_DAYS),
+            str(research.get("non_trading_day", "previous")),
         )
     else:
         from pb_roe.evaluation.panel import month_end_dates
@@ -329,10 +330,8 @@ def audit_from_cli(config_path: str, input_dir: str | None) -> int:
         membership_threshold=float(quality["membership_coverage"]),
         membership_as_of=membership_dates,
         universe_id=str(universe["id"]),
-        factor_coverage_threshold=(
-            float(quality["factor_coverage"]) if config.mode == "modern" else None
-        ),
-        factor_signal_dates=membership_dates if config.mode == "modern" else None,
+        factor_coverage_threshold=float(quality["factor_coverage"]),
+        factor_signal_dates=membership_dates,
     )
     output = config.output_dir() / "data_audit.json"
     report.write_json(output)

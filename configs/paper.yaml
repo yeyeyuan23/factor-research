@@ -11,7 +11,7 @@ data:
   results_dir: results/runs
   providers:
     prices: baostock
-    fundamentals: akshare
+    fundamentals: baostock_early_fill
     membership: baostock
 
 universe:
@@ -26,7 +26,7 @@ research:
     - "04-30"
     - "08-31"
     - "10-31"
-  non_trading_day: previous
+  non_trading_day: next
   signal_cutoff: close
   execution_price: close
   weighting: equal
