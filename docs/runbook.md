@@ -71,7 +71,7 @@ BaoStock 登录会话不支持多进程并发，`download_workers` 必须为 1�
 正式运行结束后依次生成模型、优化和报告，再执行：
 
 ```bash
-.venv/bin/python -m pb_roe final-audit --config <config> --run-dir <run-directory>
+.venv/bin/python -m pb_roe final-audit --config configs/modern.yaml --run-dir results/runs/modern-pb-roe --paper-run-dir results/runs/paper-reproduction
 ```
 
 归档以下内容：

@@ -63,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     final_audit_parser.add_argument("--config", required=True)
     final_audit_parser.add_argument("--run-dir")
+    final_audit_parser.add_argument("--paper-run-dir")
 
     return parser
 
@@ -127,7 +128,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "final-audit":
             from pb_roe.validation.final_audit import final_audit_from_cli
 
-            return final_audit_from_cli(args.config, args.run_dir)
+            return final_audit_from_cli(args.config, args.run_dir, args.paper_run_dir)
     except ConfigError as exc:
         LOGGER.error("%s", exc)
         return 2

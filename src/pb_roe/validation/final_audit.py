@@ -44,8 +44,30 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _required_files(run_dir: Path) -> FinalCheck:
-    missing = [name for name in REQUIRED_OUTPUTS if not (run_dir / name).is_file()]
+def _required_files(run_dir: Path, paper_dir: Path) -> FinalCheck:
+    if (run_dir / "elastic-net_optimized_holdings.parquet").is_file():
+        required = [
+            "data_audit.json",
+            "evaluation_run.json",
+            "ic_summary.csv",
+            "dashboard.html",
+            "elastic-net_predictions.parquet",
+            "lightgbm_predictions.parquet",
+            "elastic-net_optimized_holdings.parquet",
+            "elastic-net_optimized_returns.csv",
+            "elastic-net_optimization_diagnostics.csv",
+            "lightgbm_optimized_holdings.parquet",
+            "lightgbm_optimized_returns.csv",
+            "lightgbm_optimization_diagnostics.csv",
+        ]
+    else:
+        required = [name for name in REQUIRED_OUTPUTS if not name.startswith("paper_")]
+    missing = [name for name in required if not (run_dir / name).is_file()]
+    missing.extend(
+        f"paper:{name}"
+        for name in ("paper_run.json", "paper_returns.parquet")
+        if not (paper_dir / name).is_file()
+    )
     return FinalCheck(
         "outputs.required_files",
         not missing,
@@ -84,40 +106,42 @@ def _prediction_time_check(run_dir: Path, model: str) -> FinalCheck:
     )
 
 
-def _portfolio_check(run_dir: Path, config: ResearchConfig) -> list[FinalCheck]:
-    path = run_dir / "optimized_holdings.parquet"
+def _portfolio_check(run_dir: Path, config: ResearchConfig, model: str = "") -> list[FinalCheck]:
+    prefix = f"{model}_" if model else ""
+    check_prefix = f"portfolio.{model or 'legacy'}"
+    path = run_dir / f"{prefix}optimized_holdings.parquet"
     if not path.is_file():
-        return [FinalCheck("portfolio.weights", False, "error", "holdings missing")]
+        return [FinalCheck(f"{check_prefix}.weights", False, "error", "holdings missing")]
     holdings = pd.read_parquet(path)
     weight_sums = holdings.groupby("signal_date")["target_weight"].sum()
     max_weight = float(config.section("portfolio")["max_weight"])
     checks = [
         FinalCheck(
-            "portfolio.fully_invested",
+            f"{check_prefix}.fully_invested",
             bool(np.allclose(weight_sums, 1.0, atol=1e-6)),
             "error",
             f"max weight-sum deviation={float((weight_sums - 1).abs().max()):.3g}",
         ),
         FinalCheck(
-            "portfolio.long_only",
+            f"{check_prefix}.long_only",
             bool(holdings["target_weight"].min() >= -1e-8),
             "error",
             f"minimum weight={holdings['target_weight'].min():.6g}",
         ),
         FinalCheck(
-            "portfolio.single_name_limit",
+            f"{check_prefix}.single_name_limit",
             bool(holdings["target_weight"].max() <= max_weight + 1e-6),
             "error",
             f"maximum weight={holdings['target_weight'].max():.6g}, limit={max_weight}",
         ),
     ]
-    returns_path = run_dir / "optimized_returns.csv"
+    returns_path = run_dir / f"{prefix}optimized_returns.csv"
     if returns_path.is_file():
         returns = pd.read_csv(returns_path)
         max_turnover = float(config.section("portfolio")["max_turnover"])
         checks.append(
             FinalCheck(
-                "portfolio.turnover_limit",
+                f"{check_prefix}.turnover_limit",
                 bool(returns["turnover"].max() <= max_turnover + 1e-6),
                 "error",
                 f"maximum turnover={returns['turnover'].max():.6g}, limit={max_turnover}",
@@ -156,14 +180,24 @@ def _sample_split_check(config: ResearchConfig) -> FinalCheck:
     )
 
 
-def audit_frozen_run(run_dir: str | Path, config: ResearchConfig) -> dict[str, Any]:
+def audit_frozen_run(
+    run_dir: str | Path,
+    config: ResearchConfig,
+    paper_run_dir: str | Path | None = None,
+) -> dict[str, Any]:
     root = Path(run_dir).expanduser().resolve()
+    paper_root = Path(paper_run_dir).expanduser().resolve() if paper_run_dir else root
+    portfolio_models = (
+        ["elastic-net", "lightgbm"]
+        if (root / "elastic-net_optimized_holdings.parquet").is_file()
+        else [""]
+    )
     checks = [
-        _required_files(root),
+        _required_files(root, paper_root),
         _data_audit(root),
         _prediction_time_check(root, "elastic-net"),
         _prediction_time_check(root, "lightgbm"),
-        *_portfolio_check(root, config),
+        *[check for model in portfolio_models for check in _portfolio_check(root, config, model)],
         _dashboard_check(root),
         _sample_split_check(config),
     ]
@@ -173,6 +207,14 @@ def audit_frozen_run(run_dir: str | Path, config: ResearchConfig) -> dict[str, A
         for path in sorted(root.iterdir())
         if path.is_file() and path.name not in {"final_audit.json", "result_manifest.json"}
     }
+    if paper_root != root:
+        manifest.update(
+            {
+                f"paper/{path.name}": {"sha256": _sha256(path), "bytes": path.stat().st_size}
+                for path in sorted(paper_root.iterdir())
+                if path.is_file()
+            }
+        )
     return {
         "run_id": config.run_id,
         "config_fingerprint": config.fingerprint,
@@ -182,10 +224,12 @@ def audit_frozen_run(run_dir: str | Path, config: ResearchConfig) -> dict[str, A
     }
 
 
-def final_audit_from_cli(config_path: str, run_dir: str | None) -> int:
+def final_audit_from_cli(
+    config_path: str, run_dir: str | None, paper_run_dir: str | None = None
+) -> int:
     config = load_config(config_path)
     root = Path(run_dir).resolve() if run_dir else config.output_dir()
-    report = audit_frozen_run(root, config)
+    report = audit_frozen_run(root, config, paper_run_dir)
     (root / "final_audit.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )

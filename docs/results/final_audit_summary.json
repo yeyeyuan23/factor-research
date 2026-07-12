@@ -1,0 +1,21 @@
+{
+  "run_id": "modern-pb-roe",
+  "config_fingerprint": "00cb56dba97f011e",
+  "audit_passed": true,
+  "checks_passed": 14,
+  "checks_total": 14,
+  "manifest_files": 50,
+  "prediction_time_order": {
+    "elastic_net": "41366/41366",
+    "lightgbm": "41366/41366"
+  },
+  "data_quality_checks": "16/16",
+  "portfolio_constraints": {
+    "elastic_net": "passed",
+    "lightgbm": "passed"
+  },
+  "offline_dashboard": true,
+  "frozen_oos": "2023-01-01/2025-12-31",
+  "source_commit_before_final_audit": "32e0d6c22b818f9eb5f982e03edd46c1a6f96a5e",
+  "full_manifest_local_path": "results/runs/modern-pb-roe/result_manifest.json"
+}

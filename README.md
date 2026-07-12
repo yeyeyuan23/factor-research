@@ -17,7 +17,7 @@
 | 07 | LightGBM 滚动训练与样本外预测 | `648dde5` | 已完成；正式walk-forward及冻结样本外预测已运行 |
 | 08 | 风险估计、CVXPY 约束与失败回退 | `9f37564` | 已完成；两模型正式组合、成本敏感性及冻结样本外比较已运行 |
 | 09 | 离线 Dashboard 与静态备份 | `4e26435` | 已完成；正式离线 Dashboard 与4张矢量结果图已生成并验收 |
-| 10 | 泄漏检查、结果冻结、结论审阅与演示彩排 | `271541d` | smoke 审计完成；正式全量审计与结论冻结尚未完成 |
+| 10 | 泄漏检查、结果冻结、结论审阅与演示彩排 | `271541d` | 已完成；正式审计14/14通过，结果清单与10分钟讲稿已冻结 |
 
 除上述 10 项外，不存在其他计划 Commit 编号。后续只会更新本表的状态，不会新建 C11、C12 等计划编号；任何额外 Git 提交仅是对既有 01–10 项的修复或补充，不改变项目计划。
 
@@ -34,7 +34,7 @@ Commit 03 的现代全量数据实际覆盖 2010–2025 年逐月历史沪深 30
 - 加入2005–2006后，旧版约5.6%的年化结果大幅上升，确认缺失早期牛市是此前未复现的主要原因。
 - 价值质量综合排序的方向和收益量级得到复现，但原研报最优的行业等权版本在本项目中成本后年化为27.78%，低于PB-ROE Top50和等权股票池，行业版本“最优”的结论未复现。
 
-## 当前现代因子证据（Commit 05，尚未最终冻结）
+## 现代因子证据（Commit 05，Commit 10 已冻结）
 
 当前可提交摘要见 [`docs/results/modern_factor_baseline.csv`](docs/results/modern_factor_baseline.csv)，分段稳定性见 [`docs/results/modern_factor_segments.csv`](docs/results/modern_factor_segments.csv)。结果使用 2012-05-31 至 2025-10-31 的 162 个月、48,560 个可交易截面观测，配置指纹为 `6799e05ac4e93d9c`。这里的行业调整是截面去除行业均值后的现代检验，不等同于原研报每行业前 5 的组合。
 
@@ -83,6 +83,12 @@ Commit 03 的现代全量数据实际覆盖 2010–2025 年逐月历史沪深 30
 - [约束组合成本后累计净值](docs/results/figures/portfolio-net-value.svg)
 
 所有图片均由正式 `paper-reproduction` 和 `modern-pb-roe` 结果生成，不包含 smoke fixture 数据。Dashboard 与静态图的生成命令记录在 [`docs/runbook.md`](docs/runbook.md)。
+
+## 最终审计与冻结（Commit 10）
+
+正式审计摘要见 [`docs/results/final_audit_summary.json`](docs/results/final_audit_summary.json)，10分钟演示讲稿见 [`docs/presentation_10min.md`](docs/presentation_10min.md)。数据闸门、两模型共82,732条预测的时间顺序、两套组合约束、离线Dashboard和冻结样本划分共14项检查全部通过；本地50个正式结果文件已记录SHA-256清单。
+
+最终结论不因模型复杂度而夸大：原研报PB-ROE Top50的方向与收益量级可以复现，但行业等权最优未复现；现代样本中BP和扩展多因子具有预测信息，单独ROE较弱；LightGBM冻结期略优于Elastic Net，但开发期失效且优势集中在2023年，因此不能宣称非线性带来稳健改进。
 
 ## 安装
 
