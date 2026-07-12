@@ -16,7 +16,7 @@
 | 06 | 扩展因子与 Elastic Net 线性基准 | `f5fe62f` | 已完成；12因子正式walk-forward及冻结样本外预测已运行 |
 | 07 | LightGBM 滚动训练与样本外预测 | `648dde5` | 已完成；正式walk-forward及冻结样本外预测已运行 |
 | 08 | 风险估计、CVXPY 约束与失败回退 | `9f37564` | 已完成；两模型正式组合、成本敏感性及冻结样本外比较已运行 |
-| 09 | 离线 Dashboard 与静态备份 | `4e26435` | Dashboard 工程完成；正式结果图片尚未生成 |
+| 09 | 离线 Dashboard 与静态备份 | `4e26435` | 已完成；正式离线 Dashboard 与4张矢量结果图已生成并验收 |
 | 10 | 泄漏检查、结果冻结、结论审阅与演示彩排 | `271541d` | smoke 审计完成；正式全量审计与结论冻结尚未完成 |
 
 除上述 10 项外，不存在其他计划 Commit 编号。后续只会更新本表的状态，不会新建 C11、C12 等计划编号；任何额外 Git 提交仅是对既有 01–10 项的修复或补充，不改变项目计划。
@@ -72,6 +72,17 @@ Commit 03 的现代全量数据实际覆盖 2010–2025 年逐月历史沪深 30
 - 50bp成本下两模型冻结样本外仍分别年化8.26%和9.00%，说明该阶段增量未被简化交易成本完全吞噬。
 - LightGBM在冻结期比Elastic Net年化高约0.75个百分点，同时IC略高；但2015–2022开发期两者成本后年化均约-1.7%，全样本也均落后等权基准。
 - 冻结期超额收益主要来自2023年；2024和2025两种模型平均月度超额均为负，绝对超额最大的5个月约占总绝对波动38%。因此LightGBM不满足“增量不是由少数时期驱动”的有效条件，最终结论仍是非线性没有提供稳健优势。
+
+## 正式结果展示（Commit 09）
+
+离线 Dashboard 从本地冻结结果生成在 `results/runs/modern-pb-roe/dashboard.html`，不重新运行下载、训练或回测。Git 中保存以下轻量矢量备份，可直接用于论文和展示：
+
+- [原研报复现累计净值](docs/results/figures/paper-reproduction.svg)
+- [扩展因子 Rank IC](docs/results/figures/expanded-factor-ic.svg)
+- [Elastic Net 与 LightGBM 分段 IC](docs/results/figures/model-ic-comparison.svg)
+- [约束组合成本后累计净值](docs/results/figures/portfolio-net-value.svg)
+
+所有图片均由正式 `paper-reproduction` 和 `modern-pb-roe` 结果生成，不包含 smoke fixture 数据。Dashboard 与静态图的生成命令记录在 [`docs/runbook.md`](docs/runbook.md)。
 
 ## 安装
 

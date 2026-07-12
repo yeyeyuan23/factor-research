@@ -55,6 +55,8 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser = subparsers.add_parser("report", help="Generate an offline research dashboard")
     report_parser.add_argument("--config", required=True)
     report_parser.add_argument("--run-dir")
+    report_parser.add_argument("--paper-run-dir")
+    report_parser.add_argument("--static-dir")
 
     final_audit_parser = subparsers.add_parser(
         "final-audit", help="Audit frozen outputs and leakage invariants"
@@ -120,7 +122,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "report":
             from pb_roe.reporting.runner import report_from_cli
 
-            return report_from_cli(args.config, args.run_dir)
+            return report_from_cli(args.config, args.run_dir, args.paper_run_dir, args.static_dir)
 
         if args.command == "final-audit":
             from pb_roe.validation.final_audit import final_audit_from_cli

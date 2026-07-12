@@ -153,23 +153,27 @@ def _importance_figure(run_dir: Path) -> go.Figure:
 
 
 def _optimization_figure(run_dir: Path) -> go.Figure:
-    frame = _read_csv(run_dir, "optimized_returns.csv")
     figure = go.Figure()
-    if not frame.empty:
+    for model, label in (("elastic-net", "Elastic Net"), ("lightgbm", "LightGBM")):
+        frame = _read_csv(run_dir, f"{model}_optimized_returns.csv")
+        if frame.empty:
+            continue
         figure.add_scatter(
             x=frame["signal_date"],
-            y=(1 + frame["net_return"]).cumprod(),
-            name="优化组合净值",
-            mode="lines+markers",
+            y=(1 + frame["net_return_30bp"]).cumprod(),
+            name=f"{label}（30bp）",
+            mode="lines",
         )
-        figure.add_bar(
-            x=frame["signal_date"],
-            y=frame["turnover"],
-            name="换手",
-            opacity=0.35,
-            yaxis="y2",
+    benchmark = _read_csv(run_dir, "elastic-net_optimized_returns.csv")
+    if not benchmark.empty:
+        figure.add_scatter(
+            x=benchmark["signal_date"],
+            y=(1 + benchmark["benchmark_return"]).cumprod(),
+            name="沪深300成员等权代理",
+            mode="lines",
+            line=dict(dash="dash"),
         )
-        figure.update_layout(yaxis2=dict(overlaying="y", side="right", title="换手"))
+    figure.update_yaxes(title="累计净值")
     return figure
 
 
@@ -182,13 +186,18 @@ def _audit_table(run_dir: Path) -> str:
     return checks[columns].to_html(index=False, escape=True, border=0)
 
 
-def generate_dashboard(run_dir: str | Path, output_file: str | Path) -> Path:
+def generate_dashboard(
+    run_dir: str | Path,
+    output_file: str | Path,
+    paper_run_dir: str | Path | None = None,
+) -> Path:
     run_path = Path(run_dir).expanduser().resolve()
     output = Path(output_file).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     evaluation = _read_json(run_path, "evaluation_run.json")
-    optimization = _read_json(run_path, "optimization_run.json")
-    paper = _read_json(run_path, "paper_run.json")
+    paper_path = Path(paper_run_dir).expanduser().resolve() if paper_run_dir else run_path
+    optimization = _read_json(run_path, "elastic-net_optimization_run.json")
+    paper = _read_json(paper_path, "paper_run.json")
     metric_items = [
         ("复现调仓期", len(paper.get("signal_dates", []))),
         ("现代有效月份", evaluation.get("signal_dates", "-")),
@@ -201,7 +210,7 @@ def generate_dashboard(run_dir: str | Path, output_file: str | Path) -> Path:
         for label, value in metric_items
     )
     figures = [
-        ("原研报策略方向性复现", _paper_figure(run_path)),
+        ("原研报策略方向性复现", _paper_figure(paper_path)),
         ("因子 IC 与显著性", _ic_figure(run_path)),
         ("Top-Bottom 成本后净值", _spread_figure(run_path)),
         ("Elastic Net vs LightGBM", _model_ic_figure(run_path)),
