@@ -40,7 +40,7 @@
 
 正式候选与淘汰原因见 [`docs/results/factor_validation_summary.csv`](docs/results/factor_validation_summary.csv)，冻结名单见 [`docs/results/frozen_factor_selection.json`](docs/results/frozen_factor_selection.json)，方向调整后的等权基准见 [`docs/results/equal_weight_factor_baseline.csv`](docs/results/equal_weight_factor_baseline.csv)，入选因子相关矩阵见 [`docs/results/selected_factor_correlations.csv`](docs/results/selected_factor_correlations.csv)。筛选只使用2015–2022开发期；冻结期指标是在名单确定后追加报告，不参与`selected`判断。
 
-- 12个候选覆盖Value、Quality、Growth、Momentum、Risk & Trading五类；最终保留BP、PB-ROE、12–1动量、1月反转、低Beta和低特异波动6个因子。
+- 12个候选覆盖Value、Quality、Growth、Momentum、Risk & Trading五类；筛选数量没有预设，按冻结规则实际保留BP、PB-ROE、12–1动量、1月反转、低Beta和低特异波动6个因子。
 - 营收增长、盈利增长和毛利率因开发期IC及t值不足淘汰；ROE因分层不单调且30bp成本后多空为负淘汰；流动性因IC、单调性和成本均不合格淘汰；总波动率虽IC显著，但分层单调性和成本后收益未过线。
 - 入选因子开发期等权得分IC为6.53%、Newey-West t值6.40；30bp成本后多空年化5.31%、Sharpe 0.70、最大回撤-16.41%。
 - 冻结期等权得分IC为8.65%，但30bp成本后多空年化仅1.62%，50bp仅0.05%，说明预测显著性没有完全转化为交易收益。
@@ -48,7 +48,7 @@
 
 展示用基础IC图见 [`docs/results/figures/equal-weight-ic-matplotlib.png`](docs/results/figures/equal-weight-ic-matplotlib.png)：蓝/红柱表示正/负Rank IC，橙色虚线为IC均值，黑线为累计IC，竖向虚线标出2023年冻结样本外起点。
 
-Commit 06的完整方法、候选淘汰原因、单因子证据和五分组单调性见 [`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)。
+Commit 06的完整方法、12个候选各自的IC图、五分组单调性图和筛选结论见 [`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)。
 
 
 完整项目计划以 [`docs/project_plan.md`](docs/project_plan.md) 为唯一正式版本；原研报的固定方法与结果笔记见 [`docs/paper_notes.md`](docs/paper_notes.md)，研究口径见 [`docs/research_spec.md`](docs/research_spec.md)，字段约定见 [`docs/data_dictionary.md`](docs/data_dictionary.md)。后续优先查固定笔记，仅在笔记未覆盖或需要逐字核验时重新读取原 PDF。

@@ -29,20 +29,28 @@
 | Momentum | 12–1月动量、1月反转 | 无 |
 | Risk & Trading | 低Beta、低特异波动 | 流动性：IC、单调性和成本不合格；总波动率：单调性和成本不合格 |
 
-最终冻结的6个因子为：**BP、PB-ROE综合、12–1月动量、1月反转、低Beta、低特异波动**。入选因子间绝对相关性最大约为0.59，详见 [selected_factor_correlations.csv](results/selected_factor_correlations.csv)；没有出现接近完全重复的因子对。
+规则没有预设入选数量。12个候选逐一通过同一组门槛后，实际有6个通过，最终冻结为：**BP、PB-ROE综合、12–1月动量、1月反转、低Beta、低特异波动**。入选因子间绝对相关性最大约为0.59，详见 [selected_factor_correlations.csv](results/selected_factor_correlations.csv)；没有出现接近完全重复的因子对。
 
-## 4. 单因子证据
+## 4. 12个候选因子的完整证据
 
-| 因子 | 开发期IC | NW t | 30bp多空年化 | 冻结期IC | 判断 |
-|---|---:|---:|---:|---:|---|
-| BP | 2.76% | 2.52 | 1.01% | 5.44% | 保留 |
-| PB-ROE综合 | 3.67% | 3.70 | 1.64% | 4.20% | 保留 |
-| 12–1月动量 | 2.89% | 2.05 | 4.48% | 4.92% | 保留 |
-| 1月反转 | 2.87% | 2.17 | 1.84% | -0.38% | 保留，但冻结期衰减 |
-| 低Beta | 3.40% | 2.89 | 0.13% | 6.09% | 保留，成本后较弱 |
-| 低特异波动 | 4.50% | 4.60 | 2.77% | 9.58% | 保留 |
+下表不是只展示最后入选的因子。每个候选都有一张月度 Rank IC/累计IC图和一张五分组收益/累计净值图；图全部由 `scripts/plot_all_factor_analysis.py` 使用 Matplotlib 从真实结果生成。这里的多空年化是行业中性目标收益上的五分组 Top–Bottom，按实际分组换手扣除30bp成本；它是因子可交易性的辅助证据，不等同于后续真实多头优化组合收益。
 
-这里的多空年化是行业中性目标收益上的五分组 Top–Bottom，按实际分组换手扣除30bp成本；它是因子可交易性的辅助证据，不等同于后续真实多头优化组合收益。
+| 因子 | 开发期IC | NW t | 单调性 | 30bp多空年化 | 冻结期IC | 结论 | 图 |
+|---|---:|---:|---:|---:|---:|---|---|
+| 盈利增长 | 0.53% | 0.85 | 0.60 | 0.50% | -3.06% | 淘汰：IC、t不足 | [IC](results/figures/factor-analysis-12/earnings-growth-ic.png) · [五分组](results/figures/factor-analysis-12/earnings-growth-quantiles.png) |
+| 营收增长 | 0.33% | 0.41 | 0.70 | 0.72% | -5.58% | 淘汰：IC、t不足 | [IC](results/figures/factor-analysis-12/revenue-growth-ic.png) · [五分组](results/figures/factor-analysis-12/revenue-growth-quantiles.png) |
+| 12–1月动量 | 2.89% | 2.05 | 1.00 | 4.48% | 4.92% | **保留** | [IC](results/figures/factor-analysis-12/momentum-12-1-ic.png) · [五分组](results/figures/factor-analysis-12/momentum-12-1-quantiles.png) |
+| 1月反转 | 2.87% | 2.17 | 0.60 | 1.84% | -0.38% | **保留**；冻结期衰减 | [IC](results/figures/factor-analysis-12/reversal-1m-ic.png) · [五分组](results/figures/factor-analysis-12/reversal-1m-quantiles.png) |
+| 毛利率 | 0.68% | 1.01 | 0.60 | 0.80% | -2.20% | 淘汰：IC、t不足 | [IC](results/figures/factor-analysis-12/gross-margin-ic.png) · [五分组](results/figures/factor-analysis-12/gross-margin-quantiles.png) |
+| ROE | 1.90% | 1.97 | 0.20 | -1.12% | -0.90% | 淘汰：IC、单调性、成本 | [IC](results/figures/factor-analysis-12/roe-ic.png) · [五分组](results/figures/factor-analysis-12/roe-quantiles.png) |
+| 低Beta | 3.40% | 2.89 | 0.70 | 0.13% | 6.09% | **保留**；成本后较弱 | [IC](results/figures/factor-analysis-12/beta-252d-ic.png) · [五分组](results/figures/factor-analysis-12/beta-252d-quantiles.png) |
+| 低特异波动 | 4.50% | 4.60 | 0.80 | 2.77% | 9.58% | **保留** | [IC](results/figures/factor-analysis-12/idiosyncratic-volatility-ic.png) · [五分组](results/figures/factor-analysis-12/idiosyncratic-volatility-quantiles.png) |
+| 低流动性 | 1.27% | 1.11 | -0.40 | -4.45% | 2.43% | 淘汰：IC、t、单调性、成本 | [IC](results/figures/factor-analysis-12/liquidity-20d-ic.png) · [五分组](results/figures/factor-analysis-12/liquidity-20d-quantiles.png) |
+| 低总波动率 | 3.76% | 4.12 | 0.50 | -0.73% | 9.34% | 淘汰：单调性、成本 | [IC](results/figures/factor-analysis-12/volatility-60d-ic.png) · [五分组](results/figures/factor-analysis-12/volatility-60d-quantiles.png) |
+| BP | 2.76% | 2.52 | 0.70 | 1.01% | 5.44% | **保留** | [IC](results/figures/factor-analysis-12/bp-ic.png) · [五分组](results/figures/factor-analysis-12/bp-quantiles.png) |
+| PB-ROE综合 | 3.67% | 3.70 | 0.90 | 1.64% | 4.20% | **保留** | [IC](results/figures/factor-analysis-12/paper-score-ic.png) · [五分组](results/figures/factor-analysis-12/paper-score-quantiles.png) |
+
+单调性是开发期五组平均净收益与 Q1–Q5 顺序的 Spearman 相关系数，并不要求五根柱严格逐级升高。筛选只读开发期指标；冻结期IC在名单固定后报告，因此不会反向改变入选名单。
 
 ## 5. 六因子等权综合：IC稳定性
 
