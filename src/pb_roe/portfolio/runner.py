@@ -16,6 +16,12 @@ from pb_roe.models.lightgbm import walk_forward_lightgbm
 from pb_roe.portfolio.optimizer import PortfolioConstraints, optimize_portfolio
 from pb_roe.portfolio.risk import ledoit_wolf_covariance, trailing_return_matrix
 
+MONTHS_PER_YEAR = 12
+
+
+def _annualize_monthly_predictions(predictions: pd.Series) -> pd.Series:
+    return predictions * MONTHS_PER_YEAR
+
 
 def optimize_from_cli(
     config_path: str,
@@ -77,7 +83,8 @@ def optimize_from_cli(
             minimum_observations=int(portfolio_config["minimum_return_observations"]),
         )
         eligible = [security for security in securities if security in covariance.index]
-        expected = snapshot.set_index("security_id")["prediction"].reindex(eligible)
+        monthly_expected = snapshot.set_index("security_id")["prediction"].reindex(eligible)
+        expected = _annualize_monthly_predictions(monthly_expected)
         industries = snapshot.set_index("security_id")["industry"].reindex(eligible)
         if "weight" in snapshot:
             benchmark = snapshot.set_index("security_id")["weight"].reindex(eligible).fillna(0.0)
@@ -101,7 +108,7 @@ def optimize_from_cli(
                 "signal_date": pd.Timestamp(signal_date),
                 "security_id": security,
                 "target_weight": float(weight),
-                "prediction": float(expected.get(security, 0.0)),
+                "prediction": float(monthly_expected.get(security, 0.0)),
                 "industry": industries.get(security, "Unknown"),
             }
             for security, weight in result.weights.items()
@@ -134,9 +141,7 @@ def optimize_from_cli(
     output = config.output_dir()
     output.mkdir(parents=True, exist_ok=True)
     model_tag = (
-        Path(prediction_file).stem.replace("_predictions", "")
-        if prediction_file
-        else "lightgbm"
+        Path(prediction_file).stem.replace("_predictions", "") if prediction_file else "lightgbm"
     )
     holdings = pd.DataFrame(holding_rows)
     portfolio_returns = pd.DataFrame(return_rows)
@@ -157,17 +162,24 @@ def optimize_from_cli(
             bps = int(round(rate * 10_000))
             net_column = f"net_return_{bps}bp"
             metrics = performance_metrics(selected[net_column])
+            excess = selected[net_column] - selected["benchmark_return"]
+            excess_std = float(excess.std(ddof=1))
             summary_rows.append(
                 {
                     "segment": segment,
                     "cost_bps": bps,
                     "months": len(selected),
                     "benchmark_annual_return": benchmark_metrics["annual_return"],
+                    "benchmark_sharpe": benchmark_metrics["sharpe"],
+                    "benchmark_max_drawdown": benchmark_metrics["max_drawdown"],
                     "net_annual_return": metrics["annual_return"],
                     "net_sharpe": metrics["sharpe"],
                     "net_max_drawdown": metrics["max_drawdown"],
-                    "mean_annual_excess_return": float(
-                        (selected[net_column] - selected["benchmark_return"]).mean() * 12
+                    "mean_annual_excess_return": float(excess.mean() * MONTHS_PER_YEAR),
+                    "excess_information_ratio": (
+                        float(excess.mean() / excess_std * MONTHS_PER_YEAR**0.5)
+                        if excess_std > 0
+                        else float("nan")
                     ),
                     "average_monthly_turnover": float(selected["turnover"].mean()),
                 }
@@ -183,6 +195,7 @@ def optimize_from_cli(
         "config_fingerprint": config.fingerprint,
         "months": len(portfolio_returns),
         "fallback_months": int(diagnostics["used_fallback"].sum()),
+        "prediction_units": "monthly_return_annualized_for_annual_covariance",
         "output": str(output),
     }
     (output / f"{model_tag}_optimization_run.json").write_text(

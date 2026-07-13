@@ -4,6 +4,7 @@ import pandas as pd
 from pb_roe.data.providers.fixture import fixture_bundle
 from pb_roe.portfolio.optimizer import PortfolioConstraints, optimize_portfolio
 from pb_roe.portfolio.risk import ledoit_wolf_covariance, trailing_return_matrix
+from pb_roe.portfolio.runner import _annualize_monthly_predictions
 
 
 def test_ledoit_wolf_covariance_is_positive_semidefinite() -> None:
@@ -44,3 +45,11 @@ def test_optimizer_respects_weight_industry_and_turnover_constraints() -> None:
     industry_weights = result.weights.groupby(industries).sum()
     benchmark_industry = benchmark.groupby(industries).sum()
     assert (industry_weights - benchmark_industry).abs().max() <= 0.10 + 1e-6
+
+
+def test_monthly_predictions_are_annualized_for_annual_covariance() -> None:
+    monthly = pd.Series([0.01, -0.02])
+
+    annualized = _annualize_monthly_predictions(monthly)
+
+    assert annualized.tolist() == [0.12, -0.24]
