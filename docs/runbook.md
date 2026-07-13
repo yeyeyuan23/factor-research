@@ -50,7 +50,8 @@ fundamentals.parquet
 .venv/bin/python -m pb_roe validate-factors --config configs/modern.yaml --input-dir data/processed/modern_sample/canonical
 MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_factor_ic.py --run-dir results/runs/modern-pb-roe --output docs/results/figures/equal-weight-ic-matplotlib.png --quantile-output docs/results/figures/equal-weight-quantiles-30bp.png
 MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_all_factor_analysis.py --run-dir results/runs/modern-pb-roe --output-dir docs/results/figures/factor-analysis-12
-.venv/bin/python -m pb_roe train --config configs/modern.yaml --input-dir data/processed/modern_sample/canonical --model elastic-net
+.venv/bin/python -m pb_roe train --config configs/modern.yaml --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --model elastic-net
+.venv/bin/python -m pb_roe train --config configs/modern.yaml --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --model lightgbm
 .venv/bin/python -m pb_roe optimize --config configs/modern.yaml --input-dir data/processed/modern_sample/canonical --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --prediction-file results/runs/modern-pb-roe/elastic-net_predictions.parquet
 .venv/bin/python -m pb_roe report --config configs/modern.yaml --run-dir results/runs/modern-pb-roe --paper-run-dir results/runs/paper-reproduction --static-dir docs/results/figures
 ```

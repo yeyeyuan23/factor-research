@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pandas as pd
 
@@ -12,6 +13,27 @@ from pb_roe.models.dataset import load_model_panel
 from pb_roe.models.linear import walk_forward_elastic_net
 
 
+def _load_frozen_features(
+    selection_path: Path,
+    available_features: list[str],
+    config_fingerprint: str,
+) -> tuple[list[str], dict[str, object]]:
+    if not selection_path.exists():
+        raise FileNotFoundError(
+            "Frozen factor selection is missing; run validate-factors before train"
+        )
+    payload = json.loads(selection_path.read_text(encoding="utf-8"))
+    if payload.get("config_fingerprint") != config_fingerprint:
+        raise ValueError("Frozen factor selection does not match the active config")
+    selected = list(payload.get("selected_features", []))
+    if not selected:
+        raise ValueError("Frozen factor selection contains no features")
+    missing = [feature for feature in selected if feature not in available_features]
+    if missing:
+        raise ValueError(f"Frozen features missing from model panel: {missing}")
+    return selected, payload
+
+
 def train_from_cli(
     config_path: str,
     factor_file: str | None,
@@ -19,9 +41,15 @@ def train_from_cli(
     input_dir: str | None = None,
 ) -> int:
     config = load_config(config_path)
-    panel, features = load_model_panel(config, factor_file, input_dir)
-    if not features:
+    panel, available_features = load_model_panel(config, factor_file, input_dir)
+    if not available_features:
         raise ValueError("No feature passed the configured coverage gate")
+    selection_path = config.output_dir() / "frozen_factor_selection.json"
+    features, selection = _load_frozen_features(
+        selection_path,
+        available_features,
+        config.fingerprint,
+    )
     model_config = config.section("models")
     if model_name == "elastic-net":
         parameters = model_config["elastic_net"]
@@ -50,9 +78,7 @@ def train_from_cli(
         return_column="target_return",
     )
     summary = summarize_ic(ic)
-    factor_ic = summarize_ic(
-        calculate_ic(panel, features, return_column="target_return")
-    )
+    factor_ic = summarize_ic(calculate_ic(panel, features, return_column="target_return"))
     research = config.section("research")
     segment_frames: list[pd.DataFrame] = []
     segments = {
@@ -78,9 +104,7 @@ def train_from_cli(
     predictions.to_parquet(output / f"{model_name}_predictions.parquet", index=False)
     diagnostics.to_csv(output / f"{model_name}_diagnostics.csv", index=False)
     if not coefficient_summary.empty:
-        coefficient_summary.to_csv(
-            output / f"{model_name}_coefficient_summary.csv", index=False
-        )
+        coefficient_summary.to_csv(output / f"{model_name}_coefficient_summary.csv", index=False)
     summary.to_csv(output / f"{model_name}_ic_summary.csv", index=False)
     segment_ic.to_csv(output / f"{model_name}_ic_segments.csv", index=False)
     factor_ic.to_csv(output / "expanded_factor_ic_summary.csv", index=False)
@@ -89,6 +113,8 @@ def train_from_cli(
         "model": model_name,
         "config_fingerprint": config.fingerprint,
         "features": features,
+        "factor_selection": str(selection_path),
+        "selection_sample": selection.get("selection_sample"),
         "predictions": len(predictions),
         "prediction_months": int(predictions["signal_date"].nunique()),
         "output": str(output),
