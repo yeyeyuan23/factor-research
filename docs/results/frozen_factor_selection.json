@@ -1,22 +1,24 @@
 {
-  "config_fingerprint": "5b7553acbee36b1d",
+  "config_fingerprint": "b15deeaf4b85f8b7",
   "selection_sample": "2015-01-01/2022-12-31",
   "selected_features": [
     "momentum_12_1_z",
-    "reversal_1m_z",
-    "beta_252d_z",
     "idiosyncratic_volatility_z",
-    "bp_z",
     "paper_score_z"
   ],
   "selected_directions": {
     "momentum_12_1_z": 1,
-    "reversal_1m_z": 1,
-    "beta_252d_z": -1,
     "idiosyncratic_volatility_z": -1,
-    "bp_z": 1,
     "paper_score_z": 1
   },
   "candidate_count": 12,
-  "selected_count": 6
+  "selected_count": 3,
+  "rules": {
+    "development_start": "2015-01-01",
+    "minimum_ic": 0.02,
+    "minimum_newey_west_t": 2.0,
+    "minimum_year_positive_rate": 0.5,
+    "minimum_quantile_monotonicity": 0.8,
+    "require_positive_30bp_spread": true
+  }
 }

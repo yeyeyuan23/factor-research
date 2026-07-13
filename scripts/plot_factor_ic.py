@@ -40,9 +40,10 @@ def main() -> int:
     ic = monthly_rank_ic(panel, "equal_weight_score").dropna()
     dates = pd.to_datetime(ic.index)
     cumulative = ic.cumsum()
-    mean_ic = ic.mean()
-    icir = mean_ic / ic.std(ddof=1) * np.sqrt(12)
-    win_rate = (ic > 0).mean()
+    development = ic[dates <= pd.Timestamp("2022-12-31")]
+    mean_ic = development.mean()
+    icir = mean_ic / development.std(ddof=1) * np.sqrt(12)
+    win_rate = (development > 0).mean()
 
     plt.rcParams["font.sans-serif"] = ["PingFang SC", "Arial Unicode MS", "DejaVu Sans"]
     plt.rcParams["axes.unicode_minus"] = False
@@ -69,8 +70,13 @@ def main() -> int:
     handles1, labels1 = axis.get_legend_handles_labels()
     handles2, labels2 = axis2.get_legend_handles_labels()
     axis.legend(handles1 + handles2, labels1 + labels2, loc="upper left", frameon=False, ncol=3)
+    factor_count = len(oriented)
+    title = (
+        f"{factor_count}因子等权综合：开发期IC {mean_ic:.3f}，"
+        f"ICIR {icir:.2f}，月胜率 {win_rate:.0%}"
+    )
     axis.set_title(
-        f"六因子等权综合：IC均值 {mean_ic:.3f}，ICIR {icir:.2f}，月胜率 {win_rate:.0%}",
+        title,
         fontsize=16,
         fontweight="bold",
         pad=14,
@@ -115,7 +121,11 @@ def main() -> int:
                 fontsize=9,
             )
     axes[0].set_ylabel("30bp成本后平均月收益（%）")
-    figure.suptitle("六因子等权综合：五分组收益与单调性", fontsize=15, fontweight="bold")
+    figure.suptitle(
+        f"{factor_count}因子等权综合：五分组收益与单调性",
+        fontsize=15,
+        fontweight="bold",
+    )
     figure.tight_layout()
     figure.savefig(args.quantile_output, bbox_inches="tight")
     plt.close(figure)

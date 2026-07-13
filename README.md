@@ -13,7 +13,7 @@
 | 03 | 构建历史沪深300、行情和财务PIT数据管线，执行质量闸门并缓存 canonical Parquet | `e104f5f` | 已完成；复现闸门15/15、现代闸门16/16通过，现代因子有效起点为2012-05-31 |
 | 04 | 严格按原文构造2005–2011组合，统一成本口径并逐项对照原研报结果 | `25dc6dd` | 已完成；早期ROE披露截止假设已披露 |
 | 05 | 仅评价原研报核心信号BP、ROE、PB-ROE：IC、分层、成本、显著性、稳定性与暴露 | `1e3407c` | 已重新完成；48,560个观测、162个月，正式汇总已补齐；市值暴露降级披露 |
-| 06 | 按5类Barra-style框架构建扩展因子；只在2015–2022开发期完成单因子验证、筛选、冻结和等权多因子基准 | `f5fe62f` | **已重新完成**；12个候选验证、6个因子冻结，等权基准及三档成本已生成 |
+| 06 | 按5类Barra-style框架构建扩展因子；只在2015–2022开发期完成单因子验证、筛选、冻结和等权多因子基准 | `f5fe62f` | **已重新完成**；12个候选五分组验证、3个因子冻结，十组残留已清理 |
 | 07 | 仅使用Commit 06冻结的因子，按相同walk-forward口径训练Elastic Net和唯一树模型LightGBM | `648dde5` | **待重跑**；现有结果使用了仅通过覆盖率闸门的全部12列，保留为初版实验，不作为最终结论 |
 | 08 | 使用Commit 07冻结预测做Ledoit-Wolf风险估计、CVXPY约束组合、失败回退及10/30/50bp成本检验 | `9f37564` | **待重跑**；工程与初版结果存在，须随冻结因子模型更新 |
 | 09 | 只读取重跑后的冻结结果生成离线Dashboard和静态备份，不下载、训练或回测 | `4e26435` | **待更新**；现有Dashboard和4张图对应初版模型结果 |
@@ -40,11 +40,11 @@
 
 正式候选与淘汰原因见 [`docs/results/factor_validation_summary.csv`](docs/results/factor_validation_summary.csv)，冻结名单见 [`docs/results/frozen_factor_selection.json`](docs/results/frozen_factor_selection.json)，方向调整后的等权基准见 [`docs/results/equal_weight_factor_baseline.csv`](docs/results/equal_weight_factor_baseline.csv)，入选因子相关矩阵见 [`docs/results/selected_factor_correlations.csv`](docs/results/selected_factor_correlations.csv)。筛选只使用2015–2022开发期；冻结期指标是在名单确定后追加报告，不参与`selected`判断。
 
-- 12个候选覆盖Value、Quality、Growth、Momentum、Risk & Trading五类；筛选数量没有预设，按冻结规则实际保留BP、PB-ROE、12–1动量、1月反转、低Beta和低特异波动6个因子。
-- 营收增长、盈利增长和毛利率因开发期IC及t值不足淘汰；ROE因分层不单调且30bp成本后多空为负淘汰；流动性因IC、单调性和成本均不合格淘汰；总波动率虽IC显著，但分层单调性和成本后收益未过线。
-- 入选因子开发期等权得分IC为6.53%、Newey-West t值6.40；30bp成本后多空年化5.31%、Sharpe 0.70、最大回撤-16.41%。
-- 冻结期等权得分IC为8.65%，但30bp成本后多空年化仅1.62%，50bp仅0.05%，说明预测显著性没有完全转化为交易收益。
-- 候选因子平均绝对行业主动权重约1.7%–2.4%，入选因子相关性绝对值最高约0.59；历史总市值缺失，规模暴露继续按停止条件降级披露，不以指数权重替代。
+- 12个候选覆盖Value、Quality、Growth、Momentum、Risk & Trading五类；筛选数量没有预设，按 `IC≥2%`、`NW t≥2.0`、五分组单调性≥0.8和30bp多空为正等冻结规则，实际保留PB-ROE综合、12–1月动量和低特异波动3个因子。
+- 反转、低Beta和BP虽有正IC，但未通过收紧后的单调性门槛；其余候选因IC、显著性、单调性或成本被淘汰。
+- 三因子开发期等权得分IC为6.19%、Newey-West t值5.69；五组严格递增，30bp成本后多空年化6.94%、Sharpe 0.86、最大回撤-8.78%。
+- 冻结期等权得分IC为9.87%，30bp成本后多空年化2.51%，50bp为1.67%；方向延续但五组不再严格单调。
+- 候选因子平均绝对行业主动权重约1.7%–2.4%，入选因子相关性绝对值最高约0.43；历史总市值缺失，规模暴露继续按停止条件降级披露，不以指数权重替代。
 
 展示用基础IC图见 [`docs/results/figures/equal-weight-ic-matplotlib.png`](docs/results/figures/equal-weight-ic-matplotlib.png)：蓝/红柱表示正/负Rank IC，橙色虚线为IC均值，黑线为累计IC，竖向虚线标出2023年冻结样本外起点。
 

@@ -18,6 +18,10 @@ from pb_roe.evaluation.quantiles import long_short_spread, quantile_backtest
 from pb_roe.models.dataset import load_model_panel
 
 
+def _passes_minimum(value: float, threshold: float) -> bool:
+    return value + 1e-12 >= threshold
+
+
 def _segment_summary(panel: pd.DataFrame, feature: str) -> pd.Series:
     return summarize_ic(calculate_ic(panel, [feature], return_column="target_return")).iloc[0]
 
@@ -133,8 +137,10 @@ def validate_factors_from_cli(
             "ic": row["ic_mean"] >= settings["minimum_ic"],
             "t_stat": row["newey_west_t"] >= settings["minimum_newey_west_t"],
             "year_stability": row["year_positive_rate"] >= settings["minimum_year_positive_rate"],
-            "monotonicity": row["quantile_monotonicity_30bp"]
-            >= settings["minimum_quantile_monotonicity"],
+            "monotonicity": _passes_minimum(
+                float(row["quantile_monotonicity_30bp"]),
+                float(settings["minimum_quantile_monotonicity"]),
+            ),
             "cost_30bp": (
                 not settings["require_positive_30bp_spread"]
                 or row["long_short_annual_return_30bp"] > 0
