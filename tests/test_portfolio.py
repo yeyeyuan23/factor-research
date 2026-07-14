@@ -53,3 +53,27 @@ def test_monthly_predictions_are_annualized_for_annual_covariance() -> None:
     annualized = _annualize_monthly_predictions(monthly)
 
     assert annualized.tolist() == [0.12, -0.24]
+
+
+def test_zero_alpha_minimizes_active_risk_at_benchmark() -> None:
+    securities = ["A", "B", "C"]
+    benchmark = pd.Series([0.2, 0.3, 0.5], index=securities)
+    covariance = pd.DataFrame(np.diag([0.01, 0.04, 0.09]), index=securities, columns=securities)
+    settings = PortfolioConstraints(
+        risk_aversion=10.0,
+        turnover_penalty=0.0,
+        max_weight=0.60,
+        max_industry_deviation=1.0,
+        max_turnover=1.0,
+    )
+
+    result = optimize_portfolio(
+        pd.Series(0.0, index=securities),
+        covariance,
+        pd.Series("All", index=securities),
+        benchmark_weights=benchmark,
+        previous_weights=pd.Series(1 / 3, index=securities),
+        constraints=settings,
+    )
+
+    assert np.allclose(result.weights, benchmark, atol=1e-5)

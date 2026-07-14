@@ -51,6 +51,7 @@ fundamentals.parquet
 MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_factor_ic.py --run-dir results/runs/modern-pb-roe --output docs/results/figures/equal-weight-ic-matplotlib.png --quantile-output docs/results/figures/equal-weight-quantiles-30bp.png
 MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_all_factor_analysis.py --run-dir results/runs/modern-pb-roe --output-dir docs/results/figures/factor-analysis-12
 MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_model_comparison.py --run-dir results/runs/modern-pb-roe --segment-output docs/results/figures/model-ic-segment-comparison.png --timeseries-output docs/results/figures/model-ic-timeseries.png
+MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_portfolio_analysis.py --run-dir results/runs/modern-pb-roe --performance-output docs/results/figures/portfolio-performance.png --segment-output docs/results/figures/portfolio-segment-metrics.png --yearly-output docs/results/figures/portfolio-oos-yearly.png
 .venv/bin/python -m pb_roe train --config configs/modern.yaml --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --model elastic-net
 .venv/bin/python -m pb_roe train --config configs/modern.yaml --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --model lightgbm
 .venv/bin/python -m pb_roe optimize --config configs/modern.yaml --input-dir data/processed/modern_sample/canonical --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --prediction-file results/runs/modern-pb-roe/elastic-net_predictions.parquet

@@ -75,10 +75,11 @@ def optimize_portfolio(
 
     weights = cp.Variable(len(securities))
     covariance_array = cp.psd_wrap(sigma.to_numpy())
+    active_weights = weights - benchmark.to_numpy()
     turnover_expression = 0.5 * cp.norm1(weights - previous.to_numpy())
     objective = cp.Maximize(
         mu.to_numpy() @ weights
-        - 0.5 * settings.risk_aversion * cp.quad_form(weights, covariance_array)
+        - 0.5 * settings.risk_aversion * cp.quad_form(active_weights, covariance_array)
         - settings.turnover_penalty * turnover_expression
     )
     restrictions: list[cp.Constraint] = [

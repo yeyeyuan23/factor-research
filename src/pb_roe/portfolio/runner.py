@@ -196,6 +196,7 @@ def optimize_from_cli(
         "months": len(portfolio_returns),
         "fallback_months": int(diagnostics["used_fallback"].sum()),
         "prediction_units": "monthly_return_annualized_for_annual_covariance",
+        "risk_objective": "benchmark_relative_active_risk",
         "output": str(output),
     }
     (output / f"{model_tag}_optimization_run.json").write_text(
