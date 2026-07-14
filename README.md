@@ -16,8 +16,8 @@
 | 06 | 按5类Barra-style框架构建扩展因子；只在2015–2022开发期完成单因子验证、筛选、冻结和等权多因子基准 | `f5fe62f` | **已重新完成**；12个候选五分组验证、3个因子冻结，十组残留已清理 |
 | 07 | 仅使用Commit 06冻结的因子，按相同walk-forward口径训练Elastic Net和唯一树模型LightGBM | `648dde5` | **已重新完成**；训练入口强制读取3因子冻结文件，旧12因子模型产物已替换 |
 | 08 | 使用Commit 07冻结预测做Ledoit-Wolf风险估计、CVXPY约束组合、失败回退及10/30/50bp成本检验 | `9f37564` | **已重新完成**；单位错误已修复，冻结期跑赢但开发期不稳，暂不进入最终展示 |
-| 09 | 只读取重跑后的冻结结果生成离线Dashboard和静态备份，不下载、训练或回测 | `4e26435` | **待更新**；现有Dashboard和4张图对应初版模型结果 |
-| 10 | 对最终流水线做泄漏检查、结果与哈希冻结、结论审阅和10分钟演示彩排 | `271541d` | **待重新验收**；旧审计仅证明初版流水线内部一致，不能替代修正后的最终审计 |
+| 09 | 只读取重跑后的冻结结果生成离线Dashboard和静态备份，不下载、训练或回测 | `4e26435` | **待更新**；初版Dashboard和失效图表已删除 |
+| 10 | 对最终流水线做泄漏检查、结果与哈希冻结、结论审阅和10分钟演示彩排 | `271541d` | **待重新验收**；初版审计和讲稿已删除 |
 
 除上述 10 项外，不存在其他计划 Commit 编号。后续只会更新本表的状态，不会新建 C11、C12 等计划编号；任何额外 Git 提交仅是对既有 01–10 项的修复或补充，不改变项目计划。
 
@@ -34,7 +34,7 @@
 7. 在机器学习之前建立“原始PB-ROE → 扩展因子等权组合”的非机器学习增量基准；
 8. 将候选、淘汰、保留及原因保存为可版本控制的小型结果表，README链接全部正式输出。
 
-Commit 06和07现已按上述顺序重新完成。旧12因子组合、Dashboard和模型图表仍可用于工程回归检查，但统一标为**初版实验结果**；Commit 08–10必须读取新的3因子模型产物后才能恢复为“已完成”。
+Commit 06–08现已按上述顺序重新完成。失效的12因子结果和初版展示文件已删除；Commit 09–10只能读取新的3因子模型与组合结果。
 
 ### Commit 06 因子验证结论
 
@@ -94,6 +94,11 @@ Commit 03 的现代全量数据实际覆盖 2010–2025 年逐月历史沪深 30
 - 增益重要性依次为低特异波动、PB-ROE综合、12–1月动量。
 - 当前证据明确不支持非线性优于线性模型；Commit 08仍可按计划做同口径组合对照，但主模型应为Elastic Net。
 
+正式模型对比图：
+
+- [开发期与冻结期IC/t值对比](docs/results/figures/model-ic-segment-comparison.png)
+- [月度IC与累计IC](docs/results/figures/model-ic-timeseries.png)
+
 ## 组合优化与模型可交易性（Commit 08 正式结果）
 
 完整分析见 [`docs/portfolio_analysis_report.md`](docs/portfolio_analysis_report.md)，机器可读对照见 [`docs/results/portfolio_model_comparison.csv`](docs/results/portfolio_model_comparison.csv)。两种模型均使用Ledoit-Wolf协方差、3%单票上限、行业偏离不超过5%、单月换手不超过30%和相同风险/换手惩罚；138个月全部求解成功，fallback均为0。因免费源没有历史沪深300真实权重，基准使用当期成员等权代理。
@@ -103,23 +108,6 @@ Commit 03 的现代全量数据实际覆盖 2010–2025 年逐月历史沪深 30
 - 开发期两模型均落后基准；全样本30bp后Elastic Net仅小幅超过基准终点年化，LightGBM仍落后，平均超额和信息比率不稳定。
 - 冻结期优势主要来自2023年下跌市场的防御作用；上涨年份多数落后。LightGBM的IC显著低于Elastic Net，因此组合收益改善不能证明非线性有效。
 - 现代组合年化明显低于原研报35%和本项目复现29.31%，且跨区间不可直接比较。当前结论是“冻结期防御表现较好，但稳定指数增强尚未完成”。
-
-## 初版结果展示（Commit 09，待更新）
-
-离线 Dashboard 从本地冻结结果生成在 `results/runs/modern-pb-roe/dashboard.html`，不重新运行下载、训练或回测。Git 中保存以下轻量矢量备份，可直接用于论文和展示：
-
-- [原研报复现累计净值](docs/results/figures/paper-reproduction.svg)
-- [扩展因子 Rank IC](docs/results/figures/expanded-factor-ic.svg)
-- [Elastic Net 与 LightGBM 分段 IC](docs/results/figures/model-ic-comparison.svg)
-- [约束组合成本后累计净值](docs/results/figures/portfolio-net-value.svg)
-
-所有图片均由真实 `paper-reproduction` 和 `modern-pb-roe` 结果生成，不包含 smoke fixture 数据；但模型相关图片对应尚未完成Commit 06筛选的初版实验，不能作为最终论文图片。Dashboard 与静态图的生成命令记录在 [`docs/runbook.md`](docs/runbook.md)。
-
-## 初版审计记录（Commit 10，待重新验收）
-
-旧审计摘要见 [`docs/results/final_audit_summary.json`](docs/results/final_audit_summary.json)，旧版10分钟讲稿见 [`docs/presentation_10min.md`](docs/presentation_10min.md)。14项检查证明初版流水线在数据闸门、预测时间顺序、组合约束和离线展示方面内部一致，但没有检查“扩展因子是否先在开发期完成验证和冻结”。因此该记录保留作审计轨迹，不代表最终研究已冻结。
-
-这里保留的初版阶段结论只用于审计旧实验，不能覆盖上文已经重跑的Commit 06–07结果。当前3因子模型显示Elastic Net明显优于LightGBM；现代改进部分仍须等待Commit 08用新预测重跑组合后才能冻结最终结论。
 
 ## 安装
 
