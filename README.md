@@ -17,7 +17,7 @@
 | 07 | 仅使用Commit 06冻结的因子，按相同walk-forward口径训练Elastic Net和唯一树模型LightGBM | `648dde5` | **已重新完成**；训练入口强制读取3因子冻结文件，旧12因子模型产物已替换 |
 | 08 | 使用Commit 07冻结预测做Ledoit-Wolf风险估计、CVXPY约束组合、失败回退及10/30/50bp成本检验 | `9f37564` | **已重新完成**；主动风险版本跨开发期和冻结期改善，Elastic Net确定为主模型 |
 | 09 | 只读取重跑后的冻结结果生成离线Dashboard和静态备份，不下载、训练或回测 | `4e26435` | **已重新完成**；离线Dashboard仅读取最终冻结结果，正式静态图全部由Matplotlib生成 |
-| 10 | 对最终流水线做泄漏检查、结果与哈希冻结、结论审阅和10分钟演示彩排 | `271541d` | **待重新验收**；等待最终报告、PPT和审计冻结提交 |
+| 10 | 对最终流水线做泄漏检查、结果与哈希冻结、结论审阅和10分钟演示彩排 | `271541d` | **已重新完成**；14项审计通过，最终报告与10分钟PPT已冻结 |
 
 除上述 10 项外，不存在其他计划 Commit 编号。后续只会更新本表的状态，不会新建 C11、C12 等计划编号；任何额外 Git 提交仅是对既有 01–10 项的修复或补充，不改变项目计划。
 
@@ -117,6 +117,17 @@ Commit 03 的现代全量数据实际覆盖 2010–2025 年逐月历史沪深 30
 - [冻结期年度收益](docs/results/figures/portfolio-oos-yearly.png)
 
 Commit 09只读取冻结的原研报、因子、模型和组合结果生成约5MB的自包含离线Dashboard，没有下载、训练或回测，也没有重新生成已淘汰的十组图。正式静态图全部由项目Python脚本调用Matplotlib生成。
+
+## 最终交付与审计（Commit 10）
+
+- 最终研究报告：[`docs/final_research_report.md`](docs/final_research_report.md)
+- 10分钟展示PPT：[`docs/PB-ROE复现与改进_10min.pptx`](docs/PB-ROE复现与改进_10min.pptx)
+- PPT可复现构建脚本：[`scripts/build_final_presentation.mjs`](scripts/build_final_presentation.mjs)
+- 最终审计摘要：[`docs/results/final_audit_summary.json`](docs/results/final_audit_summary.json)
+
+Commit 10最终审计共14项：16项数据质量闸门通过；Elastic Net与LightGBM各41,366条预测均满足训练/验证时间早于信号日；两种组合均满足满仓、非负权重、3%单票上限和30%换手上限；Dashboard不依赖外部Plotly CDN；冻结区间配置保持为2023–2025。
+
+PPT只嵌入项目Python脚本用Matplotlib生成的已有研究图，不使用生成式图片，并已逐页渲染检查、通过画布溢出测试。最终结论保留主动风险版本的审计限制：该目标是在查看首次冻结期结果后修正，因此2023–2025只能称为后验稳健性证据。
 
 ## 安装
 

@@ -1,0 +1,29 @@
+{
+  "run_id": "modern-pb-roe",
+  "config_fingerprint": "b15deeaf4b85f8b7",
+  "passed": true,
+  "check_count": 14,
+  "manifest_file_count": 58,
+  "data_quality_checks": 16,
+  "prediction_time_order": {
+    "elastic_net": "41366/41366",
+    "lightgbm": "41366/41366"
+  },
+  "portfolio_constraints": {
+    "elastic_net": "passed",
+    "lightgbm": "passed"
+  },
+  "offline_dashboard": {
+    "passed": true,
+    "external_plotly": false,
+    "bytes": 4994456
+  },
+  "frozen_oos": "2023-01-01..2025-12-31",
+  "artifact_sha256": {
+    "final_research_report.md": "27b95b1c3d44dc02adc24f2dbfa093edba0198705b291bd4103627997460ddc3",
+    "PB-ROE复现与改进_10min.pptx": "cd7c77f025252690285af2b15b6104b5f41dae586722eb74621af9c682c9ced6",
+    "frozen_factor_selection.json": "07744f0b6b685a3d91ef257a7185ffb0628a9e416248b9dfdd7b74d97bcb9a84",
+    "portfolio_model_comparison.csv": "d5e93731c1577c85518362bf0cbe6d28c81c4cf321a4bbcb33ef1113bdabd131"
+  },
+  "integrity_caveat": "The benchmark-relative active-risk objective was finalized after the first frozen-period result review, so 2023-2025 is post-hoc robustness evidence for that final portfolio version, not pristine untouched validation."
+}
