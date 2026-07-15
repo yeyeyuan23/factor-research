@@ -27,10 +27,11 @@
   },
   "frozen_oos": "2023-01-01..2025-12-31",
   "artifact_sha256": {
-    "final_research_report.md": "6b28fa2c283177574b095dc3f1bbb36e27a1d6813eb5c94857bf20a09b530710",
+    "final_research_report.md": "e65b8e3027576a9a7606fcecea4b99e79547c9543d69f52c34973b9878e76a1d",
     "PB-ROE复现与改进_10min.pptx": "cd7c77f025252690285af2b15b6104b5f41dae586722eb74621af9c682c9ced6",
     "frozen_factor_selection.json": "07744f0b6b685a3d91ef257a7185ffb0628a9e416248b9dfdd7b74d97bcb9a84",
     "portfolio_model_comparison.csv": "d5e93731c1577c85518362bf0cbe6d28c81c4cf321a4bbcb33ef1113bdabd131"
   },
+  "audit_scope_gap": "The existing 15 time checks compare training or validation signal dates with prediction dates, but do not verify that each forward-return label exit_date was observable before prediction. The current model and portfolio artifacts require a one-month label embargo, ex-ante eligibility filtering, and a full rerun before they qualify as strict walk-forward evidence.",
   "integrity_caveat": "The benchmark-relative active-risk objective was finalized after the first frozen-period result review, so 2023-2025 is post-hoc robustness evidence for that final portfolio version, not pristine untouched validation."
 }
