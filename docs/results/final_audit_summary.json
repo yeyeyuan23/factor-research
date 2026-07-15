@@ -2,9 +2,16 @@
   "run_id": "modern-pb-roe",
   "config_fingerprint": "b15deeaf4b85f8b7",
   "passed": true,
-  "check_count": 14,
+  "check_count": 15,
   "manifest_file_count": 58,
   "data_quality_checks": 16,
+  "paper_reproduction_window": {
+    "passed": true,
+    "periods": 18,
+    "first_rebalance": "2005-05-09",
+    "last_period_end": "2011-03-25",
+    "source_run": "results/runs/paper-reproduction"
+  },
   "prediction_time_order": {
     "elastic_net": "41366/41366",
     "lightgbm": "41366/41366"

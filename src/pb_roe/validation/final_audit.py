@@ -89,6 +89,44 @@ def _data_audit(run_dir: Path) -> FinalCheck:
     )
 
 
+def _paper_window_check(paper_dir: Path, config: ResearchConfig) -> FinalCheck:
+    """Require the formal modern audit to reference the full 18-period paper run."""
+    if config.mode != "modern":
+        return FinalCheck("paper.full_reproduction_window", True, "info", "not applicable")
+    path = paper_dir / "paper_returns.parquet"
+    if not path.is_file():
+        return FinalCheck(
+            "paper.full_reproduction_window", False, "error", "paper_returns.parquet missing"
+        )
+    frame = pd.read_parquet(path)
+    required = {"rebalance_date", "period_end"}
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        return FinalCheck(
+            "paper.full_reproduction_window",
+            False,
+            "error",
+            f"missing columns: {', '.join(missing)}",
+        )
+    rebalance = pd.to_datetime(frame["rebalance_date"], errors="coerce")
+    period_end = pd.to_datetime(frame["period_end"], errors="coerce")
+    periods = int(rebalance.nunique())
+    start = rebalance.min()
+    end = period_end.max()
+    valid = (
+        periods == 18
+        and pd.notna(start)
+        and pd.notna(end)
+        and start.year == 2005
+        and end.normalize() == pd.Timestamp("2011-03-25")
+    )
+    details = (
+        f"periods={periods}, first_rebalance={start.date() if pd.notna(start) else 'missing'}, "
+        f"last_period_end={end.date() if pd.notna(end) else 'missing'}"
+    )
+    return FinalCheck("paper.full_reproduction_window", bool(valid), "error", details)
+
+
 def _prediction_time_check(run_dir: Path, model: str) -> FinalCheck:
     path = run_dir / f"{model}_predictions.parquet"
     if not path.is_file():
@@ -195,6 +233,7 @@ def audit_frozen_run(
     checks = [
         _required_files(root, paper_root),
         _data_audit(root),
+        _paper_window_check(paper_root, config),
         _prediction_time_check(root, "elastic-net"),
         _prediction_time_check(root, "lightgbm"),
         *[check for model in portfolio_models for check in _portfolio_check(root, config, model)],

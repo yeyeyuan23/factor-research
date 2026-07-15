@@ -3,7 +3,11 @@ import json
 import pandas as pd
 
 from pb_roe.config import load_config
-from pb_roe.validation.final_audit import REQUIRED_OUTPUTS, audit_frozen_run
+from pb_roe.validation.final_audit import (
+    REQUIRED_OUTPUTS,
+    _paper_window_check,
+    audit_frozen_run,
+)
 
 
 def test_final_audit_detects_time_leakage_and_missing_outputs(tmp_path) -> None:
@@ -56,3 +60,38 @@ def test_final_audit_accepts_complete_consistent_run(tmp_path) -> None:
 
     assert report["passed"]
     assert len(report["manifest"]) == len(REQUIRED_OUTPUTS)
+
+
+def test_formal_audit_requires_full_18_period_paper_window(tmp_path) -> None:
+    config = load_config("configs/modern.yaml")
+    paper_dir = tmp_path / "paper"
+    paper_dir.mkdir()
+    dates = pd.date_range("2005-05-09", periods=18, freq="120D")
+    pd.DataFrame(
+        {
+            "rebalance_date": dates,
+            "period_end": [*dates[1:17], pd.Timestamp("2011-03-25"), pd.Timestamp("2011-03-25")],
+        }
+    ).to_parquet(paper_dir / "paper_returns.parquet", index=False)
+
+    check = _paper_window_check(paper_dir, config)
+
+    assert check.passed
+
+
+def test_formal_audit_rejects_truncated_paper_window(tmp_path) -> None:
+    config = load_config("configs/modern.yaml")
+    paper_dir = tmp_path / "paper"
+    paper_dir.mkdir()
+    dates = pd.date_range("2007-04-30", periods=12, freq="120D")
+    pd.DataFrame(
+        {
+            "rebalance_date": dates,
+            "period_end": [*dates[1:], pd.Timestamp("2011-03-25")],
+        }
+    ).to_parquet(paper_dir / "paper_returns.parquet", index=False)
+
+    check = _paper_window_check(paper_dir, config)
+
+    assert not check.passed
+    assert "periods=12" in check.details
