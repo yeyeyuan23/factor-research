@@ -204,6 +204,8 @@ factor-research/
 - 运行手册：[`docs/runbook.md`](docs/runbook.md)
 - 12因子分析：[`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)
 - 模型与组合分析：[`docs/portfolio_analysis_report.md`](docs/portfolio_analysis_report.md)
+- 英文10分钟HTML展示：[`docs/presentation_en_10min.html`](docs/presentation_en_10min.html)
+- 英文10分钟逐页讲稿：[`docs/presentation_script_en_10min.md`](docs/presentation_script_en_10min.md)
 - 10分钟PPT：[`docs/PB-ROE复现与改进_10min.pptx`](docs/PB-ROE复现与改进_10min.pptx)
 
 ## 已知限制

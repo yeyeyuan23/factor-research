@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Reproducing and Modernizing the PB–ROE Strategy</title>
+  <style>
+    :root {
+      --ink: #14233a;
+      --muted: #5f6c7b;
+      --paper: #f7f4ee;
+      --white: #fff;
+      --blue: #2767a9;
+      --blue-soft: #dfeaf5;
+      --green: #278d69;
+      --green-soft: #deeee8;
+      --orange: #da6431;
+      --red: #b63e4a;
+      --line: #ccd4dc;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      color: var(--ink);
+      background: #18212c;
+      font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .deck { position: relative; width: 100vw; height: 100vh; }
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: 4.5vh 5vw 4vh;
+      overflow: hidden;
+      background: var(--paper);
+    }
+    .slide.active { display: flex; flex-direction: column; }
+    .slide-number {
+      position: absolute;
+      right: 2vw;
+      bottom: 1.8vh;
+      color: var(--muted);
+      font-size: 1.15vw;
+      letter-spacing: .08em;
+    }
+    .eyebrow {
+      margin: 0 0 1.2vh;
+      color: var(--blue);
+      font-size: 1.25vw;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 2vh; font-size: 4.5vw; line-height: 1.03; letter-spacing: -.045em; }
+    h2 { margin-bottom: 2.3vh; font-size: 3.1vw; line-height: 1.08; letter-spacing: -.035em; }
+    h3 { margin-bottom: 1vh; font-size: 1.45vw; line-height: 1.18; }
+    p, li { font-size: 1.45vw; line-height: 1.35; }
+    .muted { color: var(--muted); }
+    .accent { color: var(--blue); }
+    .good { color: var(--green); }
+    .warn { color: var(--orange); }
+    .bad { color: var(--red); }
+
+    .title-slide {
+      justify-content: center;
+      padding-right: 35vw;
+      background:
+        linear-gradient(90deg, rgba(247,244,238,.98) 0 64%, rgba(247,244,238,.55) 100%),
+        radial-gradient(circle at 86% 32%, #81b2d4 0 12%, transparent 12.3%),
+        radial-gradient(circle at 78% 63%, #55a985 0 15%, transparent 15.3%),
+        var(--paper);
+    }
+    .title-slide::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1.1vw;
+      height: 100%;
+      background: var(--blue);
+    }
+    .title-slide .subtitle { max-width: 57vw; font-size: 1.7vw; color: var(--muted); }
+    .title-meta { margin-top: 8vh; font-size: 1.2vw; color: var(--muted); }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1.1vw;
+      margin-top: 4vh;
+      align-items: stretch;
+    }
+    .flow-step {
+      position: relative;
+      min-height: 31vh;
+      padding: 2.2vh 1.25vw;
+      border-top: .65vh solid var(--blue);
+      background: var(--white);
+    }
+    .flow-step:nth-child(n+3) { border-color: var(--green); }
+    .flow-step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      z-index: 2;
+      top: 45%;
+      right: -1.25vw;
+      width: 1.4vw;
+      color: var(--muted);
+      font-size: 1.65vw;
+      text-align: center;
+    }
+    .flow-step b { display: block; margin-bottom: 1.1vh; font-size: 2vw; }
+    .flow-step p { margin: 0; font-size: 1.16vw; color: var(--muted); }
+    .thesis {
+      margin-top: auto;
+      padding: 2vh 2vw;
+      border-left: .45vw solid var(--orange);
+      background: #f1e8de;
+      font-size: 1.55vw;
+      font-weight: 700;
+    }
+
+    .timeline {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.15fr .85fr 1.8fr .8fr;
+      gap: .4vw;
+      margin-top: 4vh;
+      padding-top: 2.2vh;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: .5vh;
+      background: linear-gradient(90deg, var(--blue) 0 29%, #9aa6b2 29% 50%, var(--green) 50% 82%, var(--orange) 82%);
+    }
+    .period { min-height: 32vh; padding: 2.2vh 1.4vw; background: var(--white); }
+    .period small { color: var(--blue); font-size: 1vw; font-weight: 800; text-transform: uppercase; }
+    .period b { display: block; margin: 1.2vh 0; font-size: 1.7vw; }
+    .period p { font-size: 1.1vw; color: var(--muted); }
+    .point-in-time {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1vw;
+      margin-top: auto;
+    }
+    .point-in-time div { padding: 1.5vh 1vw; background: var(--blue-soft); font-size: 1.13vw; }
+    .point-in-time b { display: block; margin-bottom: .4vh; }
+
+    .visual-grid { display: grid; grid-template-columns: 2.2fr .8fr; gap: 2.2vw; flex: 1; min-height: 0; }
+    .visual-grid.wide { grid-template-columns: 2.45fr .65fr; }
+    .figure-wrap { display: flex; align-items: center; min-height: 0; background: var(--white); }
+    .figure-wrap img { display: block; width: 100%; max-height: 68vh; object-fit: contain; }
+    .facts { display: flex; flex-direction: column; gap: 1.4vh; }
+    .fact { padding: 1.7vh 1.25vw; border-left: .35vw solid var(--blue); background: var(--white); }
+    .fact.green { border-color: var(--green); }
+    .fact.orange { border-color: var(--orange); }
+    .fact .number { display: block; margin-bottom: .4vh; font-size: 2.2vw; font-weight: 800; }
+    .fact p { margin: 0; font-size: 1.08vw; color: var(--muted); }
+
+    .gate-layout { display: grid; grid-template-columns: 2.55fr .75fr; gap: 2vw; flex: 1; min-height: 0; }
+    .gate-layout img { width: 100%; height: 100%; object-fit: contain; background: var(--white); }
+    .selected-list { display: flex; flex-direction: column; gap: 1.2vh; }
+    .selected-item { padding: 1.5vh 1.1vw; background: var(--green-soft); }
+    .selected-item b { display: block; font-size: 1.4vw; }
+    .selected-item span { font-size: 1.05vw; color: var(--muted); }
+    .gate-note { margin-top: auto; font-size: 1.07vw; color: var(--muted); }
+
+    .walkforward {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: .7vw;
+      margin-top: 1.4vh;
+    }
+    .walkforward div { padding: 1.2vh .85vw; background: var(--blue-soft); font-size: 1vw; text-align: center; }
+    .walkforward div:not(:last-child)::after { content: " →"; color: var(--blue); font-weight: 800; }
+    .model-slide .visual-grid { margin-top: 1.5vh; }
+    .model-slide .figure-wrap img { max-height: 55vh; }
+
+    .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 3vw; flex: 1; }
+    .claim-box { padding: 2.2vh 1.5vw; background: var(--white); }
+    .claim-box h3 { color: var(--blue); }
+    .claim-box ul { margin: 1vh 0 0; padding-left: 1.3em; }
+    .claim-box li { margin: 1.2vh 0; font-size: 1.28vw; }
+    .claim-box.proved { border-top: .7vh solid var(--green); }
+    .claim-box.limits { border-top: .7vh solid var(--orange); }
+    .closing {
+      margin-top: 2.4vh;
+      padding: 2.2vh 2vw;
+      background: var(--ink);
+      color: var(--white);
+      font-size: 1.75vw;
+      font-weight: 750;
+      text-align: center;
+    }
+
+    .progress { position: fixed; z-index: 20; left: 0; bottom: 0; height: .55vh; background: var(--blue); transition: width .2s ease; }
+    .help {
+      position: fixed;
+      z-index: 25;
+      right: 1.4vw;
+      top: 1.2vh;
+      padding: .65vh .7vw;
+      color: #eef2f5;
+      background: rgba(20,35,58,.72);
+      font-size: .8vw;
+      opacity: .25;
+    }
+    .help:hover { opacity: 1; }
+    .speaker-notes {
+      position: fixed;
+      z-index: 30;
+      display: none;
+      left: 2vw;
+      right: 2vw;
+      bottom: 2vh;
+      max-height: 38vh;
+      overflow: auto;
+      padding: 2vh 2vw;
+      border-top: .6vh solid var(--orange);
+      color: #f5f7fa;
+      background: rgba(14,22,33,.96);
+      font-size: 1.15vw;
+      line-height: 1.45;
+      box-shadow: 0 0 3vw rgba(0,0,0,.35);
+    }
+    body.notes-on .active .speaker-notes { display: block; }
+
+    @media (max-aspect-ratio: 4/3) {
+      h2 { font-size: 3.7vw; }
+      p, li { font-size: 1.7vw; }
+      .visual-grid, .gate-layout { grid-template-columns: 2fr 1fr; }
+    }
+    @media print {
+      html, body { height: auto; overflow: visible; background: white; }
+      .deck { height: auto; }
+      .slide, .slide.active {
+        position: relative;
+        display: flex;
+        width: 13.333in;
+        height: 7.5in;
+        page-break-after: always;
+      }
+      .help, .progress, .speaker-notes { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="PB–ROE research presentation">
+    <section class="slide title-slide active" data-title="Title">
+      <p class="eyebrow">Summer Research Project · Quantitative Investing</p>
+      <h1>Reproducing and<br>Modernizing the<br><span class="accent">PB–ROE Strategy</span></h1>
+      <p class="subtitle">From a 2011 stock-selection rule to a modern, point-in-time factor portfolio</p>
+      <p class="title-meta">10-minute research presentation · CSI 300 universe</p>
+      <aside class="speaker-notes">Good morning. My project starts from a simple question: can a successful Chinese equity strategy published in 2011 still survive modern scrutiny? I first reproduce the original PB–ROE rule in its historical window. I then test the same idea in a modern CSI 300 sample, validate twelve candidate factors, compare simple and machine-learning combinations, and finally convert predictions into constrained long-only portfolios. My main result is that modernization helps, but it helps through disciplined factor validation rather than model complexity.</aside>
+    </section>
+
+    <section class="slide" data-title="Research logic">
+      <p class="eyebrow">01 · Research logic</p>
+      <h2>One continuous question: can PB–ROE survive modern scrutiny?</h2>
+      <div class="flow">
+        <div class="flow-step"><b>1</b><h3>Reproduce</h3><p>Run the original rule in 2005–2011.</p></div>
+        <div class="flow-step"><b>2</b><h3>Re-evaluate</h3><p>Test PB, ROE and PB–ROE in 2012–2025.</p></div>
+        <div class="flow-step"><b>3</b><h3>Validate</h3><p>Apply the same gates to 12 candidate factors.</p></div>
+        <div class="flow-step"><b>4</b><h3>Combine</h3><p>Build a transparent three-factor baseline.</p></div>
+        <div class="flow-step"><b>5</b><h3>Model</h3><p>Compare equal weight, Elastic Net and LightGBM.</p></div>
+        <div class="flow-step"><b>6</b><h3>Portfolio</h3><p>Add costs, turnover and risk constraints.</p></div>
+      </div>
+      <div class="thesis">An improvement must beat the previous layer—not merely produce an attractive backtest.</div>
+      <aside class="speaker-notes">The key is that these are not separate experiments. They form one chain of evidence. The historical reproduction asks whether I can recover the original direction and magnitude. The modern evaluation asks whether the same signal still predicts returns. The factor stage asks what can add information beyond PB–ROE. The model stage asks whether dynamic weighting or nonlinear interactions beat a transparent equal-weight combination. Finally, the portfolio stage asks whether statistical prediction survives trading costs and constraints. At every step, I require an incremental improvement over the previous layer.</aside>
+    </section>
+
+    <section class="slide" data-title="Time design">
+      <p class="eyebrow">02 · Time design</p>
+      <h2>Separate windows prevent data mixing and future information</h2>
+      <div class="timeline">
+        <div class="period"><small>Historical test</small><b>2005–2011</b><p>18 original-paper holding periods. This is the only window used for historical reproduction.</p></div>
+        <div class="period"><small>Warm-up</small><b>2010–Apr 2012</b><p>Price history for momentum, beta, volatility and covariance. It is input history, not a missing backtest.</p></div>
+        <div class="period"><small>Modern research</small><b>May 2012–2022</b><p>Modern PB–ROE evaluation begins in 2012. Factor selection and model development use 2015–2022.</p></div>
+        <div class="period"><small>Frozen test</small><b>2023–2025</b><p>Rules are carried forward without re-selecting the three factors.</p></div>
+      </div>
+      <div class="point-in-time">
+        <div><b>Signal</b>Month-end close</div>
+        <div><b>Information</b>Effective date ≤ signal date</div>
+        <div><b>Trade</b>Next trading-day open</div>
+        <div><b>Label</b>Usable only after its exit date</div>
+      </div>
+      <aside class="speaker-notes">The time design is essential. The original reproduction is entirely separate from the modern study. For modern factors, 2010 to early 2012 supplies the trailing price history needed to calculate twelve-minus-one momentum, beta, volatility and a risk matrix. It is not a period that should generate formal return conclusions. The modern PB–ROE evaluation starts in May 2012, after financial-data coverage becomes consistently usable. Factor selection and model development are restricted to 2015 through 2022. The final diagnostic period is 2023 through 2025. At every month-end, I freeze the information then available, trade at the next open, and only allow a realized target into training after its exit date.</aside>
+    </section>
+
+    <section class="slide" data-title="Historical reproduction">
+      <p class="eyebrow">03 · Original-paper reproduction</p>
+      <h2>The historical PB–ROE effect is directionally reproducible</h2>
+      <div class="visual-grid">
+        <div class="figure-wrap"><img src="results/figures/presentation-en/01-paper-reproduction.png" alt="Original paper and reproduced annualized returns"></div>
+        <div class="facts">
+          <div class="fact green"><span class="number">29.31%</span><p>Reproduced PB–ROE Top 50 return, after the original cost assumptions.</p></div>
+          <div class="fact"><span class="number">35.00%</span><p>Original-paper result for the same core rule.</p></div>
+          <div class="fact"><span class="number">12 / 18</span><p>Holding periods in which the reproduced strategy beat its benchmark.</p></div>
+          <div class="fact orange"><p><b>Not a field-by-field Wind replication.</b> Free data, industry versions and execution details explain part of the gap.</p></div>
+        </div>
+      </div>
+      <aside class="speaker-notes">The original score rewards high ROE and low PB. I reproduce the paper’s low-frequency rebalancing rule using historical CSI 300 constituents and the latest available PB and ROE. The core Top 50 portfolio earns 29.31 percent annualized after the paper’s cost assumptions, compared with 35 percent in the report, and it beats the benchmark in twelve of eighteen holding periods. So the direction and rough magnitude are reproducible. However, the industry-equal-weight version is not the best in my data, and this is not a field-by-field replication of Wind. The appropriate conclusion is basic reproduction, not numerical identity—and certainly not evidence of fabrication.</aside>
+    </section>
+
+    <section class="slide" data-title="Modern PB–ROE">
+      <p class="eyebrow">04 · Modern re-evaluation</p>
+      <h2>PB–ROE still predicts returns, but the economic payoff is much weaker</h2>
+      <div class="visual-grid wide">
+        <div class="figure-wrap"><img src="results/figures/presentation-en/02-modern-baseline.png" alt="Modern IC and cost-adjusted return for PB, ROE and PB–ROE"></div>
+        <div class="facts">
+          <div class="fact green"><span class="number">3.91%</span><p>PB–ROE mean Rank IC; Newey–West t = 3.10.</p></div>
+          <div class="fact orange"><span class="number">0.44%</span><p>Raw PB–ROE annualized long–short return after 30 bp cost.</p></div>
+          <div class="fact"><span class="number">2.28%</span><p>Industry-adjusted PB–ROE return after 30 bp cost.</p></div>
+          <div class="fact"><p>ROE alone is nearly ineffective in the modern sample; most surviving information comes from value and the joint ranking.</p></div>
+        </div>
+      </div>
+      <aside class="speaker-notes">Next, I move the original idea into a monthly modern sample from May 2012 to October 2025. PB–ROE still has a mean Rank IC of 3.91 percent and a Newey–West t-statistic of 3.10. This means the cross-sectional ordering contains statistically meaningful information. But the economic payoff is much smaller: the raw long–short return after thirty basis points of turnover cost is only 0.44 percent annualized. Industry adjustment improves it to 2.28 percent, but this remains far below the historical report. ROE alone is close to ineffective. Therefore, the modern result is not “the paper still earns 35 percent.” It is “the signal survives statistically, while its tradable payoff has decayed.”</aside>
+    </section>
+
+    <section class="slide" data-title="Factor validation">
+      <p class="eyebrow">05 · Twelve-factor validation</p>
+      <h2>Only 3 of 12 factors passed every pre-defined gate</h2>
+      <div class="gate-layout">
+        <img src="results/figures/presentation-en/03-factor-gates.png" alt="Pass-fail matrix for twelve factor-validation gates">
+        <div class="selected-list">
+          <div class="selected-item"><b>PB–ROE</b><span>Value + profitability anchor</span></div>
+          <div class="selected-item"><b>12–1 Momentum</b><span>Intermediate-horizon price trend</span></div>
+          <div class="selected-item"><b>Low Idiosyncratic Volatility</b><span>Stock-specific risk control</span></div>
+          <p class="gate-note">Five gates: IC, Newey–West significance, positive-year stability, five-group monotonicity and positive 30 bp spread. Factor direction is fixed in the development sample.</p>
+        </div>
+      </div>
+      <aside class="speaker-notes">I then test twelve candidates from value, quality, growth, momentum and risk. I do not decide in advance that I need three, five or six factors. Every candidate must pass the same development-sample gates: Rank IC of at least two percent, a Newey–West t-statistic of at least two, positive annual IC in at least half the years, five-group monotonicity of at least 0.8, and a positive Q5-minus-Q1 return after thirty basis points. Only three pass everything: PB–ROE, twelve-minus-one momentum and low idiosyncratic volatility. Several other factors have positive IC, but fail either monotonicity or trading-cost robustness. Keeping the rule fixed is more important than rescuing a near-pass after seeing the result.</aside>
+    </section>
+
+    <section class="slide" data-title="Three-factor improvement">
+      <p class="eyebrow">06 · Transparent improvement</p>
+      <h2>The simple three-factor combination is the clearest modern improvement</h2>
+      <div class="visual-grid wide">
+        <div class="figure-wrap"><img src="results/figures/presentation-en/04-equal-weight-improvement.png" alt="PB–ROE and three-factor equal-weight comparison"></div>
+        <div class="facts">
+          <div class="fact"><p><b>Equal-weight score</b><br>PB–ROE + 12–1 momentum + low idiosyncratic volatility</p></div>
+          <div class="fact green"><span class="number">3.67 → 6.19%</span><p>Development Rank IC improves versus PB–ROE alone.</p></div>
+          <div class="fact green"><span class="number">1.64 → 6.94%</span><p>Development long–short return after 30 bp cost.</p></div>
+          <div class="fact orange"><p>Frozen IC remains strong at 9.87%, but the 30 bp return falls to 2.51% and group monotonicity weakens.</p></div>
+        </div>
+      </div>
+      <aside class="speaker-notes">Before using machine learning, I create the simplest possible modern benchmark: the average of standardized PB–ROE, momentum and negative idiosyncratic volatility. In the 2015 to 2022 development period, the mean Rank IC rises from 3.67 percent for PB–ROE alone to 6.19 percent. The cost-adjusted long–short return rises from 1.64 to 6.94 percent. This is the strongest evidence that the modern extension adds value. In the frozen period, IC is even higher at 9.87 percent, but the return falls to 2.51 percent and the five groups are no longer perfectly ordered. So the signal direction persists more strongly than the economic payoff.</aside>
+    </section>
+
+    <section class="slide model-slide" data-title="Walk-forward models">
+      <p class="eyebrow">07 · Strict walk-forward comparison</p>
+      <h2>More complex models did not improve prediction</h2>
+      <div class="walkforward">
+        <div>Freeze month-end data</div><div>Keep matured labels only</div><div>Use up to 60 months</div><div>Retrain each month</div><div>Trade next open</div>
+      </div>
+      <div class="visual-grid wide">
+        <div class="figure-wrap"><img src="results/figures/presentation-en/05-method-comparison.png" alt="Equal weighting, Elastic Net and LightGBM Rank IC comparison"></div>
+        <div class="facts">
+          <div class="fact green"><span class="number">9.87%</span><p>Frozen IC: three-factor equal weight</p></div>
+          <div class="fact"><span class="number">7.82%</span><p>Frozen IC: Elastic Net</p></div>
+          <div class="fact orange"><span class="number">3.24%</span><p>Frozen IC: LightGBM</p></div>
+          <div class="fact"><p>Example: on 31 Jan 2023, training can use labels through Nov 2022—not Dec 2022.</p></div>
+        </div>
+      </div>
+      <aside class="speaker-notes">The machine-learning test is strictly walk-forward. At each month-end, I keep only labels whose full holding period has already ended. I use up to sixty months of mature history, retrain, predict the current cross-section and trade at the next open. For example, on January thirty-first 2023, the November 2022 return label is complete and can be used, but the December label does not finish until February first and is excluded. After this repair, equal weighting remains best: frozen IC is 9.87 percent, versus 7.82 for Elastic Net and 3.24 for LightGBM. With only three low-dimensional factors, flexible nonlinear interactions do not receive enough stable information. Complexity adds estimation error rather than predictive value.</aside>
+    </section>
+
+    <section class="slide" data-title="Portfolio results">
+      <p class="eyebrow">08 · Constrained portfolio</p>
+      <h2>Elastic Net beat the proxy benchmark—but the edge is modest</h2>
+      <div class="visual-grid wide">
+        <div class="figure-wrap"><img src="results/figures/presentation-en/06-portfolio-comparison.png" alt="Frozen-period return, Sharpe and drawdown comparison"></div>
+        <div class="facts">
+          <div class="fact green"><span class="number">7.75%</span><p>Elastic Net annualized return after 30 bp, versus 5.58% for the CSI 300 equal-weight proxy.</p></div>
+          <div class="fact"><span class="number">0.34</span><p>Elastic Net Sharpe, versus 0.20 for the proxy.</p></div>
+          <div class="fact orange"><p><b>Do not call this stable alpha.</b> Information ratio is 0.13; the edge is concentrated in 2023.</p></div>
+          <div class="fact orange"><p>The active-risk objective was revised after the first frozen review, so this is post-hoc robustness evidence.</p></div>
+        </div>
+      </div>
+      <aside class="speaker-notes">Finally, I convert predictions into fully invested, long-only portfolios with a three-percent stock cap, five-percent industry deviation limit, thirty-percent monthly turnover limit and transaction costs. Elastic Net earns 7.75 percent annualized after thirty basis points, compared with 5.58 percent for the CSI 300 constituent equal-weight proxy. Its Sharpe rises from 0.20 to 0.34, and drawdown improves. However, the information ratio is only 0.13, the outperformance is concentrated in 2023, and the strategy lags in 2024 and 2025. More importantly, the active-risk objective was introduced after the first frozen-period review. The result is useful robustness evidence, but it is not a pristine, untouched out-of-sample alpha claim.</aside>
+    </section>
+
+    <section class="slide" data-title="Conclusion">
+      <p class="eyebrow">09 · Conclusion</p>
+      <h2>What the study proves—and what it does not</h2>
+      <div class="two-column">
+        <div class="claim-box proved">
+          <h3>Supported by the evidence</h3>
+          <ul>
+            <li>The historical PB–ROE direction and return magnitude are broadly reproducible.</li>
+            <li>PB–ROE retains modern ranking information, although its economic payoff has weakened.</li>
+            <li>Momentum and low idiosyncratic volatility add useful information to PB–ROE.</li>
+            <li>Simple equal weighting beats both trained models on predictive IC.</li>
+          </ul>
+        </div>
+        <div class="claim-box limits">
+          <h3>Not established</h3>
+          <ul>
+            <li>The original paper is not reproduced field by field.</li>
+            <li>LightGBM does not provide stable nonlinear improvement.</li>
+            <li>The optimized portfolio has not demonstrated persistent live alpha.</li>
+            <li>A genuinely untouched future period is still required.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="closing">Modernization worked through disciplined factor validation—not model complexity.</div>
+      <aside class="speaker-notes">To conclude, the project supports four claims. First, the historical PB–ROE result is broadly reproducible. Second, the signal still ranks stocks in the modern CSI 300, but its return after costs is far weaker. Third, momentum and low idiosyncratic volatility provide a meaningful modern improvement. Fourth, the transparent equal-weight combination is more predictive than either Elastic Net or LightGBM. What I cannot claim is equally important: this is not a field-by-field Wind replication, LightGBM does not add nonlinear value, and the optimized portfolio has not demonstrated persistent live alpha. The next decisive test is to freeze the present code and evaluate genuinely new months. My final takeaway is simple: modernization worked through disciplined factor validation, not model complexity. Thank you.</aside>
+    </section>
+  </main>
+
+  <div class="help">←/→ navigate · N notes · F fullscreen</div>
+  <div class="progress" aria-hidden="true"></div>
+
+  <script>
+    (() => {
+      const slides = [...document.querySelectorAll('.slide')];
+      const progress = document.querySelector('.progress');
+      let index = 0;
+
+      function show(next) {
+        index = Math.max(0, Math.min(next, slides.length - 1));
+        slides.forEach((slide, i) => {
+          slide.classList.toggle('active', i === index);
+          slide.setAttribute('aria-hidden', i === index ? 'false' : 'true');
+          let number = slide.querySelector('.slide-number');
+          if (!number) {
+            number = document.createElement('span');
+            number.className = 'slide-number';
+            slide.appendChild(number);
+          }
+          number.textContent = `${String(i + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+        });
+        progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+        history.replaceState(null, '', `#${index + 1}`);
+        document.title = `${slides[index].dataset.title} · PB–ROE`;
+      }
+
+      function fullscreen() {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+        else document.exitFullscreen?.();
+      }
+
+      document.addEventListener('keydown', event => {
+        if (['ArrowRight', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); show(index + 1); }
+        if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); show(index - 1); }
+        if (event.key === 'Home') show(0);
+        if (event.key === 'End') show(slides.length - 1);
+        if (event.key.toLowerCase() === 'n') document.body.classList.toggle('notes-on');
+        if (event.key.toLowerCase() === 'f') fullscreen();
+      });
+
+      document.addEventListener('click', event => {
+        if (event.target.closest('.speaker-notes')) return;
+        show(index + (event.clientX > innerWidth / 2 ? 1 : -1));
+      });
+
+      const hashIndex = Number(location.hash.slice(1)) - 1;
+      show(Number.isFinite(hashIndex) && hashIndex >= 0 ? hashIndex : 0);
+    })();
+  </script>
+</body>
+</html>
