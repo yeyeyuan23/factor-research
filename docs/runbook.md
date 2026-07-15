@@ -4,7 +4,7 @@
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install -e '.[dev]'
+.venv/bin/python -m pip install -e '.[data,dev]'
 ```
 
 macOS 使用 LightGBM 前执行：
@@ -41,22 +41,66 @@ prices.parquet
 fundamentals.parquet
 ```
 
-随后执行：
+当前正式数据目录：
+
+```text
+原研报：data/processed/paper_full_incremental/canonical
+现代层：data/processed/modern_sample/canonical
+```
+
+随后严格按顺序执行：
 
 ```bash
-.venv/bin/python -m pb_roe data audit --config configs/paper.yaml --input-dir <canonical-data>
-.venv/bin/python -m pb_roe reproduce --config configs/paper.yaml --input-dir <canonical-data>
-.venv/bin/python -m pb_roe evaluate --config configs/modern.yaml --input-dir data/processed/modern_sample/canonical
-.venv/bin/python -m pb_roe validate-factors --config configs/modern.yaml --input-dir data/processed/modern_sample/canonical
-MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_factor_ic.py --run-dir results/runs/modern-pb-roe --output docs/results/figures/equal-weight-ic-matplotlib.png --quantile-output docs/results/figures/equal-weight-quantiles-30bp.png
-MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_all_factor_analysis.py --run-dir results/runs/modern-pb-roe --output-dir docs/results/figures/factor-analysis-12
-MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_model_comparison.py --run-dir results/runs/modern-pb-roe --segment-output docs/results/figures/model-ic-segment-comparison.png --timeseries-output docs/results/figures/model-ic-timeseries.png
-MPLCONFIGDIR=/private/tmp/mpl .venv/bin/python scripts/plot_portfolio_analysis.py --run-dir results/runs/modern-pb-roe --performance-output docs/results/figures/portfolio-performance.png --segment-output docs/results/figures/portfolio-segment-metrics.png --yearly-output docs/results/figures/portfolio-oos-yearly.png
-.venv/bin/python -m pb_roe train --config configs/modern.yaml --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --model elastic-net
-.venv/bin/python -m pb_roe train --config configs/modern.yaml --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --model lightgbm
-.venv/bin/python -m pb_roe optimize --config configs/modern.yaml --input-dir data/processed/modern_sample/canonical --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet --prediction-file results/runs/modern-pb-roe/elastic-net_predictions.parquet
-.venv/bin/python -m pb_roe report --config configs/modern.yaml --run-dir results/runs/modern-pb-roe --paper-run-dir results/runs/paper-reproduction --static-dir docs/results/figures
+PY=.venv/bin/python
+PAPER_DATA=data/processed/paper_full_incremental/canonical
+MODERN_DATA=data/processed/modern_sample/canonical
+
+$PY -m pb_roe data audit --config configs/paper.yaml --input-dir "$PAPER_DATA"
+$PY -m pb_roe reproduce --config configs/paper.yaml --input-dir "$PAPER_DATA"
+$PY -m pb_roe data audit --config configs/modern.yaml --input-dir "$MODERN_DATA"
+$PY -m pb_roe evaluate --config configs/modern.yaml --input-dir "$MODERN_DATA"
+$PY -m pb_roe validate-factors --config configs/modern.yaml --input-dir "$MODERN_DATA"
+
+$PY -m pb_roe train \
+  --config configs/modern.yaml \
+  --input-dir "$MODERN_DATA" \
+  --model elastic-net
+
+$PY -m pb_roe train \
+  --config configs/modern.yaml \
+  --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
+  --model lightgbm
+
+$PY -m pb_roe optimize \
+  --config configs/modern.yaml \
+  --input-dir "$MODERN_DATA" \
+  --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
+  --prediction-file results/runs/modern-pb-roe/elastic-net_predictions.parquet
+
+$PY -m pb_roe optimize \
+  --config configs/modern.yaml \
+  --input-dir "$MODERN_DATA" \
+  --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
+  --prediction-file results/runs/modern-pb-roe/lightgbm_predictions.parquet
+
+$PY -m pb_roe report \
+  --config configs/modern.yaml \
+  --run-dir results/runs/modern-pb-roe \
+  --paper-run-dir results/runs/paper-reproduction
 ```
+
+`validate-factors`必须先生成`frozen_factor_selection.json`；第一个训练命令会保存`model_factor_panel.parquet`，第二个模型读取同一面板，确保输入一致。报告命令只读取冻结结果，不下载、训练或回测。
+
+正式图表在相应研究阶段完成后生成：
+
+```bash
+MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_factor_ic.py --run-dir results/runs/modern-pb-roe --output docs/results/figures/equal-weight-ic-matplotlib.png --quantile-output docs/results/figures/equal-weight-quantiles-30bp.png
+MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_all_factor_analysis.py --run-dir results/runs/modern-pb-roe --output-dir docs/results/figures/factor-analysis-12
+MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_model_comparison.py --run-dir results/runs/modern-pb-roe --segment-output docs/results/figures/model-ic-segment-comparison.png --timeseries-output docs/results/figures/model-ic-timeseries.png
+MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_portfolio_analysis.py --run-dir results/runs/modern-pb-roe --performance-output docs/results/figures/portfolio-performance.png --segment-output docs/results/figures/portfolio-segment-metrics.png --yearly-output docs/results/figures/portfolio-oos-yearly.png
+```
+
+这些脚本全部使用Matplotlib并只读取结果文件。不要向`report`命令传`--static-dir`重新生成旧的手写SVG备份。
 
 当前真实数据适配层提供 BaoStock 行情与沪深 300 快照读取能力；财务公告时点、历史成分区间重建和正式全量下载仍需先落为 canonical Parquet。任何一项覆盖率未达到配置阈值时，不得生成论文结论。
 

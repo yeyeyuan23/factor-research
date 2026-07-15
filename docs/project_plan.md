@@ -452,18 +452,20 @@ factor-research/
 
 按以下顺序独立提交，每个阶段通过验收后再进入下一阶段：
 
-| Commit | 交付内容 | 推荐模型 |
-|---|---|---|
-| `01-research-spec-and-data-audit` | 研究口径、数据字典、覆盖率审计和停止条件 | 最强可用模型，High reasoning |
-| `02-project-scaffold` | 配置、CLI、日志、目录和测试框架 | Mini/快速模型，Medium reasoning |
-| `03-pit-data-pipeline` | 历史成分、行情、公告时点、数据闸门和 Parquet 缓存 | 主力模型，High reasoning |
-| `04-paper-reproduction` | 原文组合、成本口径和结果对照 | 主力模型，High reasoning |
-| `05-modern-factor-evaluation` | IC、分层、成本、统计显著性和暴露 | 主力模型，High reasoning |
-| `06-factor-library-linear-baseline` | 扩展因子与 Elastic Net | Mini 实现固定公式，主力模型复核 |
-| `07-lightgbm-walk-forward` | 唯一树模型、滚动训练和样本外预测 | 主力模型，High reasoning |
-| `08-portfolio-optimization` | 风险估计、CVXPY 约束和失败回退 | 最强可用模型，High/XHigh reasoning |
-| `09-dashboard` | 现场展示、交互图表和静态备份 | Mini/快速模型，Medium reasoning |
-| `10-final-audit` | 泄漏检查、结果冻结、结论审阅和演示彩排 | 最强可用模型，High/XHigh reasoning |
+| 计划 Commit | 工程交付 | 当前状态 | 推荐模型 |
+|---|---|---|---|
+| `01-research-spec-and-data-audit` | 研究口径、数据字典、覆盖率审计和停止条件 | 已完成（`bb59ab8`） | 最强可用模型，High reasoning |
+| `02-project-scaffold` | 配置、CLI、日志、目录、smoke fixture和测试框架 | 已完成（`c743421`） | Mini/快速模型，Medium reasoning |
+| `03-pit-data-pipeline` | 历史成分、行情、公告时点、数据闸门和Parquet缓存 | 已完成（`e104f5f`） | 主力模型，High reasoning |
+| `04-paper-reproduction` | 2005–2011原文组合、成本口径和结果对照 | 已完成（`25dc6dd`） | 主力模型，High reasoning |
+| `05-modern-factor-evaluation` | 核心BP、ROE、PB-ROE的IC、分层、成本、显著性和暴露 | 已完成（`1e3407c`） | 主力模型，High reasoning |
+| `06-factor-library-and-freeze` | 12个扩展候选、五分组验证、3因子冻结和等权基准 | 已完成（`f5fe62f`） | Mini实现固定公式，主力模型复核 |
+| `07-model-walk-forward` | 冻结3因子的Elastic Net和唯一树模型LightGBM | 已完成（`648dde5`） | 主力模型，High reasoning |
+| `08-portfolio-optimization` | Ledoit-Wolf风险估计、CVXPY约束、失败回退和成本检验 | 已完成（`9f37564`） | 最强可用模型，High/XHigh reasoning |
+| `09-dashboard` | 冻结结果的离线Dashboard和Matplotlib静态图 | 已完成（`4e26435`） | Mini/快速模型，Medium reasoning |
+| `10-final-audit` | 泄漏检查、18期复现检查、结果哈希冻结和演示验收 | 已完成（`271541d`） | 最强可用模型，High/XHigh reasoning |
+
+本计划始终只有以上10个编号。后续修复提交只修正对应阶段，不新增Commit 11或其他计划编号。
 
 若模型列表中提供 GPT-5.4 mini、GPT-5.4 和更强旗舰模型，可分别对应“Mini/快速模型”“主力模型”“最强可用模型”；若名称不同，按照相同能力档位选择，不硬编码具体版本。
 
