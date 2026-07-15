@@ -460,10 +460,10 @@ factor-research/
 | `04-paper-reproduction` | 2005–2011原文组合、成本口径和结果对照 | 已完成（`25dc6dd`） | 主力模型，High reasoning |
 | `05-modern-factor-evaluation` | 核心BP、ROE、PB-ROE的IC、分层、成本、显著性和暴露 | 已完成（`1e3407c`） | 主力模型，High reasoning |
 | `06-factor-library-and-freeze` | 12个扩展候选、五分组验证、3因子冻结和等权基准 | 已完成（`f5fe62f`） | Mini实现固定公式，主力模型复核 |
-| `07-model-walk-forward` | 冻结3因子的Elastic Net和唯一树模型LightGBM | 已完成（`648dde5`） | 主力模型，High reasoning |
-| `08-portfolio-optimization` | Ledoit-Wolf风险估计、CVXPY约束、失败回退和成本检验 | 已完成（`9f37564`） | 最强可用模型，High/XHigh reasoning |
+| `07-model-walk-forward` | 冻结3因子的Elastic Net和唯一树模型LightGBM | 已完成（`648dde5`；严格标签隔离修复与重跑`956cc05`） | 主力模型，High reasoning |
+| `08-portfolio-optimization` | Ledoit-Wolf风险估计、CVXPY约束、失败回退和成本检验 | 已完成（`9f37564`；事前股票池修复与重跑`956cc05`） | 最强可用模型，High/XHigh reasoning |
 | `09-dashboard` | 冻结结果的离线Dashboard和Matplotlib静态图 | 已完成（`4e26435`） | Mini/快速模型，Medium reasoning |
-| `10-final-audit` | 泄漏检查、18期复现检查、结果哈希冻结和演示验收 | 已完成（`271541d`） | 最强可用模型，High/XHigh reasoning |
+| `10-final-audit` | 泄漏检查、18期复现检查、结果哈希冻结和演示验收 | 已完成（`271541d`；标签成熟审计升级`956cc05`） | 最强可用模型，High/XHigh reasoning |
 
 本计划始终只有以上10个编号。后续修复提交只修正对应阶段，不新增Commit 11或其他计划编号。
 
