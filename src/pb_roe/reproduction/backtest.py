@@ -52,17 +52,32 @@ def backtest_paper_holdings(
             start_keys = pd.MultiIndex.from_arrays(
                 [[signal] * len(selected), selected["security_id"]]
             )
-            end_keys = pd.MultiIndex.from_arrays(
-                [[period_end] * len(selected), selected["security_id"]]
-            )
             start_prices = close.reindex(start_keys).to_numpy(dtype=float)
-            end_prices = close.reindex(end_keys).to_numpy(dtype=float)
+            exit_observations = (
+                prices.loc[
+                    prices["trade_date"].le(period_end)
+                    & ~prices["is_suspended"].fillna(False)
+                    & prices["security_id"].isin(selected["security_id"]),
+                    ["trade_date", "security_id", "close"],
+                ]
+                .sort_values(["security_id", "trade_date"])
+                .groupby("security_id", as_index=False)
+                .tail(1)
+                .set_index("security_id")
+            )
+            end_prices = selected["security_id"].map(exit_observations["close"]).to_numpy(
+                dtype=float
+            )
+            exit_dates = pd.to_datetime(
+                selected["security_id"].map(exit_observations["trade_date"])
+            )
             tradable = np.isfinite(start_prices) & np.isfinite(end_prices) & (start_prices > 0)
             if not tradable.any():
                 continue
             weights = selected["target_weight"].to_numpy(dtype=float)[tradable]
             weights = weights / weights.sum()
             asset_returns = end_prices[tradable] / start_prices[tradable] - 1
+            exit_staleness = (period_end - exit_dates[tradable]).dt.days
             gross_return = float(np.dot(weights, asset_returns))
             is_benchmark = strategy_id == "R0_UNIVERSE_EW"
             cost = 0.0 if is_benchmark else initial_cost if period_index == 0 else rebalance_cost
@@ -76,6 +91,8 @@ def backtest_paper_holdings(
                     "transaction_cost": cost,
                     "net_return": net_return,
                     "constituent_count": int(tradable.sum()),
+                    "stale_exit_count": int(exit_staleness.gt(0).sum()),
+                    "maximum_exit_staleness_days": int(exit_staleness.max()),
                 }
             )
     returns = pd.DataFrame(rows)

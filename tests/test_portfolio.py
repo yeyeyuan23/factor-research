@@ -4,7 +4,11 @@ import pandas as pd
 from pb_roe.data.providers.fixture import fixture_bundle
 from pb_roe.portfolio.optimizer import PortfolioConstraints, optimize_portfolio
 from pb_roe.portfolio.risk import ledoit_wolf_covariance, trailing_return_matrix
-from pb_roe.portfolio.runner import _annualize_monthly_predictions, _ex_ante_snapshot
+from pb_roe.portfolio.runner import (
+    _annualize_monthly_predictions,
+    _drift_weights,
+    _ex_ante_snapshot,
+)
 
 
 def test_ledoit_wolf_covariance_is_positive_semidefinite() -> None:
@@ -68,6 +72,53 @@ def test_ex_ante_snapshot_does_not_filter_on_future_returns() -> None:
 
     assert selected.index.tolist() == [0, 1]
     assert pd.isna(selected.loc[0, "forward_return"])
+
+
+def test_ex_ante_snapshot_keeps_missing_static_industry() -> None:
+    snapshot = pd.DataFrame(
+        {"prediction": [0.1], "industry": [None], "forward_return": [0.02]}
+    )
+
+    selected = _ex_ante_snapshot(snapshot)
+
+    assert selected.iloc[0]["industry"] == "Unknown"
+
+
+def test_weights_drift_before_next_rebalance() -> None:
+    weights = pd.Series({"A": 0.5, "B": 0.5})
+    returns = pd.Series({"A": 0.10, "B": 0.0})
+
+    drifted = _drift_weights(weights, returns)
+
+    assert np.isclose(drifted["A"], 0.55 / 1.05)
+    assert np.isclose(drifted.sum(), 1.0)
+
+
+def test_optimizer_turnover_includes_forced_exit_weight() -> None:
+    securities = ["A", "B"]
+    settings = PortfolioConstraints(
+        risk_aversion=1.0,
+        turnover_penalty=0.0,
+        max_weight=1.0,
+        max_industry_deviation=1.0,
+        max_turnover=0.30,
+        enforce_industry_constraints=False,
+    )
+    previous = pd.Series({"A": 0.4, "B": 0.4, "EXIT": 0.2})
+
+    result = optimize_portfolio(
+        pd.Series({"A": 0.10, "B": 0.0}),
+        pd.DataFrame(np.eye(2) * 0.01, index=securities, columns=securities),
+        pd.Series("Unknown", index=securities),
+        previous_weights=previous,
+        constraints=settings,
+    )
+
+    expected_turnover = 0.5 * (
+        (result.weights - previous.reindex(securities)).abs().sum() + previous["EXIT"]
+    )
+    assert np.isclose(result.turnover, expected_turnover)
+    assert result.turnover >= previous["EXIT"] - 1e-6
 
 
 def test_zero_alpha_minimizes_active_risk_at_benchmark() -> None:

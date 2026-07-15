@@ -72,7 +72,11 @@ def load_model_panel(
         if not all(value == "fixture" for value in providers.values()):
             raise FileNotFoundError("--factor-file is required unless all providers are fixture")
         bundle = fixture_bundle()
-        panel = build_modern_panel(bundle, research["start_date"], research["end_date"])
+        panel = build_modern_panel(
+            bundle,
+            research.get("factor_start_date", research["start_date"]),
+            research["end_date"],
+        )
         price_factors = compute_price_factors(
             bundle.prices,
             panel["signal_date"].drop_duplicates(),
@@ -92,11 +96,20 @@ def load_model_panel(
         lower=float(research.get("winsor_lower", 0.01)),
         upper=float(research.get("winsor_upper", 0.99)),
     )
-    processed["target_return"] = neutralize_cross_section(
-        processed,
-        str(evaluation.get("return_column", "forward_return")),
-        industry_column=str(evaluation.get("industry_column", "industry")),
-    )
+    return_column = str(evaluation.get("return_column", "forward_return"))
+    target_neutralization = str(evaluation.get("target_neutralization", "industry"))
+    if target_neutralization == "industry":
+        processed["target_return"] = neutralize_cross_section(
+            processed,
+            return_column,
+            industry_column=str(evaluation.get("industry_column", "industry")),
+        )
+    elif target_neutralization == "none":
+        processed["target_return"] = pd.to_numeric(processed[return_column], errors="coerce")
+    else:
+        raise ValueError(
+            "evaluation.target_neutralization must be either 'none' or 'industry'"
+        )
     feature_columns = [f"{factor}_z" for factor in available]
     coverage_threshold = float(config.section("quality")["factor_coverage"])
     coverage = (

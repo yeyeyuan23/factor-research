@@ -43,6 +43,7 @@ quality:
   membership_coverage: 0.95
   announcement_coverage: 0.95
   factor_coverage: 0.80
+  maximum_roe_announcement_lag_days: 200
 
 evaluation:
   factor_columns: [bp, roe, paper_score]
@@ -58,6 +59,7 @@ evaluation:
     - idiosyncratic_volatility
   return_column: forward_return
   industry_column: industry
+  target_neutralization: none
   factor_validation:
     development_start: 2015-01-01
     minimum_ic: 0.02
@@ -107,3 +109,4 @@ portfolio:
   max_weight: 0.03
   max_industry_deviation: 0.05
   max_turnover: 0.30
+  enforce_industry_constraints: false

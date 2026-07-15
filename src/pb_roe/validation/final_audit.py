@@ -76,16 +76,65 @@ def _required_files(run_dir: Path, paper_dir: Path) -> FinalCheck:
     )
 
 
-def _data_audit(run_dir: Path) -> FinalCheck:
+def _data_audit(run_dir: Path, config: ResearchConfig) -> FinalCheck:
     path = run_dir / "data_audit.json"
     if not path.is_file():
         return FinalCheck("data.audit_passed", False, "error", "data_audit.json missing")
     report = json.loads(path.read_text(encoding="utf-8"))
+    providers = config.section("data").get("providers", {})
+    fixture = all(value == "fixture" for value in providers.values())
+    checks = {item.get("check_id"): item for item in report.get("checks", [])}
+    expected_lag = config.section("quality").get("maximum_roe_announcement_lag_days")
+    valid = bool(report.get("passed")) and report.get("config_fingerprint") == config.fingerprint
+    details = [f"{len(checks)} checks", "config fingerprint matched"]
+    if expected_lag is not None:
+        lag_check = checks.get("fundamentals.roe_announcement_lag")
+        valid &= bool(lag_check and lag_check.get("passed"))
+        details.append("ROE announcement-lag gate present")
+    if not fixture:
+        manifest_hash = str(report.get("input_manifest_sha256", ""))
+        valid &= len(manifest_hash) == 64 and bool(report.get("input_manifest"))
+        details.append("canonical input manifest frozen")
     return FinalCheck(
         "data.audit_passed",
-        bool(report.get("passed")),
+        bool(valid),
         "error",
-        f"{len(report.get('checks', []))} checks",
+        "; ".join(details),
+    )
+
+
+def _causal_industry_check(config: ResearchConfig) -> FinalCheck:
+    providers = config.section("data").get("providers", {})
+    fixture = all(value == "fixture" for value in providers.values())
+    if config.mode != "modern" or fixture:
+        return FinalCheck("research.static_industry_not_causal", True, "info", "not applicable")
+    evaluation = config.section("evaluation")
+    portfolio = config.section("portfolio")
+    target = str(evaluation.get("target_neutralization", "industry"))
+    constraints = bool(portfolio.get("enforce_industry_constraints", True))
+    valid = target == "none" and not constraints
+    return FinalCheck(
+        "research.static_industry_not_causal",
+        valid,
+        "error",
+        f"target_neutralization={target}, industry_constraints={constraints}",
+    )
+
+
+def _paper_exit_mark_check(paper_dir: Path, config: ResearchConfig) -> FinalCheck:
+    if config.mode != "modern":
+        return FinalCheck("paper.observable_exit_marks", True, "info", "not applicable")
+    path = paper_dir / "paper_returns.parquet"
+    if not path.is_file():
+        return FinalCheck("paper.observable_exit_marks", False, "error", "returns missing")
+    frame = pd.read_parquet(path)
+    required = {"stale_exit_count", "maximum_exit_staleness_days"}
+    missing = sorted(required - set(frame.columns))
+    return FinalCheck(
+        "paper.observable_exit_marks",
+        not missing,
+        "error",
+        "last observable close retained" if not missing else f"missing columns: {missing}",
     )
 
 
@@ -249,8 +298,10 @@ def audit_frozen_run(
     )
     checks = [
         _required_files(root, paper_root),
-        _data_audit(root),
+        _data_audit(root, config),
         _paper_window_check(paper_root, config),
+        _paper_exit_mark_check(paper_root, config),
+        _causal_industry_check(config),
         _prediction_time_check(root, "elastic-net"),
         _prediction_time_check(root, "lightgbm"),
         *[check for model in portfolio_models for check in _portfolio_check(root, config, model)],

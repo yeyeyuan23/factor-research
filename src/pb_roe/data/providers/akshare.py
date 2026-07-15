@@ -7,9 +7,9 @@ import time
 from collections.abc import Iterable
 from pathlib import Path
 
-import akshare as ak
 import numpy as np
 import pandas as pd
+import requests
 
 from pb_roe.data.schema import SCHEMAS, canonical_security_id
 
@@ -171,20 +171,51 @@ class AkShareFinancialIngestor:
 
     def _quarterly_report(self, report_period: pd.Timestamp) -> pd.DataFrame:
         key = report_period.strftime("%Y%m%d")
-        cache = self.cache_dir / "yjbb" / f"{key}.parquet"
+        cache = self.cache_dir / "yjbb_raw" / f"{key}.parquet"
         if cache.is_file():
             return pd.read_parquet(cache)
-        last_error: Exception | None = None
-        for attempt in range(3):
-            try:
-                frame = ak.stock_yjbb_em(key)
-                cache.parent.mkdir(parents=True, exist_ok=True)
-                frame.to_parquet(cache, index=False)
-                return frame
-            except Exception as exc:  # provider failures need bounded retries
-                last_error = exc
-                time.sleep(1 + attempt)
-        raise AkShareQueryError(f"quarterly report download failed for {key}: {last_error}")
+        url = "https://datacenter-web.eastmoney.com/api/data/v1/get"
+        params = {
+            "sortColumns": "UPDATE_DATE,SECURITY_CODE",
+            "sortTypes": "-1,-1",
+            "pageSize": "500",
+            "pageNumber": "1",
+            "reportName": "RPT_LICO_FN_CPD",
+            "columns": "ALL",
+            "filter": f"(REPORTDATE='{report_period:%Y-%m-%d}')",
+        }
+
+        def fetch_page(page_number: int) -> tuple[int, pd.DataFrame]:
+            last_error: Exception | None = None
+            for attempt in range(3):
+                try:
+                    response = requests.get(
+                        url,
+                        params={**params, "pageNumber": str(page_number)},
+                        timeout=30,
+                    )
+                    response.raise_for_status()
+                    payload = response.json()
+                    if not payload.get("success") or payload.get("result") is None:
+                        raise AkShareQueryError(str(payload.get("message", "empty result")))
+                    result = payload["result"]
+                    return int(result["pages"]), pd.DataFrame(result["data"])
+                except Exception as exc:  # provider failures need bounded retries
+                    last_error = exc
+                    time.sleep(1 + attempt)
+            raise AkShareQueryError(
+                f"quarterly report page failed for {key} page {page_number}: {last_error}"
+            )
+
+        pages, first = fetch_page(1)
+        frames = [first]
+        for page_number in range(2, pages + 1):
+            _, page = fetch_page(page_number)
+            frames.append(page)
+        frame = pd.concat(frames, ignore_index=True)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        frame.to_parquet(cache, index=False)
+        return frame
 
     def fundamentals(
         self, securities: Iterable[str], start_date: object, end_date: object
@@ -214,26 +245,49 @@ def quarterly_report_to_long(report: pd.DataFrame, report_period: object) -> pd.
 
     if report.empty:
         return pd.DataFrame(columns=SCHEMAS["fundamentals"])
+    raw_eastmoney = "SECURITY_CODE" in report
+    security_column = "SECURITY_CODE" if raw_eastmoney else "股票代码"
+    notice_column = "NOTICE_DATE" if raw_eastmoney else "最新公告日期"
+    update_column = "UPDATE_DATE" if raw_eastmoney else None
     base = pd.DataFrame(
         {
-            "security_id": report["股票代码"].map(canonical_security_id),
+            "security_id": report[security_column].map(canonical_security_id),
             "report_period": pd.Timestamp(report_period).normalize(),
-            "announce_date": pd.to_datetime(report["最新公告日期"], errors="coerce"),
+            "announce_date": pd.to_datetime(report[notice_column], errors="coerce"),
         }
     )
-    base["revision_date"] = pd.NaT
+    update_date = (
+        pd.to_datetime(report[update_column], errors="coerce")
+        if update_column
+        else pd.Series(pd.NaT, index=report.index)
+    )
+    base["revision_date"] = update_date.where(update_date > base["announce_date"])
     base["effective_date"] = base["announce_date"]
-    definitions = {
-        "eps_cumulative": ("每股收益", "CNY/share", 1.0),
-        "revenue_cumulative": ("营业总收入-营业总收入", "CNY", 1.0),
-        "net_income_cumulative": ("净利润-净利润", "CNY", 1.0),
-        "book_value_per_share": ("每股净资产", "CNY/share", 1.0),
-        "roe_reported": ("净资产收益率", "ratio", 0.01),
-        "operating_cash_flow_per_share": ("每股经营现金流量", "CNY/share", 1.0),
-        "gross_margin": ("销售毛利率", "ratio", 0.01),
-        "revenue_growth": ("营业总收入-同比增长", "ratio", 0.01),
-        "earnings_growth": ("净利润-同比增长", "ratio", 0.01),
-    }
+    definitions = (
+        {
+            "eps_cumulative": ("BASIC_EPS", "CNY/share", 1.0),
+            "revenue_cumulative": ("TOTAL_OPERATE_INCOME", "CNY", 1.0),
+            "net_income_cumulative": ("PARENT_NETPROFIT", "CNY", 1.0),
+            "book_value_per_share": ("BPS", "CNY/share", 1.0),
+            "roe_reported": ("WEIGHTAVG_ROE", "ratio", 0.01),
+            "operating_cash_flow_per_share": ("MGJYXJJE", "CNY/share", 1.0),
+            "gross_margin": ("XSMLL", "ratio", 0.01),
+            "revenue_growth": ("YSTZ", "ratio", 0.01),
+            "earnings_growth": ("SJLTZ", "ratio", 0.01),
+        }
+        if raw_eastmoney
+        else {
+            "eps_cumulative": ("每股收益", "CNY/share", 1.0),
+            "revenue_cumulative": ("营业总收入-营业总收入", "CNY", 1.0),
+            "net_income_cumulative": ("净利润-净利润", "CNY", 1.0),
+            "book_value_per_share": ("每股净资产", "CNY/share", 1.0),
+            "roe_reported": ("净资产收益率", "ratio", 0.01),
+            "operating_cash_flow_per_share": ("每股经营现金流量", "CNY/share", 1.0),
+            "gross_margin": ("销售毛利率", "ratio", 0.01),
+            "revenue_growth": ("营业总收入-同比增长", "ratio", 0.01),
+            "earnings_growth": ("净利润-同比增长", "ratio", 0.01),
+        }
+    )
     frames: list[pd.DataFrame] = []
     for metric, (column, unit, scale) in definitions.items():
         selected = base.copy()
@@ -241,7 +295,7 @@ def quarterly_report_to_long(report: pd.DataFrame, report_period: object) -> pd.
         selected["value"] = pd.to_numeric(report[column], errors="coerce") * scale
         selected["unit"] = unit
         selected["statement_type"] = "performance_report_cumulative"
-        selected["source"] = "akshare_eastmoney_yjbb"
+        selected["source"] = "akshare_eastmoney_yjbb_notice"
         frames.append(selected.dropna(subset=["effective_date", "value"]))
     return pd.concat(frames, ignore_index=True).drop_duplicates(
         ["security_id", "report_period", "effective_date", "metric", "source"],

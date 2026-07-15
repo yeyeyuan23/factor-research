@@ -82,3 +82,30 @@ def test_quarterly_bulk_report_derives_ttm_roe() -> None:
     row = result[result["report_period"] == pd.Timestamp("2023-03-31")].iloc[0]
 
     assert np.isclose(row["value"], (0.3 + 1.0 - 0.2) / 2.3)
+
+
+def test_raw_quarterly_report_uses_notice_date_not_later_update_date() -> None:
+    report = pd.DataFrame(
+        {
+            "SECURITY_CODE": ["000001"],
+            "NOTICE_DATE": ["2012-04-26"],
+            "UPDATE_DATE": ["2013-04-24"],
+            "BASIC_EPS": [0.67],
+            "TOTAL_OPERATE_INCOME": [9_724_000_000.0],
+            "PARENT_NETPROFIT": [3_429_000_000.0],
+            "BPS": [14.99],
+            "WEIGHTAVG_ROE": [4.57],
+            "MGJYXJJE": [15.0],
+            "XSMLL": [None],
+            "YSTZ": [67.22],
+            "SJLTZ": [42.74],
+        }
+    )
+
+    result = quarterly_report_to_long(report, "2012-03-31")
+    roe = result[result["metric"].eq("roe_reported")].iloc[0]
+
+    assert roe["announce_date"] == pd.Timestamp("2012-04-26")
+    assert roe["effective_date"] == pd.Timestamp("2012-04-26")
+    assert roe["revision_date"] == pd.Timestamp("2013-04-24")
+    assert np.isclose(roe["value"], 0.0457)

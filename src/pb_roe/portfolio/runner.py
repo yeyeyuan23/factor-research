@@ -25,7 +25,22 @@ def _annualize_monthly_predictions(predictions: pd.Series) -> pd.Series:
 
 def _ex_ante_snapshot(snapshot: pd.DataFrame) -> pd.DataFrame:
     """Filter only on fields observable when the portfolio is formed."""
-    return snapshot.dropna(subset=["prediction", "industry"])
+    selected = snapshot.dropna(subset=["prediction"]).copy()
+    if "industry" not in selected:
+        selected["industry"] = "Unknown"
+    else:
+        selected["industry"] = selected["industry"].fillna("Unknown")
+    return selected
+
+
+def _drift_weights(target_weights: pd.Series, realized_returns: pd.Series) -> pd.Series:
+    """Advance target weights to next rebalance using observed holding-period returns."""
+    drifted = target_weights.astype(float) * (
+        1.0 + realized_returns.reindex(target_weights.index).fillna(0.0).astype(float)
+    )
+    drifted = drifted.clip(lower=0.0)
+    total = float(drifted.sum())
+    return drifted / total if total > 0 else target_weights / target_weights.sum()
 
 
 def optimize_from_cli(
@@ -54,6 +69,9 @@ def optimize_from_cli(
         max_weight=float(portfolio_config["max_weight"]),
         max_industry_deviation=float(portfolio_config["max_industry_deviation"]),
         max_turnover=float(portfolio_config["max_turnover"]),
+        enforce_industry_constraints=bool(
+            portfolio_config.get("enforce_industry_constraints", True)
+        ),
     )
     metadata_columns = [
         column
@@ -64,7 +82,7 @@ def optimize_from_cli(
     predictions = predictions.merge(
         metadata, on=["signal_date", "security_id"], how="left", validate="one_to_one"
     )
-    previous_weights: pd.Series | None = None
+    pretrade_weights: pd.Series | None = None
     cost_rates = [
         float(value)
         for value in config.section("costs").get(
@@ -101,7 +119,7 @@ def optimize_from_cli(
             covariance,
             industries,
             benchmark_weights=benchmark,
-            previous_weights=previous_weights,
+            previous_weights=pretrade_weights,
             constraints=settings,
         )
         realized = snapshot.set_index("security_id")["forward_return"].reindex(result.weights.index)
@@ -114,6 +132,11 @@ def optimize_from_cli(
                 "signal_date": pd.Timestamp(signal_date),
                 "security_id": security,
                 "target_weight": float(weight),
+                "pretrade_weight": float(
+                    pretrade_weights.get(security, 0.0)
+                    if pretrade_weights is not None
+                    else benchmark.get(security, 0.0)
+                ),
                 "prediction": float(monthly_expected.get(security, 0.0)),
                 "industry": industries.get(security, "Unknown"),
             }
@@ -144,7 +167,7 @@ def optimize_from_cli(
                 "missing_realized_weight": float(result.weights[missing_realized].sum()),
             }
         )
-        previous_weights = result.weights
+        pretrade_weights = _drift_weights(result.weights, realized)
 
     output = config.output_dir()
     output.mkdir(parents=True, exist_ok=True)
@@ -205,6 +228,8 @@ def optimize_from_cli(
         "fallback_months": int(diagnostics["used_fallback"].sum()),
         "prediction_units": "monthly_return_annualized_for_annual_covariance",
         "risk_objective": "benchmark_relative_active_risk",
+        "turnover_basis": "drifted_pretrade_weights_including_forced_exits",
+        "industry_constraints": settings.enforce_industry_constraints,
         "output": str(output),
     }
     (output / f"{model_tag}_optimization_run.json").write_text(

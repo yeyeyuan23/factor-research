@@ -15,7 +15,7 @@ from pb_roe.data.bundle import DataBundle
 from pb_roe.data.pit import active_members
 from pb_roe.data.providers.fixture import fixture_bundle
 from pb_roe.data.schema import PRIMARY_KEYS, SCHEMAS, require_columns
-from pb_roe.data.store import ParquetStore
+from pb_roe.data.store import ParquetStore, file_sha256
 
 
 @dataclass(frozen=True)
@@ -40,11 +40,14 @@ class AuditReport:
     def to_dict(self) -> dict[str, Any]:
         return {"passed": self.passed, "checks": [asdict(check) for check in self.checks]}
 
-    def write_json(self, path: str | Path) -> None:
+    def write_json(self, path: str | Path, metadata: dict[str, Any] | None = None) -> None:
         output = Path(path)
         output.parent.mkdir(parents=True, exist_ok=True)
+        payload = self.to_dict()
+        if metadata:
+            payload.update(metadata)
         output.write_text(
-            json.dumps(self.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
         )
 
 
@@ -121,6 +124,41 @@ def _effective_date_check(fundamentals: pd.DataFrame) -> AuditCheck:
         invalid == 0,
         invalid,
         0,
+    )
+
+
+def _roe_announcement_lag_check(
+    fundamentals: pd.DataFrame, maximum_median_days: float
+) -> AuditCheck:
+    require_columns(
+        fundamentals,
+        ("report_period", "effective_date", "metric"),
+        "fundamentals",
+    )
+    roe = fundamentals.loc[fundamentals["metric"].eq("roe")].copy()
+    lag = (
+        pd.to_datetime(roe["effective_date"], errors="coerce")
+        - pd.to_datetime(roe["report_period"], errors="coerce")
+    ).dt.days.dropna()
+    if lag.empty:
+        return AuditCheck(
+            "fundamentals.roe_announcement_lag",
+            "fundamentals",
+            "error",
+            False,
+            None,
+            maximum_median_days,
+            "no dated derived ROE observations",
+        )
+    median_days = float(lag.median())
+    return AuditCheck(
+        "fundamentals.roe_announcement_lag",
+        "fundamentals",
+        "error",
+        median_days <= maximum_median_days,
+        round(median_days, 3),
+        maximum_median_days,
+        f"observations={len(lag)}, p95={float(lag.quantile(0.95)):.1f} days",
     )
 
 
@@ -224,6 +262,7 @@ def audit_bundle(
     universe_id: str = "CSI300",
     factor_coverage_threshold: float | None = None,
     factor_signal_dates: Iterable[object] | None = None,
+    maximum_roe_announcement_lag_days: float | None = None,
 ) -> AuditReport:
     checks: list[AuditCheck] = []
     for name, frame in bundle.tables().items():
@@ -254,6 +293,12 @@ def audit_bundle(
         checks.append(
             _factor_coverage_check(bundle, factor_signal_dates, factor_coverage_threshold)
         )
+    if maximum_roe_announcement_lag_days is not None:
+        checks.append(
+            _roe_announcement_lag_check(
+                bundle.fundamentals, maximum_roe_announcement_lag_days
+            )
+        )
     return AuditReport(tuple(checks))
 
 
@@ -280,7 +325,9 @@ def _fundamental_audit_sample(
         "source",
     ]
     available = fundamentals.loc[:, columns].dropna(subset=["effective_date", "metric", "value"])
-    public_reports = available[available["source"].eq("akshare_eastmoney_yjbb")]
+    public_reports = available[
+        available["source"].astype(str).str.startswith("akshare_eastmoney_yjbb")
+    ]
     if not public_reports.empty:
         available = public_reports
     available = available.sort_values(
@@ -295,8 +342,9 @@ def _fundamental_audit_sample(
 def audit_from_cli(config_path: str, input_dir: str | None) -> int:
     config = load_config(config_path)
     provider_names = config.section("data").get("providers", {})
-    if input_dir:
-        bundle = ParquetStore(input_dir, immutable=False).read_bundle()
+    input_root = Path(input_dir).expanduser().resolve() if input_dir else None
+    if input_root:
+        bundle = ParquetStore(input_root, immutable=False).read_bundle()
     elif all(value == "fixture" for value in provider_names.values()):
         bundle = fixture_bundle()
     else:
@@ -332,9 +380,26 @@ def audit_from_cli(config_path: str, input_dir: str | None) -> int:
         universe_id=str(universe["id"]),
         factor_coverage_threshold=float(quality["factor_coverage"]),
         factor_signal_dates=membership_dates,
+        maximum_roe_announcement_lag_days=(
+            float(quality["maximum_roe_announcement_lag_days"])
+            if "maximum_roe_announcement_lag_days" in quality
+            else None
+        ),
     )
     output = config.output_dir() / "data_audit.json"
-    report.write_json(output)
+    provenance: dict[str, Any] = {"config_fingerprint": config.fingerprint}
+    if input_root:
+        manifest_path = input_root / "manifest.json"
+        if not manifest_path.is_file():
+            raise FileNotFoundError(f"Canonical input manifest missing: {manifest_path}")
+        provenance.update(
+            {
+                "input_dir": str(input_root),
+                "input_manifest_sha256": file_sha256(manifest_path),
+                "input_manifest": json.loads(manifest_path.read_text(encoding="utf-8")),
+            }
+        )
+    report.write_json(output, provenance)
     anomalies_output = config.output_dir() / "price_anomalies.csv"
     sample_output = config.output_dir() / "fundamental_audit_sample.csv"
     _price_anomalies(bundle.prices).to_csv(anomalies_output, index=False)

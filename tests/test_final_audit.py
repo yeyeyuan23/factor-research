@@ -30,7 +30,15 @@ def test_final_audit_accepts_complete_consistent_run(tmp_path) -> None:
     for name in REQUIRED_OUTPUTS:
         path = run_dir / name
         if name.endswith(".json"):
-            payload = {"passed": True, "checks": []} if name == "data_audit.json" else {}
+            payload = (
+                {
+                    "passed": True,
+                    "checks": [],
+                    "config_fingerprint": config.fingerprint,
+                }
+                if name == "data_audit.json"
+                else {}
+            )
             path.write_text(json.dumps(payload), encoding="utf-8")
         elif name.endswith(".csv"):
             pd.DataFrame({"value": [1]}).to_csv(path, index=False)

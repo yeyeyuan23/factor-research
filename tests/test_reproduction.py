@@ -94,3 +94,33 @@ def test_backtest_applies_original_fixed_costs() -> None:
     assert np.isclose(returns.iloc[0]["gross_return"], 0.10)
     assert np.isclose(returns.iloc[0]["net_return"], 1.10 * 0.994 - 1)
     assert np.isclose(returns.iloc[1]["net_return"], 1.10 * 0.987 - 1)
+
+
+def test_backtest_marks_suspended_exit_at_last_observable_close() -> None:
+    holdings = pd.DataFrame(
+        {
+            "strategy_id": ["TEST", "TEST"],
+            "signal_date": ["2022-01-03", "2022-01-03"],
+            "security_id": ["A", "B"],
+            "target_weight": [0.5, 0.5],
+        }
+    )
+    prices = pd.DataFrame(
+        {
+            "trade_date": pd.to_datetime(
+                ["2022-01-03", "2022-01-05", "2022-01-03", "2022-01-04"]
+            ),
+            "security_id": ["A", "A", "B", "B"],
+            "close": [10.0, 11.0, 20.0, 24.0],
+            "is_suspended": False,
+        }
+    )
+
+    returns = backtest_paper_holdings(
+        holdings, prices, "2022-01-05", initial_cost=0.0, rebalance_cost=0.0
+    )
+
+    assert returns.iloc[0]["constituent_count"] == 2
+    assert returns.iloc[0]["stale_exit_count"] == 1
+    assert returns.iloc[0]["maximum_exit_staleness_days"] == 1
+    assert np.isclose(returns.iloc[0]["gross_return"], 0.15)

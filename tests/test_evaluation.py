@@ -214,6 +214,25 @@ def test_long_short_cost_is_paid_on_both_legs() -> None:
     assert high_cost.iloc[0]["net_spread"] < low_cost.iloc[0]["net_spread"]
 
 
+def test_quantile_assignment_does_not_filter_on_future_return_availability() -> None:
+    panel = pd.DataFrame(
+        {
+            "signal_date": ["2022-01-31"] * 4,
+            "security_id": ["A", "B", "C", "D"],
+            "factor": [1, 2, 3, 4],
+            "forward_return": [0.01, np.nan, 0.03, 0.04],
+        }
+    )
+
+    quantiles = quantile_backtest(panel, "factor", quantiles=2, cost_rate=0.0)
+    bottom = quantiles.loc[quantiles["quantile"].eq(1)].iloc[0]
+
+    assert bottom["constituent_count"] == 2
+    assert bottom["missing_return_count"] == 1
+    assert np.isclose(bottom["missing_return_weight"], 0.5)
+    assert np.isclose(bottom["gross_return"], 0.005)
+
+
 def test_performance_metrics_capture_drawdown() -> None:
     metrics = performance_metrics(pd.Series([0.10, -0.20, 0.05]), periods_per_year=12)
 

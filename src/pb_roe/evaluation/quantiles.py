@@ -59,19 +59,20 @@ def quantile_backtest(
     rows: list[dict[str, object]] = []
     previous_weights: dict[int, pd.Series] = {}
     for signal_date, snapshot in working.groupby("signal_date", sort=True):
-        for quantile, group in snapshot.dropna(subset=["quantile", return_column]).groupby(
-            "quantile"
-        ):
+        for quantile, group in snapshot.dropna(subset=["quantile"]).groupby("quantile"):
             quantile = int(quantile)
             weights = pd.Series(1 / len(group), index=group["security_id"])
             turnover = _turnover(previous_weights.get(quantile), weights)
-            gross_return = float(group[return_column].mean())
+            missing_return = group[return_column].isna()
+            gross_return = float(group[return_column].fillna(0.0).mean())
             rows.append(
                 {
                     "signal_date": pd.Timestamp(signal_date),
                     "factor": factor_column,
                     "quantile": quantile,
                     "constituent_count": len(group),
+                    "missing_return_count": int(missing_return.sum()),
+                    "missing_return_weight": float(missing_return.mean()),
                     "turnover": turnover,
                     "gross_return": gross_return,
                     "transaction_cost": turnover * cost_rate,

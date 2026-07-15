@@ -16,6 +16,7 @@ class PortfolioConstraints:
     max_weight: float = 0.03
     max_industry_deviation: float = 0.05
     max_turnover: float = 0.30
+    enforce_industry_constraints: bool = True
 
 
 @dataclass(frozen=True)
@@ -65,18 +66,24 @@ def optimize_portfolio(
         else pd.Series(1 / len(securities), index=securities)
     )
     benchmark = benchmark / benchmark.sum()
-    previous = (
-        previous_weights.reindex(securities).fillna(0.0).astype(float)
-        if previous_weights is not None
-        else benchmark.copy()
-    )
-    if previous.sum() > 0:
-        previous = previous / previous.sum()
+    if previous_weights is not None:
+        previous_all = previous_weights.fillna(0.0).astype(float).clip(lower=0.0)
+        if previous_all.sum() > 0:
+            previous_all = previous_all / previous_all.sum()
+        previous = previous_all.reindex(securities).fillna(0.0)
+        forced_exit_weight = float(
+            previous_all.loc[~previous_all.index.isin(securities)].sum()
+        )
+    else:
+        previous = benchmark.copy()
+        forced_exit_weight = 0.0
 
     weights = cp.Variable(len(securities))
     covariance_array = cp.psd_wrap(sigma.to_numpy())
     active_weights = weights - benchmark.to_numpy()
-    turnover_expression = 0.5 * cp.norm1(weights - previous.to_numpy())
+    turnover_expression = 0.5 * (
+        cp.norm1(weights - previous.to_numpy()) + forced_exit_weight
+    )
     objective = cp.Maximize(
         mu.to_numpy() @ weights
         - 0.5 * settings.risk_aversion * cp.quad_form(active_weights, covariance_array)
@@ -88,15 +95,17 @@ def optimize_portfolio(
         weights <= settings.max_weight,
         turnover_expression <= settings.max_turnover,
     ]
-    for industry_name in sorted(industry.unique()):
-        mask = (industry == industry_name).astype(float).to_numpy()
-        benchmark_share = float(benchmark[industry == industry_name].sum())
-        restrictions.extend(
-            [
-                mask @ weights <= benchmark_share + settings.max_industry_deviation,
-                mask @ weights >= max(0.0, benchmark_share - settings.max_industry_deviation),
-            ]
-        )
+    if settings.enforce_industry_constraints:
+        for industry_name in sorted(industry.unique()):
+            mask = (industry == industry_name).astype(float).to_numpy()
+            benchmark_share = float(benchmark[industry == industry_name].sum())
+            restrictions.extend(
+                [
+                    mask @ weights <= benchmark_share + settings.max_industry_deviation,
+                    mask @ weights
+                    >= max(0.0, benchmark_share - settings.max_industry_deviation),
+                ]
+            )
     problem = cp.Problem(objective, restrictions)
     status = "error"
     for solver in (cp.CLARABEL, cp.SCS):
@@ -109,12 +118,12 @@ def optimize_portfolio(
             break
     if weights.value is None or problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
         fallback = ranking_fallback(mu, settings.max_weight)
-        turnover = float(0.5 * (fallback - previous).abs().sum())
+        turnover = float(0.5 * ((fallback - previous).abs().sum() + forced_exit_weight))
         return OptimizationResult(fallback, status, None, turnover, used_fallback=True)
 
     optimized = pd.Series(np.maximum(weights.value, 0.0), index=securities)
     optimized = optimized / optimized.sum()
-    turnover = float(0.5 * (optimized - previous).abs().sum())
+    turnover = float(0.5 * ((optimized - previous).abs().sum() + forced_exit_weight))
     return OptimizationResult(
         optimized,
         status,

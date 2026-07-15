@@ -21,6 +21,9 @@ universe:
 
 research:
   start_date: 2022-01-01
+  factor_start_date: 2022-04-01
+  development_end: 2023-06-30
+  oos_start: 2023-07-01
   end_date: 2023-12-31
   frequency: month_end
   signal_cutoff: close
@@ -39,8 +42,20 @@ quality:
 
 evaluation:
   factor_columns: [bp, roe, paper_score]
+  expanded_factor_columns: []
   return_column: forward_return
   industry_column: industry
+  factor_validation:
+    development_start: 2022-07-01
+    minimum_ic: -1.0
+    minimum_newey_west_t: -1000000.0
+    minimum_year_positive_rate: 0.0
+    minimum_quantile_monotonicity: -1.0
+    require_positive_30bp_spread: false
+    candidates:
+      bp: {category: Value, direction: 1}
+      paper_score: {category: Value, direction: 1}
+      roe: {category: Quality, direction: 1}
 
 models:
   train_months: 12

@@ -1,5 +1,7 @@
 from dataclasses import replace
 
+import pandas as pd
+
 from pb_roe.data.audit import audit_bundle
 from pb_roe.data.providers.fixture import fixture_bundle
 
@@ -93,3 +95,26 @@ def test_factor_coverage_reports_first_continuous_passing_month() -> None:
     )
     assert check.passed
     assert "first continuous passing month" in check.details
+
+
+def test_stale_roe_announcement_dates_fail_audit() -> None:
+    bundle = fixture_bundle()
+    fundamentals = bundle.fundamentals.copy()
+    fundamentals["effective_date"] = pd.to_datetime(fundamentals["effective_date"])
+    roe = fundamentals["metric"].eq("roe")
+    fundamentals.loc[roe, "effective_date"] = (
+        pd.to_datetime(fundamentals.loc[roe, "report_period"]) + pd.Timedelta(days=400)
+    )
+
+    report = audit_bundle(
+        replace(bundle, fundamentals=fundamentals),
+        maximum_roe_announcement_lag_days=200,
+    )
+
+    check = next(
+        check
+        for check in report.checks
+        if check.check_id == "fundamentals.roe_announcement_lag"
+    )
+    assert not check.passed
+    assert check.observed == 400.0
