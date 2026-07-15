@@ -132,15 +132,32 @@ def _prediction_time_check(run_dir: Path, model: str) -> FinalCheck:
     if not path.is_file():
         return FinalCheck(f"models.{model}.no_leakage", False, "error", "predictions missing")
     frame = pd.read_parquet(path)
+    required_label_columns = {"training_label_exit_end"}
+    if "validation_end" in frame:
+        required_label_columns.add("validation_label_exit_end")
+    missing = sorted(required_label_columns - set(frame))
+    if missing:
+        return FinalCheck(
+            f"models.{model}.no_leakage",
+            False,
+            "error",
+            f"strict label-availability columns missing: {missing}",
+        )
     valid = pd.to_datetime(frame["training_end"]) < pd.to_datetime(frame["signal_date"])
+    valid &= pd.to_datetime(frame["training_label_exit_end"]) <= pd.to_datetime(
+        frame["signal_date"]
+    )
     if "validation_end" in frame:
         valid &= pd.to_datetime(frame["validation_end"]) < pd.to_datetime(frame["signal_date"])
         valid &= pd.to_datetime(frame["training_end"]) < pd.to_datetime(frame["validation_start"])
+        valid &= pd.to_datetime(frame["validation_label_exit_end"]) <= pd.to_datetime(
+            frame["signal_date"]
+        )
     return FinalCheck(
         f"models.{model}.no_leakage",
         bool(valid.all()),
         "error",
-        f"{int(valid.sum())}/{len(valid)} predictions respect time order",
+        f"{int(valid.sum())}/{len(valid)} predictions respect signal and label availability",
     )
 
 

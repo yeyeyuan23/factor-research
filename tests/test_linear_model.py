@@ -13,6 +13,7 @@ def test_elastic_net_walk_forward_never_trains_on_prediction_month() -> None:
             rows.append(
                 {
                     "signal_date": month,
+                    "exit_date": month + pd.offsets.MonthBegin(2),
                     "security_id": f"S{security}",
                     "x1": x1,
                     "x2": x2,
@@ -29,7 +30,8 @@ def test_elastic_net_walk_forward_never_trains_on_prediction_month() -> None:
         alpha=1e-5,
     )
 
-    assert predictions["signal_date"].nunique() == 6
+    assert predictions["signal_date"].nunique() == 5
     assert (predictions["training_end"] < predictions["signal_date"]).all()
+    assert (predictions["training_label_exit_end"] <= predictions["signal_date"]).all()
     assert np.isfinite(predictions["prediction"]).all()
     assert set(coefficients["feature"]) == {"x1", "x2"}

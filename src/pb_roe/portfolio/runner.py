@@ -23,6 +23,11 @@ def _annualize_monthly_predictions(predictions: pd.Series) -> pd.Series:
     return predictions * MONTHS_PER_YEAR
 
 
+def _ex_ante_snapshot(snapshot: pd.DataFrame) -> pd.DataFrame:
+    """Filter only on fields observable when the portfolio is formed."""
+    return snapshot.dropna(subset=["prediction", "industry"])
+
+
 def optimize_from_cli(
     config_path: str,
     prediction_file: str | None,
@@ -70,7 +75,7 @@ def optimize_from_cli(
     return_rows: list[dict[str, object]] = []
     diagnostic_rows: list[dict[str, object]] = []
     for signal_date, snapshot in predictions.groupby("signal_date", sort=True):
-        snapshot = snapshot.dropna(subset=["prediction", "industry", "forward_return"])
+        snapshot = _ex_ante_snapshot(snapshot)
         securities = snapshot["security_id"].tolist()
         trailing = trailing_return_matrix(
             bundle.prices,
@@ -100,9 +105,10 @@ def optimize_from_cli(
             constraints=settings,
         )
         realized = snapshot.set_index("security_id")["forward_return"].reindex(result.weights.index)
-        gross_return = float((result.weights * realized).sum())
+        missing_realized = realized.isna()
+        gross_return = float((result.weights * realized.fillna(0.0)).sum())
         benchmark_realized = snapshot.set_index("security_id")["forward_return"].reindex(eligible)
-        benchmark_return = float((benchmark * benchmark_realized).sum())
+        benchmark_return = float((benchmark * benchmark_realized.fillna(0.0)).sum())
         holding_rows.extend(
             {
                 "signal_date": pd.Timestamp(signal_date),
@@ -134,6 +140,8 @@ def optimize_from_cli(
                 "status": result.status,
                 "objective_value": result.objective_value,
                 "used_fallback": result.used_fallback,
+                "missing_realized_return_count": int(missing_realized.sum()),
+                "missing_realized_weight": float(result.weights[missing_realized].sum()),
             }
         )
         previous_weights = result.weights

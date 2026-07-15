@@ -4,7 +4,7 @@ import pandas as pd
 from pb_roe.data.providers.fixture import fixture_bundle
 from pb_roe.portfolio.optimizer import PortfolioConstraints, optimize_portfolio
 from pb_roe.portfolio.risk import ledoit_wolf_covariance, trailing_return_matrix
-from pb_roe.portfolio.runner import _annualize_monthly_predictions
+from pb_roe.portfolio.runner import _annualize_monthly_predictions, _ex_ante_snapshot
 
 
 def test_ledoit_wolf_covariance_is_positive_semidefinite() -> None:
@@ -53,6 +53,21 @@ def test_monthly_predictions_are_annualized_for_annual_covariance() -> None:
     annualized = _annualize_monthly_predictions(monthly)
 
     assert annualized.tolist() == [0.12, -0.24]
+
+
+def test_ex_ante_snapshot_does_not_filter_on_future_returns() -> None:
+    snapshot = pd.DataFrame(
+        {
+            "prediction": [0.1, 0.2, np.nan],
+            "industry": ["A", "B", "C"],
+            "forward_return": [np.nan, 0.03, 0.04],
+        }
+    )
+
+    selected = _ex_ante_snapshot(snapshot)
+
+    assert selected.index.tolist() == [0, 1]
+    assert pd.isna(selected.loc[0, "forward_return"])
 
 
 def test_zero_alpha_minimizes_active_risk_at_benchmark() -> None:

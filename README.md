@@ -144,7 +144,9 @@ $PY -m pb_roe final-audit \
 ```bash
 .venv/bin/python scripts/plot_factor_ic.py --help
 .venv/bin/python scripts/plot_all_factor_analysis.py --help
+.venv/bin/python scripts/plot_modern_core_factors.py --help
 .venv/bin/python scripts/plot_model_comparison.py --help
+.venv/bin/python scripts/plot_signal_method_comparison.py --help
 .venv/bin/python scripts/plot_portfolio_analysis.py --help
 .venv/bin/python scripts/plot_paper_reproduction.py --help
 ```
@@ -162,7 +164,7 @@ $PY -m pb_roe final-audit \
 
 - 正式原研报复现必须为2005–2011完整18期；
 - 数据质量闸门；
-- Elastic Net和LightGBM训练、验证、预测的时间顺序；
+- Elastic Net和LightGBM训练、验证、预测的时间顺序，以及收益标签退出日在预测日前已经实现；
 - 满仓、非负权重、3%单票上限和30%换手上限；
 - Dashboard不依赖外部Plotly CDN；
 - 2023–2025冻结样本外配置；

@@ -6,6 +6,7 @@ from pb_roe.config import load_config
 from pb_roe.validation.final_audit import (
     REQUIRED_OUTPUTS,
     _paper_window_check,
+    _prediction_time_check,
     audit_frozen_run,
 )
 
@@ -39,11 +40,13 @@ def test_final_audit_accepts_complete_consistent_run(tmp_path) -> None:
         {
             "signal_date": ["2023-03-31"],
             "training_end": ["2023-01-31"],
+            "training_label_exit_end": ["2023-03-01"],
             "validation_start": ["2023-02-01"],
             "validation_end": ["2023-02-28"],
+            "validation_label_exit_end": ["2023-03-01"],
         }
     )
-    prediction[["signal_date", "training_end"]].to_parquet(
+    prediction[["signal_date", "training_end", "training_label_exit_end"]].to_parquet(
         run_dir / "elastic-net_predictions.parquet", index=False
     )
     prediction.to_parquet(run_dir / "lightgbm_predictions.parquet", index=False)
@@ -60,6 +63,21 @@ def test_final_audit_accepts_complete_consistent_run(tmp_path) -> None:
 
     assert report["passed"]
     assert len(report["manifest"]) == len(REQUIRED_OUTPUTS)
+
+
+def test_prediction_audit_rejects_unmatured_forward_return_label(tmp_path) -> None:
+    pd.DataFrame(
+        {
+            "signal_date": ["2023-01-31"],
+            "training_end": ["2022-12-30"],
+            "training_label_exit_end": ["2023-02-01"],
+        }
+    ).to_parquet(tmp_path / "elastic-net_predictions.parquet", index=False)
+
+    check = _prediction_time_check(tmp_path, "elastic-net")
+
+    assert not check.passed
+    assert "0/1" in check.details
 
 
 def test_formal_audit_requires_full_18_period_paper_window(tmp_path) -> None:

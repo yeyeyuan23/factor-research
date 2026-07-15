@@ -96,7 +96,9 @@ $PY -m pb_roe report \
 ```bash
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_factor_ic.py --run-dir results/runs/modern-pb-roe --output docs/results/figures/equal-weight-ic-matplotlib.png --quantile-output docs/results/figures/equal-weight-quantiles-30bp.png
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_all_factor_analysis.py --run-dir results/runs/modern-pb-roe --output-dir docs/results/figures/factor-analysis-12
+MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_modern_core_factors.py --run-dir results/runs/modern-pb-roe --ic-output docs/results/figures/modern-core-factor-ic.png --quantile-output docs/results/figures/modern-core-factor-quantiles.png
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_model_comparison.py --run-dir results/runs/modern-pb-roe --segment-output docs/results/figures/model-ic-segment-comparison.png --timeseries-output docs/results/figures/model-ic-timeseries.png
+MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_signal_method_comparison.py --run-dir results/runs/modern-pb-roe --output docs/results/figures/signal-method-ic-comparison.png
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_portfolio_analysis.py --run-dir results/runs/modern-pb-roe --performance-output docs/results/figures/portfolio-performance.png --segment-output docs/results/figures/portfolio-segment-metrics.png --yearly-output docs/results/figures/portfolio-oos-yearly.png
 ```
 

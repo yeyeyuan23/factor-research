@@ -13,6 +13,7 @@ def test_lightgbm_walk_forward_uses_past_training_and_validation_only() -> None:
             rows.append(
                 {
                     "signal_date": month,
+                    "exit_date": month + pd.offsets.MonthBegin(2),
                     "security_id": f"S{security:02d}",
                     "x1": x1,
                     "x2": x2,
@@ -42,9 +43,11 @@ def test_lightgbm_walk_forward_uses_past_training_and_validation_only() -> None:
         minimum_train_months=5,
     )
 
-    assert predictions["signal_date"].nunique() == 7
+    assert predictions["signal_date"].nunique() == 6
     assert (predictions["training_end"] < predictions["validation_start"]).all()
     assert (predictions["validation_end"] < predictions["signal_date"]).all()
+    assert (predictions["training_label_exit_end"] <= predictions["signal_date"]).all()
+    assert (predictions["validation_label_exit_end"] <= predictions["signal_date"]).all()
     assert np.isfinite(predictions["prediction"]).all()
     assert diagnostics["best_iteration"].gt(0).all()
     assert set(diagnostics["feature"]) == {"x1", "x2"}

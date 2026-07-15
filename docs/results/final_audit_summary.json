@@ -13,8 +13,8 @@
     "source_run": "results/runs/paper-reproduction"
   },
   "prediction_time_order": {
-    "elastic_net": "41366/41366",
-    "lightgbm": "41366/41366"
+    "elastic_net": "41066/41066 signal and label availability checks passed",
+    "lightgbm": "41066/41066 signal and label availability checks passed"
   },
   "portfolio_constraints": {
     "elastic_net": "passed",
@@ -23,15 +23,21 @@
   "offline_dashboard": {
     "passed": true,
     "external_plotly": false,
-    "bytes": 4994456
+    "bytes": 4995618
   },
   "frozen_oos": "2023-01-01..2025-12-31",
   "artifact_sha256": {
-    "final_research_report.md": "53a707f7221c7f71d77955bc1a85203e13409379c7cb22d2e012b4d0f6309f5d",
+    "final_research_report.md": "79dfb0f640dd63fdd792f077c0e45e9d7675dffdda0ae608e4f8b552f1cbe169",
     "PB-ROE复现与改进_10min.pptx": "cd7c77f025252690285af2b15b6104b5f41dae586722eb74621af9c682c9ced6",
     "frozen_factor_selection.json": "07744f0b6b685a3d91ef257a7185ffb0628a9e416248b9dfdd7b74d97bcb9a84",
-    "portfolio_model_comparison.csv": "d5e93731c1577c85518362bf0cbe6d28c81c4cf321a4bbcb33ef1113bdabd131"
+    "portfolio_model_comparison.csv": "7ee8287cb6296884a84e2067a01c20e6b73f2879356eb6db5651054c6f81cf97"
   },
-  "audit_scope_gap": "The existing 15 time checks compare training or validation signal dates with prediction dates, but do not verify that each forward-return label exit_date was observable before prediction. The current model and portfolio artifacts require a one-month label embargo, ex-ante eligibility filtering, and a full rerun before they qualify as strict walk-forward evidence.",
+  "strict_walk_forward": {
+    "passed": true,
+    "rule": "training and validation label exit_date must be on or before prediction signal_date",
+    "first_prediction_month": "2014-06",
+    "prediction_months": 137
+  },
+  "portfolio_return_accounting": "Portfolio eligibility uses ex-ante fields only. Missing realized forward returns are conservatively recorded as zero rather than used to filter the investable universe.",
   "integrity_caveat": "The benchmark-relative active-risk objective was finalized after the first frozen-period result review, so 2023-2025 is post-hoc robustness evidence for that final portfolio version, not pristine untouched validation."
 }

@@ -27,18 +27,25 @@ def walk_forward_elastic_net(
     features = list(feature_columns)
     require_columns(
         panel,
-        ("signal_date", "security_id", target_column, *features),
+        ("signal_date", "exit_date", "security_id", target_column, *features),
         "model_panel",
     )
     working = panel.copy()
     working["signal_date"] = pd.to_datetime(working["signal_date"]).dt.normalize()
+    working["exit_date"] = pd.to_datetime(working["exit_date"]).dt.normalize()
     dates = sorted(working["signal_date"].unique())
     predictions: list[pd.DataFrame] = []
     coefficient_rows: list[dict[str, object]] = []
-    for prediction_index in range(minimum_train_months, len(dates)):
-        prediction_date = pd.Timestamp(dates[prediction_index])
-        training_dates = dates[max(0, prediction_index - train_months) : prediction_index]
-        train = working[working["signal_date"].isin(training_dates)].dropna(subset=[target_column])
+    for date in dates:
+        prediction_date = pd.Timestamp(date)
+        mature = working[
+            (working["signal_date"] < prediction_date)
+            & (working["exit_date"] <= prediction_date)
+        ].dropna(subset=[target_column])
+        training_dates = sorted(mature["signal_date"].unique())[-train_months:]
+        if len(training_dates) < minimum_train_months:
+            continue
+        train = mature[mature["signal_date"].isin(training_dates)]
         test = working[working["signal_date"] == prediction_date]
         if train.empty or test.empty:
             continue
@@ -63,6 +70,7 @@ def walk_forward_elastic_net(
         predicted["model"] = "elastic_net"
         predicted["training_start"] = pd.Timestamp(training_dates[0])
         predicted["training_end"] = pd.Timestamp(training_dates[-1])
+        predicted["training_label_exit_end"] = pd.Timestamp(train["exit_date"].max())
         predictions.append(predicted)
         coefficients = model.named_steps["model"].coef_
         coefficient_rows.extend(
