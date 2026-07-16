@@ -181,7 +181,10 @@ def optimize_from_cli(
     segments = {
         "all": (pd.Timestamp.min, pd.Timestamp.max),
         "development": (pd.Timestamp("2015-01-01"), pd.Timestamp(research["development_end"])),
-        "frozen_oos": (pd.Timestamp(research["oos_start"]), pd.Timestamp(research["end_date"])),
+        "exploratory_2023_2025": (
+            pd.Timestamp(research["oos_start"]),
+            pd.Timestamp(research["end_date"]),
+        ),
     }
     summary_rows: list[dict[str, object]] = []
     for segment, (start, end) in segments.items():
@@ -230,6 +233,7 @@ def optimize_from_cli(
         "risk_objective": "benchmark_relative_active_risk",
         "turnover_basis": "drifted_pretrade_weights_including_forced_exits",
         "industry_constraints": settings.enforce_industry_constraints,
+        "evidence_status": config.section("models").get("evidence_status"),
         "output": str(output),
     }
     (output / f"{model_tag}_optimization_run.json").write_text(

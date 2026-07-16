@@ -138,6 +138,18 @@ def _equal_weight_outputs(
     return ic_timeseries, pd.DataFrame(segment_rows), pd.DataFrame(performance_rows)
 
 
+def _equal_weight_predictions(
+    panel: pd.DataFrame, feature_directions: dict[str, int], model_name: str
+) -> pd.DataFrame:
+    predictions = panel[["signal_date", "security_id", "target_return"]].copy()
+    predictions["prediction"] = pd.concat(
+        [panel[feature] * direction for feature, direction in feature_directions.items()],
+        axis=1,
+    ).mean(axis=1)
+    predictions["model"] = model_name
+    return predictions
+
+
 def validate_factors_from_cli(
     config_path: str, factor_file: str | None, input_dir: str | None = None
 ) -> int:
@@ -255,6 +267,9 @@ def validate_factors_from_cli(
         float_format="%.6f",
     )
     strict_ic.to_csv(output / "equal_weight_factor_ic_timeseries.csv", index=False)
+    _equal_weight_predictions(panel, selected_directions, "strict_factor_equal_weight").to_parquet(
+        output / "strict_factor_equal_weight_predictions.parquet", index=False
+    )
     eligibility.round(6).to_csv(
         output / "model_factor_eligibility.csv", index=False, float_format="%.6f"
     )
@@ -268,6 +283,9 @@ def validate_factors_from_cli(
         float_format="%.6f",
     )
     model_ic.to_csv(output / "model_input_equal_weight_ic_timeseries.csv", index=False)
+    _equal_weight_predictions(panel, model_directions, "model_input_equal_weight").to_parquet(
+        output / "model_input_equal_weight_predictions.parquet", index=False
+    )
     frozen_payload = {
         "config_fingerprint": config.fingerprint,
         "selection_sample": f"{settings['development_start']}/{research['development_end']}",
