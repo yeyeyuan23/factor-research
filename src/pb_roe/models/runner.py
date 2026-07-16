@@ -13,24 +13,24 @@ from pb_roe.models.dataset import load_model_panel
 from pb_roe.models.linear import walk_forward_elastic_net
 
 
-def _load_frozen_features(
-    selection_path: Path,
+def _load_model_features(
+    manifest_path: Path,
     available_features: list[str],
     config_fingerprint: str,
 ) -> tuple[list[str], dict[str, object]]:
-    if not selection_path.exists():
+    if not manifest_path.exists():
         raise FileNotFoundError(
-            "Frozen factor selection is missing; run validate-factors before train"
+            "Model feature manifest is missing; run validate-factors before train"
         )
-    payload = json.loads(selection_path.read_text(encoding="utf-8"))
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     if payload.get("config_fingerprint") != config_fingerprint:
-        raise ValueError("Frozen factor selection does not match the active config")
-    selected = list(payload.get("selected_features", []))
+        raise ValueError("Model feature manifest does not match the active config")
+    selected = list(payload.get("eligible_features", []))
     if not selected:
-        raise ValueError("Frozen factor selection contains no features")
+        raise ValueError("Model feature manifest contains no eligible features")
     missing = [feature for feature in selected if feature not in available_features]
     if missing:
-        raise ValueError(f"Frozen features missing from model panel: {missing}")
+        raise ValueError(f"Eligible model features missing from model panel: {missing}")
     return selected, payload
 
 
@@ -44,9 +44,9 @@ def train_from_cli(
     panel, available_features = load_model_panel(config, factor_file, input_dir)
     if not available_features:
         raise ValueError("No feature passed the configured coverage gate")
-    selection_path = config.output_dir() / "frozen_factor_selection.json"
-    features, selection = _load_frozen_features(
-        selection_path,
+    manifest_path = config.output_dir() / "model_feature_manifest.json"
+    features, feature_manifest = _load_model_features(
+        manifest_path,
         available_features,
         config.fingerprint,
     )
@@ -83,7 +83,10 @@ def train_from_cli(
     segment_frames: list[pd.DataFrame] = []
     segments = {
         "development": (pd.Timestamp("2015-01-01"), pd.Timestamp(research["development_end"])),
-        "frozen_oos": (pd.Timestamp(research["oos_start"]), pd.Timestamp(research["end_date"])),
+        "exploratory_2023_2025": (
+            pd.Timestamp(research["oos_start"]),
+            pd.Timestamp(research["end_date"]),
+        ),
     }
     for segment, (start, end) in segments.items():
         selected = ic[pd.to_datetime(ic["signal_date"]).between(start, end)]
@@ -98,6 +101,13 @@ def train_from_cli(
             .agg(mean="mean", std="std", nonzero_rate=lambda values: values.ne(0).mean())
             .reset_index()
         )
+    importance_summary = pd.DataFrame()
+    if {"feature", "importance_gain"} <= set(diagnostics):
+        importance_summary = (
+            diagnostics.groupby("feature")["importance_gain"]
+            .agg(mean="mean", std="std", nonzero_rate=lambda values: values.gt(0).mean())
+            .reset_index()
+        )
     output = config.output_dir()
     output.mkdir(parents=True, exist_ok=True)
     panel.to_parquet(output / "model_factor_panel.parquet", index=False)
@@ -105,6 +115,10 @@ def train_from_cli(
     diagnostics.to_csv(output / f"{model_name}_diagnostics.csv", index=False)
     if not coefficient_summary.empty:
         coefficient_summary.to_csv(output / f"{model_name}_coefficient_summary.csv", index=False)
+    if not importance_summary.empty:
+        importance_summary.to_csv(
+            output / f"{model_name}_feature_importance_summary.csv", index=False
+        )
     summary.to_csv(output / f"{model_name}_ic_summary.csv", index=False)
     segment_ic.to_csv(output / f"{model_name}_ic_segments.csv", index=False)
     factor_ic.to_csv(output / "expanded_factor_ic_summary.csv", index=False)
@@ -113,8 +127,10 @@ def train_from_cli(
         "model": model_name,
         "config_fingerprint": config.fingerprint,
         "features": features,
-        "factor_selection": str(selection_path),
-        "selection_sample": selection.get("selection_sample"),
+        "model_feature_manifest": str(manifest_path),
+        "eligibility_sample": feature_manifest.get("eligibility_sample"),
+        "strict_standalone_features": feature_manifest.get("strict_standalone_features", []),
+        "evaluation_status": feature_manifest.get("evaluation_status"),
         "predictions": len(predictions),
         "prediction_months": int(predictions["signal_date"].nunique()),
         "output": str(output),
