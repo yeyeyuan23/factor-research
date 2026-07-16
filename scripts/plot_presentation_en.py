@@ -6,10 +6,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.colors import ListedColormap
+from matplotlib.patches import Patch
 
 BLUE = "#2563a6"
 GREEN = "#238b65"
@@ -201,7 +203,13 @@ def frozen_factor_test(results: Path, output: Path) -> None:
     save(figure, output)
 
 
-def method_comparison(results: Path, output: Path) -> None:
+def walk_forward_models(results: Path, output: Path) -> None:
+    example = pd.read_csv(results / "walk_forward_example.csv")
+    for column in example.columns.difference(["model"]):
+        example[column] = pd.to_datetime(example[column])
+    elastic_example = example.set_index("model").loc["Elastic Net"]
+    light_example = example.set_index("model").loc["LightGBM"]
+
     equal = pd.read_csv(results / "equal_weight_factor_baseline.csv")
     equal = equal[equal["cost_bps"] == 30].set_index("segment")
     elastic = pd.read_csv(results / "elastic_net_summary.csv").set_index("segment")
@@ -222,7 +230,91 @@ def method_comparison(results: Path, output: Path) -> None:
             light.loc["frozen_oos_2023_2025", "rank_ic_mean"] * 100,
         ],
     }
-    figure, axis = plt.subplots(figsize=(10.8, 5.1))
+    figure, (timeline, axis) = plt.subplots(
+        1,
+        2,
+        figsize=(14.2, 5.2),
+        gridspec_kw={"width_ratios": [1.45, 1]},
+    )
+
+    def add_window(row: float, start: pd.Timestamp, end: pd.Timestamp, color: str) -> None:
+        timeline.broken_barh(
+            [(mdates.date2num(start), mdates.date2num(end) - mdates.date2num(start))],
+            (row - 0.33, 0.66),
+            facecolors=color,
+        )
+
+    add_window(
+        3,
+        elastic_example["training_start"],
+        elastic_example["training_end"],
+        BLUE,
+    )
+    add_window(
+        2,
+        light_example["training_start"],
+        light_example["training_end"],
+        GREEN,
+    )
+    add_window(
+        1,
+        light_example["validation_start"],
+        light_example["validation_end"],
+        ORANGE,
+    )
+    add_window(
+        0,
+        light_example["excluded_signal_date"],
+        light_example["excluded_label_exit_date"],
+        RED,
+    )
+    prediction_date = light_example["prediction_date"]
+    timeline.axvline(prediction_date, color="#172033", linewidth=2, linestyle="--")
+    timeline.text(
+        prediction_date,
+        3.55,
+        "Predict\n31 Jan 2023",
+        ha="center",
+        va="bottom",
+        fontsize=9,
+        weight="bold",
+    )
+    timeline.annotate(
+        "Trade 1 Feb; this label ends 1 Mar",
+        xy=(light_example["trade_date"], -0.35),
+        xytext=(mdates.date2num(pd.Timestamp("2019-05-01")), -0.9),
+        arrowprops={"arrowstyle": "->", "color": GRAY},
+        fontsize=8.5,
+        color="#333333",
+    )
+    timeline.set_yticks(
+        [3, 2, 1, 0],
+        [
+            "Elastic Net fit\n60 mature months",
+            "LightGBM fit\n48 mature months",
+            "LightGBM validation\nlast 12 mature months",
+            "Dec 2022 signal\nnot mature yet",
+        ],
+    )
+    timeline.set_xlim(pd.Timestamp("2017-07-01"), pd.Timestamp("2023-04-15"))
+    timeline.set_ylim(-1.2, 4)
+    timeline.xaxis.set_major_locator(mdates.YearLocator())
+    timeline.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    timeline.set_title("One audited forecast window", weight="bold")
+    timeline.grid(axis="x", alpha=0.22)
+    timeline.legend(
+        handles=[
+            Patch(color=BLUE, label="Linear fit"),
+            Patch(color=GREEN, label="Tree fit"),
+            Patch(color=ORANGE, label="Tree validation"),
+            Patch(color=RED, label="Excluded label"),
+        ],
+        frameon=False,
+        fontsize=8,
+        ncol=2,
+        loc="upper left",
+    )
+
     x = np.arange(2)
     width = 0.23
     for index, method in enumerate(methods):
@@ -236,9 +328,13 @@ def method_comparison(results: Path, output: Path) -> None:
         axis.bar_label(bars, fmt="%.2f%%", padding=3)
     axis.set_xticks(x, ["Development\n2015–2022", "Frozen\n2023–2025"])
     axis.set_ylabel("Mean Rank IC")
-    axis.set_title("All three methods lost ranking power after 2022", weight="bold")
+    axis.set_title("All methods lost ranking power after 2022", weight="bold")
     axis.grid(axis="y", alpha=0.22)
     axis.legend(frameon=False, ncol=3)
+    figure.suptitle(
+        "Walk-forward: train only on labels realized before each prediction",
+        weight="bold",
+    )
     save(figure, output)
 
 
@@ -299,7 +395,7 @@ def main() -> int:
     modern_baseline(results, output / "02-modern-baseline.png")
     factor_gates(results, output / "03-factor-gates.png")
     frozen_factor_test(results, output / "04-frozen-factor-test.png")
-    method_comparison(results, output / "05-method-comparison.png")
+    walk_forward_models(results, output / "05-walk-forward-models.png")
     portfolio_comparison(results, output / "06-portfolio-comparison.png")
     return 0
 

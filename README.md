@@ -153,9 +153,10 @@ $PY scripts/freeze_results.py
 .venv/bin/python scripts/plot_portfolio_analysis.py --help
 .venv/bin/python scripts/plot_paper_reproduction.py --help
 .venv/bin/python scripts/plot_presentation_en.py --help
+.venv/bin/python scripts/build_standalone_presentation.py --help
 ```
 
-绘图脚本只读取冻结结果。输出图保存在`docs/results/figures/`。
+绘图脚本只读取冻结结果。输出图保存在`docs/results/figures/`。普通HTML保留相对图片便于开发；`build_standalone_presentation.py`把图片嵌入单个HTML，适合直接发送和离线打开。
 
 ## 测试与质量检查
 
@@ -211,6 +212,7 @@ factor-research/
 - 12因子分析：[`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)
 - 模型与组合分析：[`docs/portfolio_analysis_report.md`](docs/portfolio_analysis_report.md)
 - 英文10分钟HTML展示：[`docs/presentation_en_10min.html`](docs/presentation_en_10min.html)
+- 可直接发送的单文件HTML：[`docs/presentation_en_10min_standalone.html`](docs/presentation_en_10min_standalone.html)
 - 英文10分钟逐页讲稿：[`docs/presentation_script_en_10min.md`](docs/presentation_script_en_10min.md)
 - 工程代码走读：[`docs/code_walkthrough.md`](docs/code_walkthrough.md)
 

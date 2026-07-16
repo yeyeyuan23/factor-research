@@ -13,6 +13,7 @@
     "modern_factor_segments.csv",
     "paper_reproduction_full.csv",
     "portfolio_model_comparison.csv",
-    "selected_factor_correlations.csv"
+    "selected_factor_correlations.csv",
+    "walk_forward_example.csv"
   ]
 }

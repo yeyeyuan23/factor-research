@@ -1,13 +1,13 @@
-factor,category,direction,minimum_monthly_coverage,development_ic_mean,development_newey_west_t,year_positive_rate,quantile_monotonicity_30bp,long_short_annual_return_10bp,long_short_annual_return_30bp,long_short_annual_return_50bp,mean_absolute_industry_active_weight,median_capacity_cny,frozen_oos_ic_mean,frozen_oos_newey_west_t,selected,failed_checks
-earnings_growth,Growth,1,0.945946,-0.010442,-0.792489,0.375,-0.7,-0.044477,-0.050898,-0.057286,0.017905,410407999.63655,-0.029995,-1.792973,False,ic|t_stat|year_stability|monotonicity|cost_30bp
-revenue_growth,Growth,1,0.945946,-0.005026,-0.319996,0.5,-0.1,-0.036502,-0.042683,-0.048834,0.018105,425108407.3429,-0.071885,-2.824991,False,ic|t_stat|monotonicity|cost_30bp
-momentum_12_1,Momentum,1,0.886288,0.029422,1.391183,0.75,1.0,0.076156,0.062277,0.04856,0.017513,582813732.9275,0.037921,1.154041,False,t_stat
-reversal_1m,Momentum,1,0.899666,0.044651,2.290318,0.75,1.0,0.099237,0.059209,0.02052,0.017195,356663374.269,-0.018939,-0.590505,True,
-gross_margin,Quality,1,0.802676,0.020642,1.390174,0.75,0.5,0.017567,0.0148,0.012038,0.022235,269756645.34,-0.033391,-1.656781,False,t_stat|monotonicity
-roe,Quality,1,0.94,0.026755,1.744806,0.75,0.8,0.002661,-0.001384,-0.005417,0.018412,401106844.749,-0.03112,-1.429981,False,t_stat|cost_30bp
-beta_252d,Risk & Trading,-1,0.899666,0.048991,2.058236,0.625,0.6,0.009529,0.003787,-0.001928,0.022602,333589591.188,0.068881,1.415335,False,monotonicity
-idiosyncratic_volatility,Risk & Trading,-1,0.899666,0.057567,2.998058,0.75,0.7,0.04081,0.034479,0.028181,0.020764,292669089.42,0.118837,2.779702,False,monotonicity
-liquidity_20d,Risk & Trading,-1,0.899666,0.027211,1.707967,0.625,0.3,-0.008032,-0.019676,-0.031197,0.016893,227498564.03,0.041073,1.798739,False,t_stat|monotonicity|cost_30bp
-volatility_60d,Risk & Trading,-1,0.899666,0.05206,2.837972,0.75,0.1,-0.017878,-0.029577,-0.041151,0.021002,273231508.4928,0.120287,2.826127,False,monotonicity|cost_30bp
-bp,Value,1,0.996633,0.021801,0.890299,0.75,-0.2,-0.046158,-0.050445,-0.054717,0.022579,318159071.85,0.093592,2.827531,False,t_stat|monotonicity|cost_30bp
-paper_score,Value,1,0.94,0.036559,2.064729,0.75,0.6,-0.003893,-0.008957,-0.013999,0.023587,340643552.934,0.054914,2.123363,False,monotonicity|cost_30bp
+factor,category,direction,minimum_monthly_coverage,development_ic_mean,development_icir,development_ic_positive_rate,development_newey_west_t,year_positive_rate,quantile_monotonicity_30bp,long_short_annual_return_10bp,long_short_annual_return_30bp,long_short_annual_return_50bp,mean_absolute_industry_active_weight,median_capacity_cny,frozen_oos_ic_mean,frozen_oos_newey_west_t,selected,failed_checks
+earnings_growth,Growth,1,0.945946,-0.010442,-0.280839,0.458333,-0.792489,0.375,-0.7,-0.044477,-0.050898,-0.057286,0.017905,410407999.63655,-0.029995,-1.792973,False,ic|t_stat|year_stability|monotonicity|cost_30bp
+revenue_growth,Growth,1,0.945946,-0.005026,-0.111978,0.447917,-0.319996,0.5,-0.1,-0.036502,-0.042683,-0.048834,0.018105,425108407.3429,-0.071885,-2.824991,False,ic|t_stat|monotonicity|cost_30bp
+momentum_12_1,Momentum,1,0.886288,0.029422,0.493565,0.541667,1.391183,0.75,1.0,0.076156,0.062277,0.04856,0.017513,582813732.9275,0.037921,1.154041,False,t_stat
+reversal_1m,Momentum,1,0.899666,0.044651,0.858509,0.53125,2.290318,0.75,1.0,0.099237,0.059209,0.02052,0.017195,356663374.269,-0.018939,-0.590505,True,
+gross_margin,Quality,1,0.802676,0.020642,0.48297,0.552083,1.390174,0.75,0.5,0.017567,0.0148,0.012038,0.022235,269756645.34,-0.033391,-1.656781,False,t_stat|monotonicity
+roe,Quality,1,0.94,0.026755,0.686831,0.614583,1.744806,0.75,0.8,0.002661,-0.001384,-0.005417,0.018412,401106844.749,-0.03112,-1.429981,False,t_stat|cost_30bp
+beta_252d,Risk & Trading,-1,0.899666,0.048991,0.655385,0.604167,2.058236,0.625,0.6,0.009529,0.003787,-0.001928,0.022602,333589591.188,0.068881,1.415335,False,monotonicity
+idiosyncratic_volatility,Risk & Trading,-1,0.899666,0.057567,0.928291,0.614583,2.998058,0.75,0.7,0.04081,0.034479,0.028181,0.020764,292669089.42,0.118837,2.779702,False,monotonicity
+liquidity_20d,Risk & Trading,-1,0.899666,0.027211,0.573809,0.583333,1.707967,0.625,0.3,-0.008032,-0.019676,-0.031197,0.016893,227498564.03,0.041073,1.798739,False,t_stat|monotonicity|cost_30bp
+volatility_60d,Risk & Trading,-1,0.899666,0.05206,0.80032,0.604167,2.837972,0.75,0.1,-0.017878,-0.029577,-0.041151,0.021002,273231508.4928,0.120287,2.826127,False,monotonicity|cost_30bp
+bp,Value,1,0.996633,0.021801,0.292367,0.510417,0.890299,0.75,-0.2,-0.046158,-0.050445,-0.054717,0.022579,318159071.85,0.093592,2.827531,False,t_stat|monotonicity|cost_30bp
+paper_score,Value,1,0.94,0.036559,0.619894,0.604167,2.064729,0.75,0.6,-0.003893,-0.008957,-0.013999,0.023587,340643552.934,0.054914,2.123363,False,monotonicity|cost_30bp

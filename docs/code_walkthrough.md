@@ -207,6 +207,7 @@ lightgbm_predictions.parquet
 - `scripts/freeze_results.py`：最终审计通过后，把正式摘要复制到`docs/results/`并记录配置、输入和文件哈希；
 - `scripts/plot_*.py`：只读冻结结果，用Matplotlib生成论文和展示图片；
 - `docs/presentation_en_10min.html`：英文10分钟展示页，只引用`docs/results/figures/presentation-en/`中的PNG；
+- `scripts/build_standalone_presentation.py`：把上述PNG嵌入可直接发送的单文件HTML；
 - `docs/presentation_script_en_10min.md`：逐页英文讲稿。
 
 画图不重新下载、不训练、不优化。如果图不对，应先判断是绘图脚本问题还是上游结果问题，不能靠手工修改图片掩盖结果。

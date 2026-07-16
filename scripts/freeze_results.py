@@ -76,6 +76,8 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
     validation = pd.read_csv(run_dir / "factor_validation.csv")
     columns = {
         "ic_mean": "development_ic_mean",
+        "icir": "development_icir",
+        "ic_positive_rate": "development_ic_positive_rate",
         "newey_west_t": "development_newey_west_t",
     }
     validation = validation.rename(columns=columns)
@@ -85,6 +87,8 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
         "direction",
         "minimum_monthly_coverage",
         "development_ic_mean",
+        "development_icir",
+        "development_ic_positive_rate",
         "development_newey_west_t",
         "year_positive_rate",
         "quantile_monotonicity_30bp",
@@ -120,6 +124,48 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
             "max_drawdown",
         ]
     ].to_csv(output / "equal_weight_factor_baseline.csv", index=False)
+
+
+def freeze_walk_forward_example(run_dir: Path, output: Path) -> None:
+    """Freeze one audited prediction month for the presentation timeline."""
+    prediction_date = pd.Timestamp("2023-01-31")
+    panel = pd.read_parquet(
+        run_dir / "model_factor_panel.parquet",
+        columns=["signal_date", "entry_date", "exit_date"],
+    ).drop_duplicates()
+    for column in ["signal_date", "entry_date", "exit_date"]:
+        panel[column] = pd.to_datetime(panel[column])
+
+    current = panel.loc[panel["signal_date"].eq(prediction_date)].iloc[0]
+    excluded = panel.loc[
+        panel["signal_date"].lt(prediction_date)
+        & panel["exit_date"].gt(prediction_date)
+    ].sort_values("signal_date").iloc[-1]
+
+    rows = []
+    for model, stem in (("Elastic Net", "elastic-net"), ("LightGBM", "lightgbm")):
+        predictions = pd.read_parquet(run_dir / f"{stem}_predictions.parquet")
+        predictions["signal_date"] = pd.to_datetime(predictions["signal_date"])
+        row = predictions.loc[predictions["signal_date"].eq(prediction_date)].iloc[0]
+        rows.append(
+            {
+                "model": model,
+                "prediction_date": prediction_date,
+                "training_start": row["training_start"],
+                "training_end": row["training_end"],
+                "validation_start": row.get("validation_start", pd.NaT),
+                "validation_end": row.get("validation_end", pd.NaT),
+                "training_label_exit_end": row["training_label_exit_end"],
+                "validation_label_exit_end": row.get(
+                    "validation_label_exit_end", pd.NaT
+                ),
+                "excluded_signal_date": excluded["signal_date"],
+                "excluded_label_exit_date": excluded["exit_date"],
+                "trade_date": current["entry_date"],
+                "prediction_label_exit_date": current["exit_date"],
+            }
+        )
+    pd.DataFrame(rows).to_csv(output / "walk_forward_example.csv", index=False)
 
 
 def freeze_modern_baseline(run_dir: Path, output: Path) -> None:
@@ -218,6 +264,7 @@ def main() -> int:
     freeze_factor_validation(run_dir, output)
     freeze_model_summary(run_dir, output, "elastic-net", "ElasticNet")
     freeze_model_summary(run_dir, output, "lightgbm", "LightGBM")
+    freeze_walk_forward_example(run_dir, output)
     freeze_portfolios(run_dir, output)
     shutil.copy2(run_dir / "final_audit.json", output / "final_audit_summary.json")
     metadata = {
