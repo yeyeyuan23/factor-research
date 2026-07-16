@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare equal weighting, Elastic Net, and LightGBM IC with Matplotlib."""
+"""Compare strict, eligible equal-weight, and model IC with Matplotlib."""
 
 from __future__ import annotations
 
@@ -10,29 +10,42 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 COLORS = {
-    "冻结因子信号": "#2a9d6f",
+    "严格反转信号": "#7a7f87",
+    "11因子等权": "#2a9d6f",
     "Elastic Net": "#2878b5",
     "LightGBM": "#d65a31",
 }
-SEGMENTS = {"development": "开发期\n2015–2022", "frozen_oos": "冻结期\n2023–2025"}
+SEGMENTS = {
+    "development": "开发期\n2015–2022",
+    "exploratory_2023_2025": "探索性历史检验\n2023–2025",
+}
 
 
 def load_results(run_dir: Path) -> pd.DataFrame:
-    equal = pd.read_csv(run_dir / "equal_weight_factor_ic.csv").assign(
-        method="冻结因子信号"
+    strict = pd.read_csv(run_dir / "equal_weight_factor_ic.csv").assign(
+        method="严格反转信号"
+    )
+    strict["segment"] = strict["segment"].replace(
+        {"frozen_oos": "exploratory_2023_2025"}
+    )
+    eligible = pd.read_csv(run_dir / "model_input_equal_weight_ic.csv").assign(
+        method="11因子等权"
     )
     elastic = pd.read_csv(run_dir / "elastic-net_ic_segments.csv").assign(method="Elastic Net")
     lightgbm = pd.read_csv(run_dir / "lightgbm_ic_segments.csv").assign(method="LightGBM")
-    return pd.concat([equal, elastic, lightgbm], ignore_index=True)
+    return pd.concat([strict, eligible, elastic, lightgbm], ignore_index=True)
 
 
 def plot(frame: pd.DataFrame, output: Path) -> None:
     figure, axes = plt.subplots(1, 2, figsize=(11, 4.8), dpi=160)
     segments = list(SEGMENTS)
-    width = 0.24
+    width = 0.19
     for index, method in enumerate(COLORS):
         selected = frame[frame["method"] == method].set_index("segment")
-        positions = [position + (index - 1) * width for position in range(len(segments))]
+        positions = [
+            position + (index - (len(COLORS) - 1) / 2) * width
+            for position in range(len(segments))
+        ]
         ic_values = [selected.loc[segment, "ic_mean"] * 100 for segment in segments]
         t_values = [selected.loc[segment, "newey_west_t"] for segment in segments]
         ic_bars = axes[0].bar(
@@ -53,7 +66,7 @@ def plot(frame: pd.DataFrame, output: Path) -> None:
     axes[0].legend(frameon=False)
     axes[1].set_title("Newey–West t值", fontweight="bold")
     axes[1].axhline(2, color="#777777", linestyle="--", linewidth=1.2)
-    figure.suptitle("冻结因子信号与两种模型的预测能力", fontsize=16)
+    figure.suptitle("严格信号、合格多因子等权与模型预测能力", fontsize=16)
     figure.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")

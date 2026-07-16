@@ -108,6 +108,12 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
         run_dir / "selected_factor_correlations.csv",
         output / "selected_factor_correlations.csv",
     )
+    for name in (
+        "model_factor_eligibility.csv",
+        "model_factor_correlations.csv",
+        "model_feature_manifest.json",
+    ):
+        shutil.copy2(run_dir / name, output / name)
 
     ic = pd.read_csv(run_dir / "equal_weight_factor_ic.csv")
     performance = pd.read_csv(run_dir / "equal_weight_factor_performance.csv")
@@ -124,6 +130,22 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
             "max_drawdown",
         ]
     ].to_csv(output / "equal_weight_factor_baseline.csv", index=False)
+
+    model_ic = pd.read_csv(run_dir / "model_input_equal_weight_ic.csv")
+    model_performance = pd.read_csv(run_dir / "model_input_equal_weight_performance.csv")
+    model_ic = model_ic[["segment", "ic_mean", "newey_west_t"]]
+    model_performance.merge(model_ic, on="segment", validate="many_to_one")[
+        [
+            "segment",
+            "cost_bps",
+            "ic_mean",
+            "newey_west_t",
+            "cumulative_return",
+            "annual_return",
+            "sharpe",
+            "max_drawdown",
+        ]
+    ].to_csv(output / "model_input_equal_weight_baseline.csv", index=False)
 
 
 def freeze_walk_forward_example(run_dir: Path, output: Path) -> None:
@@ -224,7 +246,10 @@ def freeze_model_summary(run_dir: Path, output: Path, stem: str, model: str) -> 
             "newey_west_t": all_row["newey_west_t"],
         }
     ]
-    names = {"development": "development_2015_2022", "frozen_oos": "frozen_oos_2023_2025"}
+    names = {
+        "development": "development_2015_2022",
+        "exploratory_2023_2025": "exploratory_2023_2025",
+    }
     for row in segments.itertuples(index=False):
         rows.append(
             {
@@ -240,15 +265,29 @@ def freeze_model_summary(run_dir: Path, output: Path, stem: str, model: str) -> 
     frame = pd.DataFrame(rows)
     target = "elastic_net_summary.csv" if stem == "elastic-net" else "lightgbm_summary.csv"
     frame.to_csv(output / target, index=False)
+    explanation = (
+        "elastic-net_coefficient_summary.csv"
+        if stem == "elastic-net"
+        else "lightgbm_feature_importance_summary.csv"
+    )
+    shutil.copy2(run_dir / explanation, output / explanation)
     return frame
 
 
 def freeze_portfolios(run_dir: Path, output: Path) -> None:
     rows = []
-    for model, stem in (("ElasticNet", "elastic-net"), ("LightGBM", "lightgbm")):
+    for model, stem in (
+        ("StrictReversal", "strict_factor_equal_weight"),
+        ("EligibleEqualWeight", "model_input_equal_weight"),
+        ("ElasticNet", "elastic-net"),
+        ("LightGBM", "lightgbm"),
+    ):
         frame = pd.read_csv(run_dir / f"{stem}_portfolio_summary.csv")
         frame.insert(0, "model", model)
-        keep = frame[frame["cost_bps"].eq(30) | frame["segment"].eq("frozen_oos")]
+        keep = frame[
+            frame["cost_bps"].eq(30)
+            | frame["segment"].eq("exploratory_2023_2025")
+        ]
         rows.append(keep)
     pd.concat(rows, ignore_index=True).to_csv(
         output / "portfolio_model_comparison.csv", index=False

@@ -24,8 +24,9 @@ brew install libomp
 - 数据质量闸门通过；
 - 原文复现产生持仓、每期收益与汇总；
 - 现代评价产生 IC、分层、多空、成本和暴露；
+- 因子验证同时产生严格单因子名单和模型输入资格manifest；
 - Elastic Net 与 LightGBM 均产生严格 walk-forward 预测；
-- 组合优化产生约束持仓、净收益和求解诊断；
+- 严格反转、合格因子等权、Elastic Net和LightGBM都产生约束持仓、净收益和求解诊断；
 - `dashboard.html` 可断网打开；
 - `final_audit.json` 的 `passed` 为 `true`。
 
@@ -75,6 +76,18 @@ $PY -m pb_roe optimize \
   --config configs/modern.yaml \
   --input-dir "$MODERN_DATA" \
   --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
+  --prediction-file results/runs/modern-pb-roe/strict_factor_equal_weight_predictions.parquet
+
+$PY -m pb_roe optimize \
+  --config configs/modern.yaml \
+  --input-dir "$MODERN_DATA" \
+  --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
+  --prediction-file results/runs/modern-pb-roe/model_input_equal_weight_predictions.parquet
+
+$PY -m pb_roe optimize \
+  --config configs/modern.yaml \
+  --input-dir "$MODERN_DATA" \
+  --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
   --prediction-file results/runs/modern-pb-roe/elastic-net_predictions.parquet
 
 $PY -m pb_roe optimize \
@@ -96,7 +109,7 @@ $PY -m pb_roe final-audit \
 $PY scripts/freeze_results.py
 ```
 
-`validate-factors`必须先生成`frozen_factor_selection.json`和`model_factor_panel.parquet`；两个模型读取同一面板，确保输入一致。`freeze_results.py`只在最终审计通过后执行，把机器结果复制为可版本控制摘要。报告、冻结和绘图命令不下载、训练或回测。
+`validate-factors`必须先生成严格名单`frozen_factor_selection.json`、资格表`model_factor_eligibility.csv`、输入清单`model_feature_manifest.json`和`model_factor_panel.parquet`。两个模型读取同一manifest和同一面板。严格名单回答“能否独立交易”，manifest回答“能否作为多因子模型输入”，两者不能混用。`freeze_results.py`只在最终审计通过后执行，把机器结果复制为可版本控制摘要。报告、冻结和绘图命令不下载、训练或回测。
 
 正式图表在相应研究阶段完成后生成：
 
@@ -111,7 +124,7 @@ MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_presentation_en.py --results-dir 
 $PY scripts/build_standalone_presentation.py --input docs/presentation_en_10min.html --output docs/presentation_en_10min_standalone.html
 ```
 
-绘图脚本全部使用Matplotlib并只读取结果文件。最后一条命令把5张主展示图和24张按需展开的因子明细图编码进HTML；生成的`presentation_en_10min_standalone.html`不依赖同目录图片，可以作为单个文件直接发送。不要向`report`命令传`--static-dir`重新生成旧的手写SVG备份。
+绘图脚本全部使用Matplotlib并只读取结果文件。最后一条命令把主展示图和按需展开的因子明细图编码进HTML；生成的`presentation_en_10min_standalone.html`不依赖同目录图片，可以作为单个文件直接发送。不要向`report`命令传`--static-dir`重新生成旧的手写SVG备份。
 
 当前真实数据适配层使用BaoStock行情与沪深300历史快照，并直接保存Eastmoney季度业绩接口的首次公告日`NOTICE_DATE`和后续`UPDATE_DATE`。数据审计要求ROE公告滞后中位数不超过200天；任何覆盖或时点门槛失败时不得生成论文结论。
 

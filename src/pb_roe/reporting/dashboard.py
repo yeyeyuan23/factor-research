@@ -129,17 +129,40 @@ def _spread_figure(run_dir: Path) -> go.Figure:
 
 def _model_ic_figure(run_dir: Path) -> go.Figure:
     rows: list[dict[str, object]] = []
-    for model in ("elastic-net", "lightgbm"):
-        frame = _read_csv(run_dir, f"{model}_ic_summary.csv")
-        if not frame.empty:
-            row = frame.iloc[0]
-            rows.append({"model": model, "ic_mean": row["ic_mean"], "icir": row["icir"]})
+    sources = (
+        ("严格反转", "equal_weight_factor_ic.csv"),
+        ("11因子等权", "model_input_equal_weight_ic.csv"),
+        ("Elastic Net", "elastic-net_ic_segments.csv"),
+        ("LightGBM", "lightgbm_ic_segments.csv"),
+    )
+    for label, filename in sources:
+        frame = _read_csv(run_dir, filename)
+        if frame.empty:
+            continue
+        frame = frame.copy()
+        frame["segment"] = frame["segment"].replace(
+            {"frozen_oos": "exploratory_2023_2025"}
+        )
+        for row in frame.itertuples(index=False):
+            rows.append(
+                {
+                    "method": label,
+                    "segment": row.segment,
+                    "ic_mean": row.ic_mean,
+                }
+            )
     figure = go.Figure()
     if rows:
         comparison = pd.DataFrame(rows)
-        figure.add_bar(x=comparison["model"], y=comparison["ic_mean"], name="IC Mean")
-        figure.add_bar(x=comparison["model"], y=comparison["icir"], name="ICIR")
-        figure.update_layout(barmode="group")
+        for segment, label in (
+            ("development", "开发期"),
+            ("exploratory_2023_2025", "2023–2025历史检验"),
+        ):
+            selected = comparison[comparison["segment"].eq(segment)]
+            figure.add_bar(
+                x=selected["method"], y=selected["ic_mean"], name=label
+            )
+        figure.update_layout(barmode="group", yaxis_title="Mean Rank IC")
     return figure
 
 
@@ -154,7 +177,12 @@ def _importance_figure(run_dir: Path) -> go.Figure:
 
 def _optimization_figure(run_dir: Path) -> go.Figure:
     figure = go.Figure()
-    for model, label in (("elastic-net", "Elastic Net"), ("lightgbm", "LightGBM")):
+    for model, label in (
+        ("strict_factor_equal_weight", "严格反转"),
+        ("model_input_equal_weight", "11因子等权"),
+        ("elastic-net", "Elastic Net"),
+        ("lightgbm", "LightGBM"),
+    ):
         frame = _read_csv(run_dir, f"{model}_optimized_returns.csv")
         if frame.empty:
             continue
@@ -164,7 +192,7 @@ def _optimization_figure(run_dir: Path) -> go.Figure:
             name=f"{label}（30bp）",
             mode="lines",
         )
-    benchmark = _read_csv(run_dir, "elastic-net_optimized_returns.csv")
+    benchmark = _read_csv(run_dir, "model_input_equal_weight_optimized_returns.csv")
     if not benchmark.empty:
         figure.add_scatter(
             x=benchmark["signal_date"],
@@ -197,12 +225,13 @@ def generate_dashboard(
     evaluation = _read_json(run_path, "evaluation_run.json")
     paper_path = Path(paper_run_dir).expanduser().resolve() if paper_run_dir else run_path
     optimization = _read_json(run_path, "elastic-net_optimization_run.json")
+    feature_manifest = _read_json(run_path, "model_feature_manifest.json")
     paper = _read_json(paper_path, "paper_run.json")
     metric_items = [
         ("复现调仓期", len(paper.get("signal_dates", []))),
         ("现代有效月份", evaluation.get("signal_dates", "-")),
+        ("模型合格因子", feature_manifest.get("eligible_count", "-")),
         ("优化月份", optimization.get("months", "-")),
-        ("优化回退次数", optimization.get("fallback_months", "-")),
     ]
     metrics = "".join(
         f'<div class="metric"><strong>{html.escape(str(value))}</strong>'
@@ -213,7 +242,7 @@ def generate_dashboard(
         ("原研报策略方向性复现", _paper_figure(paper_path)),
         ("因子 IC 与显著性", _ic_figure(run_path)),
         ("Top-Bottom 成本后净值", _spread_figure(run_path)),
-        ("Elastic Net vs LightGBM", _model_ic_figure(run_path)),
+        ("简单信号 vs Elastic Net vs LightGBM", _model_ic_figure(run_path)),
         ("LightGBM 平均特征重要性", _importance_figure(run_path)),
         ("约束优化组合", _optimization_figure(run_path)),
     ]
@@ -231,9 +260,10 @@ def generate_dashboard(
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>PB-ROE Alpha Research Dashboard</title><style>{CSS}</style></head>
 <body><main><h1>PB-ROE Alpha Research</h1>
-<p class="subtitle">原文复现 · Point-in-Time · 现代因子评价 · 非线性增强 · 风险约束</p>
+<p class="subtitle">原文复现 · Point-in-Time · 双层因子资格 · Walk-forward · 风险约束</p>
 <div class="metrics">{metrics}</div><div class="grid">{"".join(cards)}</div>
-<p class="note">本页面读取冻结结果生成，Plotly 运行库已内嵌，可完全离线展示。</p>
+<p class="note">本页面读取结果生成，Plotly运行库已内嵌。严格反转的2023–2025为原预留检验；
+修订后的11因子与模型在同一区间只作探索性历史检验。</p>
 </main></body></html>"""
     output.write_text(document, encoding="utf-8")
     return output

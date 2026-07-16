@@ -7,8 +7,8 @@ YAML研究口径
   -> 五张canonical数据表与时点审计
   -> 原研报规则复现
   -> 现代PB-ROE评价
-  -> 12因子开发期验证与名单冻结
-  -> 严格walk-forward预测
+  -> 12因子独立验证 + 模型输入资格manifest
+  -> 严格反转 / 11因子等权 / 两模型walk-forward预测
   -> 风险约束组合与成本核算
   -> 冻结结果、图片、HTML和最终审计
 ```
@@ -31,7 +31,7 @@ YAML研究口径
 | 4 | `src/pb_roe/data/bundle.py`、`schema.py`、`pit.py` | 五张表如何组织，怎样禁止未来数据？ |
 | 5 | `src/pb_roe/reproduction/runner.py` | 原研报的信号、持有期和收益怎样串起来？ |
 | 6 | `src/pb_roe/evaluation/runner.py` | 现代PB-ROE如何计算IC、五分组和成本后收益？ |
-| 7 | `src/pb_roe/factors/validation.py` | 12因子如何只用开发期筛选并冻结名单？ |
+| 7 | `src/pb_roe/factors/validation.py`、`eligibility.py` | 独立因子门槛与模型输入资格为什么分开？ |
 | 8 | `src/pb_roe/models/runner.py`、`linear.py`、`lightgbm.py` | 每个月怎样只用当时已实现的标签训练？ |
 | 9 | `src/pb_roe/portfolio/runner.py`、`optimizer.py` | 预测怎样变成满足约束的持仓？ |
 | 10 | `src/pb_roe/validation/final_audit.py` | 哪些条件不通过就不能发布结论？ |
@@ -49,7 +49,7 @@ YAML研究口径
 | `data audit` | `data/audit.py` | 检查主键、覆盖率、价格、成员区间和公告滞后 |
 | `reproduce` | `reproduction/runner.py` | 复现2005–2011原研报规则组合 |
 | `evaluate` | `evaluation/runner.py` | 评价现代BP、ROE与PB-ROE |
-| `validate-factors` | `factors/validation.py` | 评价12因子并冻结开发期通过者 |
+| `validate-factors` | `factors/validation.py` | 冻结严格因子名单、模型资格manifest和两类简单基准 |
 | `train` | `models/runner.py` | 运行Elastic Net或LightGBM的walk-forward预测 |
 | `optimize` | `portfolio/runner.py` | 将预测变成约束组合并计入交易成本 |
 | `report` | `reporting/runner.py` | 从已有结果生成离线Dashboard |
@@ -143,26 +143,28 @@ ROE截面百分位 + (1 - PB截面百分位)
 
 主要输出是`modern_factor_panel.parquet`以及IC、五分组、成本和暴露CSV。建议配合阅读`tests/test_evaluation.py`。
 
-## 7. Commit06：12因子验证与冻结
+## 7. Commit06：12因子独立验证与模型输入资格
 
 因子公式在`factors/library.py`，模型面板构造在`models/dataset.py`，统一验证在`factors/validation.py`。
 
-这里最重要的是**先开发、再冻结、最后只查看样本外**：
+第一层是严格独立有效性：
 
 ```text
 2015–2022开发期
   -> 对12个候选逐一计算IC、NW t、年度稳定性、五分组单调性、30bp后价差
   -> 同时通过全部门槛的因子写入frozen_factor_selection.json
-  -> 名单冻结后，才查看2023–2025表现
+  -> 名单冻结后，才查看2023–2025原预留表现
 ```
 
-正式门槛是开发期IC均值不低于2%、NW t不低于2、正IC年份占比不低于50%、五分组单调性不低于80%、30bp后多空价差为正。当前唯一通过者是`reversal_1m_z`，但它在冻结期IC转负。
+正式门槛是开发期IC均值不低于2%、NW t不低于2、正IC年份占比不低于50%、五分组单调性不低于80%、30bp后多空价差为正。当前唯一通过者是`reversal_1m_z`，但它在原预留区间IC转负。
 
-`model_factor_panel.parquet`是Commit07唯一允许读取的模型输入。模型入口会检查冻结文件的配置指纹，不能临时换因子。建议配合阅读`tests/test_factor_library.py`和`tests/test_factor_validation.py`。
+第二层在`factors/eligibility.py`：只检查PIT、覆盖率、数值变化、预设方向冲突和开发期冗余。11个原始因子合格，派生`paper_score_z`因与BP、ROE重复被排除。结果写入`model_factor_eligibility.csv`、`model_factor_correlations.csv`和`model_feature_manifest.json`。
+
+`model_factor_panel.parquet`是Commit07唯一允许读取的模型输入；入口检查manifest的配置指纹、canonical输入哈希和特征顺序。`strict_factor_equal_weight_predictions.parquet`保存严格失败基准，`model_input_equal_weight_predictions.parquet`保存11因子简单等权基准。建议配合阅读`tests/test_factor_library.py`和`tests/test_factor_validation.py`。
 
 ## 8. Commit07：严格walk-forward模型
 
-入口是`models/runner.py`。两个模型读取完全相同的冻结因子：
+入口是`models/runner.py`。两个模型读取完全相同的11因子manifest：
 
 - `models/linear.py`：Elastic Net线性基准；
 - `models/lightgbm.py`：唯一树模型LightGBM。
@@ -195,7 +197,7 @@ lightgbm_predictions.parquet
 2. `portfolio/optimizer.py`解基准相对均值—方差问题；
 3. 约束满仓、只做多、单票不超过3%、漂移后换手不超过30%；
 4. 求解失败时使用确定性的排序回退，不悄悄丢掉该月；
-5. 分别核算10/30/50bp成本，并与沪深300成分等权代理比较。
+5. 对严格反转、11因子等权、Elastic Net和LightGBM分别核算10/30/50bp成本，并与沪深300成分等权代理比较。
 
 “漂移后换手”表示先让上期持仓随实际收益自然变化，再计算调仓差额；不是简单拿两期目标权重相减。输出包括目标持仓、组合月收益、汇总绩效和求解诊断。建议配合阅读`tests/test_portfolio.py`。
 
@@ -221,9 +223,10 @@ lightgbm_predictions.parquet
 - 收益退出价在当时可观察；
 - 静态行业没有进入正式历史目标和组合约束；
 - 模型训练标签在预测时已经实现；
+- 模型manifest与canonical数据哈希一致、派生PB-ROE未重复输入、两模型特征完全相同；
 - 组合满仓、非负、单票上限和换手上限成立；
 - Dashboard不依赖外部CDN；
-- 冻结样本外确实是2023–2025；
+- 严格反转的2023–2025预留检验与新版模型探索性历史检验标签没有混淆；
 - 正式结果文件生成SHA-256清单。
 
 任何一项失败，都不应执行`freeze_results.py`或更新最终展示。
@@ -243,7 +246,7 @@ modern_factor_panel.parquet
         |
         | 因子扩展、月度缩尾和z-score
         v
-model_factor_panel.parquet
+model_factor_panel.parquet + model_feature_manifest.json
   *_z / target_return / label_exit_date / sample_segment
         |
         | 只用已实现历史标签逐月拟合
@@ -300,10 +303,11 @@ column -s, -t < docs/results/portfolio/portfolio_summary.csv
 ```text
 原研报规则能否在可得免费数据上复现？
   -> 现代PB-ROE是否仍有稳定预测力？
-  -> 12个候选中哪些能在开发期通过统一门槛？
-  -> 冻结因子到2023–2025是否仍有效？
-  -> Elastic Net或LightGBM能否改善预测？
+  -> 12个候选中哪些能独立通过统一门槛？
+  -> 哪些基础因子具备模型输入资格？
+  -> 严格反转到2023–2025是否仍有效？
+  -> 11因子等权、Elastic Net或LightGBM谁更稳定？
   -> 计入风险、换手和成本后能否超过基准？
 ```
 
-当前答案是：原研报方向没有在免费数据复现中得到稳健确认；现代候选只有1个月反转在开发期通过，但冻结期失效；Elastic Net与LightGBM都没有把它转化为超过沪深300成分等权代理的组合。因此最终产出既包含方法改进，也诚实保留负结果和数据限制。
+当前答案是：原研报方向和量级得到基本复现，但行业版本不一致；现代候选只有1个月反转能独立通过，且原预留检验失效；11个原始因子通过模型资格，简单方向等权在2023–2025探索区间优于基准；Elastic Net与LightGBM都没有击败简单等权。因而工程既保留严格负结果，也把多因子分散的正结果正确降级为待未来验证的探索性证据。

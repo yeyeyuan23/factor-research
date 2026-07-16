@@ -1,0 +1,63 @@
+{
+  "config_fingerprint": "e1a9997cc505fc26",
+  "canonical_input_manifest_sha256": "47b90c9e50996fa6a4e5026c79ad022b59f3f2cc5280f2a5864d03cd1977f8d9",
+  "eligibility_sample": "2015-01-01/2022-12-31",
+  "eligible_features": [
+    "bp_z",
+    "roe_z",
+    "gross_margin_z",
+    "revenue_growth_z",
+    "earnings_growth_z",
+    "momentum_12_1_z",
+    "reversal_1m_z",
+    "volatility_60d_z",
+    "liquidity_20d_z",
+    "beta_252d_z",
+    "idiosyncratic_volatility_z"
+  ],
+  "feature_directions": {
+    "bp_z": 1,
+    "roe_z": 1,
+    "gross_margin_z": 1,
+    "revenue_growth_z": 1,
+    "earnings_growth_z": 1,
+    "momentum_12_1_z": 1,
+    "reversal_1m_z": 1,
+    "volatility_60d_z": -1,
+    "liquidity_20d_z": -1,
+    "beta_252d_z": -1,
+    "idiosyncratic_volatility_z": -1
+  },
+  "strict_standalone_features": [
+    "reversal_1m_z"
+  ],
+  "candidate_count": 12,
+  "eligible_count": 11,
+  "evaluation_period": "2023-01-01/2025-12-31",
+  "evaluation_status": "exploratory_after_prior_oos_review",
+  "rules": {
+    "minimum_valid_months": 60,
+    "minimum_monthly_coverage": 0.8,
+    "minimum_coverage_pass_rate": 0.9,
+    "minimum_median_stock_count": 150,
+    "minimum_unique_values": 20,
+    "significantly_opposite_t": -2.0,
+    "maximum_absolute_correlation": 0.85,
+    "exclude_derived_features": [
+      "paper_score_z"
+    ],
+    "representative_priority": [
+      "bp_z",
+      "roe_z",
+      "gross_margin_z",
+      "revenue_growth_z",
+      "earnings_growth_z",
+      "momentum_12_1_z",
+      "reversal_1m_z",
+      "volatility_60d_z",
+      "liquidity_20d_z",
+      "beta_252d_z",
+      "idiosyncratic_volatility_z"
+    ]
+  }
+}

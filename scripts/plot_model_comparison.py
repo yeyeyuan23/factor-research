@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot the frozen-factor model IC comparison with Matplotlib."""
+"""Plot walk-forward model IC comparisons with Matplotlib."""
 
 from __future__ import annotations
 
@@ -15,7 +15,11 @@ MODELS = {
 }
 SEGMENTS = {
     "开发期\n2015–2022": ("development", "2015-01-01", "2022-12-31"),
-    "冻结期\n2023–2025": ("frozen_oos", "2023-01-01", "2025-12-31"),
+    "探索性历史检验\n2023–2025": (
+        "exploratory_2023_2025",
+        "2023-01-01",
+        "2025-12-31",
+    ),
 }
 
 
@@ -60,7 +64,7 @@ def plot_segment_comparison(run_dir: Path, output: Path) -> None:
     axes[1].set_title("Newey–West t值", fontweight="bold")
     axes[1].axhline(2, color="#777777", linestyle="--", linewidth=1.2, label="t = 2")
     axes[1].legend(frameon=False)
-    figure.suptitle("冻结因子模型预测能力对比", fontsize=16, fontweight="bold")
+    figure.suptitle("11因子模型输入：预测能力对比", fontsize=16, fontweight="bold")
     figure.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")
@@ -91,7 +95,7 @@ def plot_ic_timeseries(run_dir: Path, output: Path) -> None:
     axes[1].text(
         pd.Timestamp("2023-02-01"),
         axes[1].get_ylim()[1] * 0.9,
-        "冻结样本外",
+        "新版模型探索区间",
         color="#555555",
     )
     figure.suptitle("Elastic Net与LightGBM：IC稳定性", fontsize=16, fontweight="bold")

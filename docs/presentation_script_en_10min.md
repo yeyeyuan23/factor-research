@@ -1,203 +1,129 @@
-# Reproducing and Modernizing the PB–ROE Strategy
+# 10-Minute English Presentation Script
 
-## 10-minute English presentation script
+## Slide 1 — Title · 0:00–0:35
 
-Target speaking time: 9 minutes 40 seconds to 10 minutes. The remaining few seconds are a buffer for slide transitions. The Q&A section is separate and is designed for the following five minutes.
+Good morning. My project asks how a Chinese PB–ROE stock-selection rule published in 2011 changes when it is rebuilt as a modern point-in-time research process.
 
-### Slide 1 — Title | 0:00–0:25
+I first reproduce the historical rule. I then re-evaluate PB–ROE in a modern monthly setting, test twelve candidate factors, separate standalone factor validity from model-input eligibility, compare a simple eleven-factor score with Elastic Net and LightGBM, and finally build constrained portfolios.
 
-Good morning. My project asks whether a Chinese equity strategy published in 2011 survives modern point-in-time testing.
+My main result is nuanced: the historical rule is broadly reproducible, and simple multi-factor diversification is promising. However, machine learning adds no value over equal weighting, and the revised positive result is exploratory rather than untouched out of sample.
 
-I reproduce the historical PB–ROE rule, evaluate its modern behavior, test twelve candidate factors, compare Elastic Net with LightGBM, and finally build constrained portfolios.
+## Slide 2 — Economic and market logic · 0:35–1:20
 
-The historical rule is broadly reproducible, but the proposed modern improvement fails out of sample. That negative result is my central finding.
+PB–ROE combines value and quality. ROE measures profitability on book capital. PB measures the market price paid for that capital. The hypothesis is that profitable but cheaply valued firms may be repriced slowly because of anchoring, extrapolation and limits to arbitrage.
 
-### Slide 2 — Economic and market logic | 0:25–1:05
+But each leg can fail. Low PB may be a value trap. High ROE may come from leverage, a cyclical peak or accounting choices. The trade can become crowded, and turnover can consume the spread.
 
-PB–ROE is a value-quality hypothesis.
+So I do not accept a visually attractive equity curve. I require positive Rank IC, statistical stability, ordered five-group returns, positive payoff after costs and honest evidence from later data.
 
-ROE measures the profitability earned on book capital. PB measures how much the market asks investors to pay for that capital. The combined score therefore rewards firms with high ROE and low PB.
+## Slide 3 — Engineering and AI governance · 1:20–2:00
 
-The possible market mechanism is slow repricing. Investors may extrapolate recent bad news, anchor on past valuations, or be unable to arbitrage unpopular firms immediately.
+This is an executable cross-sectional research environment, not a spreadsheet backtest.
 
-But the idea can fail. Low PB can indicate a value trap, ROE can be cyclical or accounting-driven, factor crowding can remove the premium, and turnover can absorb the spread.
+Five canonical Parquet tables describe securities, the trading calendar, historical CSI 300 membership, prices and point-in-time fundamentals. At each month-end, factors are winsorized at the first and ninety-ninth percentiles and standardized across the available stocks.
 
-That is why I require positive IC, ICIR, ordered group returns, post-cost payoff and frozen-period persistence. An attractive cumulative curve alone is not enough.
+The same panel feeds IC tests, five-group portfolios, walk-forward models and a CVXPY portfolio optimizer. AI helped review specifications, scaffold code, debug and draft documentation. I retained responsibility for the universe, hypotheses, thresholds, evidence labels and conclusions. Tests, deterministic seeds, input hashes and a final machine audit independently check the outputs.
 
-### Slide 3 — Technical implementation and AI governance | 1:05–1:45
+## Slide 4 — Time design · 2:00–2:55
 
-I implemented the study as a reproducible cross-sectional research environment rather than a spreadsheet backtest.
+The project has two separate historical lines.
 
-Five canonical Parquet tables contain the security master, trading calendar, historical CSI 300 membership, prices and point-in-time fundamentals. Every month, factors are winsorized at one and ninety-nine percent and standardized across the active cross-section. The same panel then supports IC tests, quantile portfolios, walk-forward models and CVXPY portfolio optimization.
+The original-paper reproduction runs from 2005 to March 2011 and contains eighteen real holding periods. It is a genuine backtest of the historical rule.
 
-AI assisted specification review, code scaffolding, debugging, documentation and plotting scripts. It did not choose the universe, thresholds, freeze rule or final conclusion. Those remained researcher decisions.
+The modern dataset begins in 2010, but January 2010 to April 2012 is only warm-up history. Twelve-minus-one momentum needs roughly one year of prices, while Beta, idiosyncratic volatility and the risk matrix need long trailing windows. PB and ROE coverage also becomes consistently usable only in May 2012. So warm-up data are inputs to later signals, not missing return results.
 
-I independently checked the implementation with Git history, deterministic seeds, seventy-nine automated tests, seventeen release audits, input and result hashes, and figures generated from frozen CSV files rather than by a generative image model.
+Modern PB–ROE evaluation begins in May 2012. Standalone gates and model eligibility use 2015 through 2022. The strict reversal rule was fixed before its 2023-to-2025 test. The revised eleven-factor design was created after that period had already been inspected, so those same dates are exploratory for the revised models.
 
-### Slide 4 — Time design and information timing | 1:45–2:40
+At every fold, only labels whose holding periods have ended can enter training. This prevents code leakage, but it does not turn already observed history back into untouched evidence.
 
-The original-paper reproduction covers eighteen holding periods from 2005 to 2011.
+## Slide 5 — Historical reproduction · 2:55–3:40
 
-For the modern layer, 2010 to April 2012 is warm-up history. It supplies trailing prices for momentum, beta, volatility and covariance. It is input history, not a missing backtest. Formal modern evaluation begins in May 2012. Factor selection and model development use 2015 through 2022. The frozen test is 2023 through 2025.
+The original score rewards high ROE and low PB. I use historical CSI 300 constituents and the latest financial information available at each signal date.
 
-At every month-end, I freeze the information then available, trade at the next open, and allow a return label into training only after its holding period has ended.
+After the paper’s cost assumptions, the reproduced PB–ROE Top 50 portfolio earns 29.86 percent annualized, versus 35 percent in the original report. It beats the constituent equal-weight proxy in twelve of eighteen holding periods.
 
-One important repair concerns ROE timing. The corrected pipeline uses Eastmoney’s first announcement date, `NOTICE_DATE`, rather than a later update date. The median announcement lag is thirty-nine days and the ninety-fifth percentile is one hundred and nineteen days.
+The direction and magnitude are therefore broadly reproducible. However, the industry-equal-weight version is not the best version in my data. Free sources cannot reconstruct every Wind field, historical industry label or adjustment convention, so the appropriate claim is rule and direction reproduction, not field-by-field numerical identity.
 
-The 790 securities stored locally are only the union of all firms that entered the CSI 300 during the research window. Each monthly cross-section still uses the members active on that date; it is not a CSI 800 universe.
+## Slide 6 — Modern PB–ROE · 3:40–4:25
 
-### Slide 5 — Original-paper reproduction | 2:40–3:25
+In the modern monthly sample, PB–ROE has a mean Rank IC of 5.13 percent and a Newey–West t-statistic of 3.73. It ranks future returns better than BP or ROE alone.
 
-The historical score is the ROE cross-sectional percentile plus one minus the PB percentile.
+But economic performance is much weaker than in the historical paper. After thirty basis points, the long–short return is only 2.78 percent annualized, and five-group monotonicity is 0.70, below my 0.80 gate.
 
-Using historical CSI 300 constituents and information available at each signal date, the reproduced PB–ROE Top 50 portfolio earns 29.86 percent annualized after the paper’s cost assumptions. The report gives 35 percent. The strategy beats the constituent equal-weight proxy in twelve of eighteen holding periods.
+This means value and quality still contain ranking information, but the payoff is not cleanly ordered or strongly tradable. Static industry labels improve some diagnostics, but they are current snapshots and therefore cannot support a causal historical industry-neutral claim.
 
-So the direction and approximate magnitude are reproducible.
+## Slide 7 — Twelve-factor validation · 4:25–5:35
 
-However, the industry-equal-weight version is not the best version in my data. Free sources cannot reproduce every Wind field, historical industry label or adjustment method. The correct claim is broad reproduction, not numerical identity and not evidence that the original report fabricated results.
+I organize twelve candidates into value, quality, growth, momentum and risk-and-trading styles. These are common academic and practitioner factors; this is not a commercial Barra model.
 
-### Slide 6 — Modern PB–ROE | 3:25–4:15
+Each factor has an economic pattern and a failure mode. BP represents value but can select value traps. ROE and gross margin represent quality but are affected by leverage, cycles and industry differences. Revenue and earnings growth may capture fundamental acceleration, but suffer from base effects and non-recurring items. Twelve-minus-one momentum reflects slow information diffusion but can crash when trends reverse. One-month reversal reflects temporary liquidity shocks but has high turnover. Low volatility and low Beta may arise from leverage constraints, while their main limitation is defensive-industry exposure. Low idiosyncratic volatility may reflect lottery preference but overlaps with total risk. Low liquidity may earn a premium, although capacity and impact are difficult to model.
 
-In the modern monthly sample, PB–ROE has a mean Rank IC of 5.13 percent, an annualized ICIR of 0.82 and a Newey–West t-statistic of 3.73.
+For standalone validity, every factor must pass five development gates: IC, Newey–West significance, positive-year stability, five-group monotonicity and a positive spread after thirty basis points. Only one-month reversal passes all five. Its development IC is 4.47 percent, but this result does not survive later data.
 
-The statistical ranking signal therefore remains visible. Its economic payoff is much weaker. After thirty basis points, annualized Q5-minus-Q1 return is only 2.78 percent. Five-group monotonicity is 0.70, below the selection threshold of 0.80. ROE alone has almost no post-cost payoff.
+The interactive tiles show each factor’s monthly IC, group returns, market pattern, mechanism and limitation.
 
-I show static-industry-adjusted numbers only as a diagnostic. BaoStock’s industry field is a current snapshot. Applying it causally across history would create classification look-ahead.
+## Slide 8 — Two-layer factor evidence · 5:35–6:25
 
-The modern conclusion is therefore precise: PB–ROE retains ranking information, while its tradable payoff has materially decayed.
+The strict reversal list remains frozen and its failure is preserved. In the prior out-of-sample period, reversal IC falls to minus 1.89 percent. I do not replace it with factors that happened to look better later.
 
-### Slide 7 — Twelve-factor validation | 4:15–5:05
+I then ask a different question: can a factor be a useful model input even if it cannot independently satisfy every trading gate?
 
-I test twelve candidates across value, quality, growth, momentum and trading-risk styles.
+The eligibility layer checks point-in-time data, coverage, cross-sectional variation, conflict with a pre-declared economic direction and redundancy above 0.85 correlation. Eleven primitive factors qualify. PB–ROE itself is excluded from the model because it is derived from BP and ROE.
 
-Each factor must pass five development-sample gates: mean Rank IC of at least two percent, a Newey–West t-statistic of at least two, positive annual IC in at least half the years, five-group monotonicity of at least 0.8, and a positive long–short return after thirty basis points.
+The direction-adjusted eleven-factor equal-weight score has an exploratory IC of 8.37 percent. No standalone gate was relaxed; the two layers answer different questions.
 
-Only one-month reversal passes all five. Its development IC is 4.47 percent, ICIR is 0.86, t-statistic is 2.29, monotonicity is one, and post-cost annual return is 5.92 percent.
+## Slide 9 — Walk-forward models · 6:25–7:25
 
-Low idiosyncratic volatility has stronger IC but fails monotonicity. Twelve-minus-one momentum fails significance. PB–ROE fails monotonicity and cost robustness.
+For every prediction month, I use at most sixty mature historical months and at least twenty-four. Elastic Net uses the full training window. LightGBM fits the earlier forty-eight months and uses the final twelve mature months for time-ordered early stopping. There is no random shuffle.
 
-I do not rescue near-passes after seeing later results.
+All methods use the same eleven-feature manifest. In the 2023-to-2025 exploratory history, the simple equal-weight score has IC 8.37 percent. Elastic Net has 1.93 percent and LightGBM 3.58 percent.
 
-The slide is interactive. During questions, I can click any factor to show its monthly IC path, five-group return chart, exact metrics and failed gates.
+LightGBM is better than Elastic Net, but neither beats the simple score. The likely reason is estimation error. Equal weighting fixes economically meaningful directions and averages noise. Rolling regression coefficients and tree thresholds are more flexible, but the monthly time series is short and factor relationships change over time.
 
-### Slide 8 — Frozen-factor test | 5:05–5:45
+Therefore, the model comparison is still valuable: it falsifies the assumption that complexity automatically creates alpha.
 
-The frozen list therefore contains only one-month reversal.
+## Slide 10 — Constrained portfolio · 7:25–8:35
 
-In 2023 through 2025, its IC changes from positive 4.47 percent in development to minus 1.89 percent. Its thirty-basis-point long–short return changes from positive 5.92 percent to minus 14.67 percent annualized.
+I send strict reversal, eleven-factor equal weight, Elastic Net and LightGBM through the same optimizer.
 
-Some factors rejected in development happen to perform well later. Substituting them now would turn the frozen period back into a development sample.
+Every portfolio is fully invested and long-only, with a three-percent stock cap, a thirty-percent turnover limit and ten, thirty and fifty basis-point cost scenarios. Turnover is measured from drifted pre-trade weights. I disable historical industry constraints because the available industry field is not point in time.
 
-The honest conclusion is that the selected signal did not persist. The likely explanations are regime change and selection error, not simply insufficient model complexity.
+After thirty basis points, the CSI 300 constituent equal-weight proxy earns 5.58 percent annualized. Strict reversal loses 4.84 percent. The eleven-factor equal-weight portfolio earns 9.76 percent, with a Sharpe ratio of 0.54 and maximum drawdown of minus 12.29 percent. Elastic Net earns 1.85 percent. LightGBM earns 5.24 percent.
 
-### Slide 9 — Walk-forward windows and models | 5:45–7:10
+The simplest diversified signal therefore has the best return, Sharpe and drawdown. It also remains at 9.12 percent under fifty basis points. However, these are exploratory historical results, and the cost model does not fully capture impact, limit-up queues or large-scale capacity.
 
-The upper bar separates two different ideas that should not be mixed. Prices from 2010 to early 2012 are warm-up inputs. Modern evaluation begins in 2012. Factor selection is restricted to the 2015-to-2022 in-sample development period. At the dashed line, every research choice is frozen. The entire 2023-to-2025 block is then used only for the hypothesis test.
+## Slide 11 — Conclusion · 8:35–10:00
 
-The lower panel zooms into that frozen block and shows three consecutive monthly forecasts. Each fold uses the latest sixty months whose return labels have fully matured, then rolls forward by one month.
+Four conclusions are supported.
 
-LightGBM splits each eligible window in time order: the first forty-eight months fit the tree and the final twelve mature months validate early stopping. Elastic Net uses the same sixty months without a validation split. There is no random shuffle.
+First, the historical PB–ROE direction and return magnitude are broadly reproducible, although the industry version and exact Wind values are not.
 
-The small red segment is the newest signal whose holding-period return has not yet ended. It is excluded from that forecast and becomes eligible only in a later fold. This is the operational rule that blocks label leakage.
+Second, PB–ROE retains modern ranking information, but its economic payoff is much weaker and less monotonic.
 
-In the frozen period, the direct signal and Elastic Net both have IC of minus 1.89 percent. Elastic Net’s ICIR is minus 0.31. LightGBM has IC of minus 1.70 percent and ICIR of minus 0.35.
+Third, the only standalone development winner fails its prior out-of-sample test. That negative result remains part of the study.
 
-LightGBM is slightly less negative in mean IC, but neither model establishes stable incremental prediction. With only one frozen input, the tree also has little stable interaction structure to learn.
+Fourth, eleven reliable primitive factors show promising diversification, but Elastic Net and LightGBM do not beat their simple equal-weight baseline. Machine-learning enhancement is therefore not established.
 
-### Slide 10 — Constrained portfolios | 7:10–8:30
+The next step is not another large parameter search. It is to freeze this code, feature manifest and thresholds, then evaluate genuinely new months. A future version may add economically distinct data such as analyst revisions, and a reliable point-in-time industry classification and historical benchmark weights.
 
-I finally convert predictions into fully invested, long-only portfolios.
+The project’s main contribution is an industry-style MVP: reproduce the idea, audit information timing, test factors individually, qualify model inputs separately, compare complexity with a simple benchmark, translate signals into constrained portfolios and label the evidence honestly.
 
-The covariance matrix uses trailing daily returns with Ledoit–Wolf shrinkage. Each stock is capped at three percent, monthly turnover is limited to thirty percent, and results are shown after thirty basis points.
+Thank you.
 
-Turnover is measured from drifted pre-trade weights, including forced exits, rather than by comparing two target portfolios. Historical industry constraints are disabled because the available classification is not point in time.
+## Short Q&A Answers
 
-In the frozen period, the CSI 300 constituent equal-weight proxy earns 5.58 percent annualized with a Sharpe ratio of 0.20 and a maximum drawdown of minus 21.5 percent.
+**Why keep Elastic Net and LightGBM if equal weight wins?**
 
-Elastic Net earns 0.36 percent, with Sharpe 0.01 and drawdown minus 29.3 percent. LightGBM earns 4.33 percent, with Sharpe 0.15 and drawdown minus 22.6 percent.
+Because the models are controlled challengers. Their failure is evidence that dynamic weighting and nonlinear interactions do not add value in this sample.
 
-Neither model beats the benchmark. LightGBM loses less than Elastic Net, but “less bad” is not evidence of alpha. Portfolio optimization cannot rescue a negative-IC input.
+**Did the revised model use future data?**
 
-### Slide 11 — Conclusion | 8:30–10:00
+No future label enters training. The result is called exploratory because the researcher had already seen the 2023–2025 period before revising the feature design.
 
-I draw five conclusions.
+**Is this Barra?**
 
-First, the historical PB–ROE direction and return magnitude are broadly reproducible.
+No. The factors use common style categories, but the project does not implement MSCI Barra factor definitions, exposures or a Barra risk model.
 
-Second, announcement timing and historical membership are economically important data decisions, not implementation details.
+**Why exclude PB–ROE from the model?**
 
-Third, PB–ROE retains modern ranking information, but its cost-adjusted payoff is much weaker.
-
-Fourth, the only factor that passed every development gate failed in the frozen period. Elastic Net and LightGBM also failed to produce positive frozen IC.
-
-Fifth, neither optimized portfolio beat the benchmark after costs, and their Sharpe ratios and drawdowns were not better.
-
-So I cannot claim a winning modern strategy. The contribution is a transparent chain from economic hypothesis, to point-in-time data, to standardized factor tests, to strict walk-forward prediction, and finally to a constrained portfolio.
-
-The remaining limitations are also clear: free data do not reproduce every Wind snapshot; historical industry classifications and true CSI 300 weights are missing; and the delisting and suspension ledger can be improved.
-
-The next decisive test is genuinely new data after the current freeze. My final takeaway is simple: a reproducible negative result is stronger than a polished backtest with hidden look-ahead. Thank you.
-
-## Five-minute Q&A preparation
-
-### Economic logic
-
-**Why should high ROE and low PB predict returns?**
-
-ROE represents profitability on book capital and PB represents the price paid for it. If investors underreact to durable profitability or over-penalize temporarily unpopular firms, high-ROE, low-PB stocks may be repriced upward. The mechanism is conditional, so the empirical gates test whether it is present in each period.
-
-**When should PB–ROE fail?**
-
-It can fail when low PB reflects permanent impairment, ROE is inflated or mean-reverting, the style becomes crowded, growth firms dominate the regime, or costs and turnover exceed the spread. The modern results show exactly this gap between statistical ranking and tradable payoff.
-
-### Statistical design
-
-**What is ICIR and why report both ICIR and the Newey–West t-statistic?**
-
-ICIR is mean monthly IC divided by its standard deviation and annualized by the square root of twelve. It measures stability. The Newey–West t-statistic asks whether the mean differs from zero after allowing serial dependence. They answer related but different questions.
-
-**Why are five-group returns not strictly increasing for every individual month?**
-
-Monotonicity is evaluated on average group returns across the chosen sample, not inside every month. Individual months are noisy. Requiring every month to be ordered would reject almost every real factor.
-
-**Why not add the factors that performed well in 2023–2025?**
-
-Those results were unavailable when the development rule was frozen. Adding them now would be sample-out overfitting and would destroy the meaning of the frozen test.
-
-### Time and data
-
-**Why is 2010–2012 not reported as a modern backtest?**
-
-It is warm-up history needed for trailing one-year factors and the risk matrix. Formal modern factor evaluation begins in May 2012.
-
-**Why are there 790 stocks if the universe is CSI 300?**
-
-790 is the deduplicated union of companies that entered the CSI 300 between 2010 and 2025. Every monthly cross-section uses only the members active on that date.
-
-**Did the original paper use future information?**
-
-Its stated rule does not use future returns, but the report does not disclose enough proprietary snapshot detail to verify every field. This project reproduces the stated method and clearly labels the remaining uncertainty.
-
-**Why remove the industry constraint?**
-
-The available industry label is a current snapshot applied across history. Using it causally would introduce classification look-ahead. A historical point-in-time source is required before restoring that constraint.
-
-### Models and portfolio
-
-**Does LightGBM beat Elastic Net?**
-
-It is slightly less negative in frozen mean IC and has a higher portfolio return, but both ICs are negative and both portfolios trail the benchmark. It does not meet the pre-defined standard for a successful nonlinear increment.
-
-**Why use machine learning when only one factor passed?**
-
-The model stage was a pre-defined falsification test: could dynamic weighting stabilize the frozen signal? With one feature, the answer is no, and the limited feature space helps explain why LightGBM adds little.
-
-**Is the missing-return treatment perfect?**
-
-No. Missing next-month returns remain in the pre-formed portfolio and are conservatively set to zero. A complete holding ledger using delisting cash flows and last tradable prices is a future accounting improvement.
-
-### AI use
-
-**What exactly did AI do, and how did you avoid copying its output?**
-
-AI helped challenge specifications, scaffold code, locate bugs and draft documentation. Research choices were recorded in the project plan and decision log. Every numerical claim comes from frozen machine outputs, figures are generated by Python, and tests plus final audits check the implementation. AI suggestions that conflicted with the plan or evidence were rejected or corrected.
+PB–ROE is a derived combination of BP and ROE. Keeping all three would count the same information twice.

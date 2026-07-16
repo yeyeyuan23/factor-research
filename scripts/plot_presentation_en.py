@@ -187,36 +187,43 @@ def factor_gates(results: Path, output: Path) -> None:
 
 def frozen_factor_test(results: Path, output: Path) -> None:
     factors = pd.read_csv(results / "factor_validation_summary.csv").set_index("factor")
-    equal = pd.read_csv(results / "equal_weight_factor_baseline.csv")
-    equal_30 = equal[equal["cost_bps"] == 30].set_index("segment")
+    strict = pd.read_csv(results / "equal_weight_factor_baseline.csv")
+    strict_30 = strict[strict["cost_bps"] == 30].set_index("segment")
+    eligible = pd.read_csv(results / "model_input_equal_weight_baseline.csv")
+    eligible_30 = eligible[eligible["cost_bps"] == 30].set_index("segment")
     labels = [
         "PB–ROE\nDevelopment",
-        "Frozen signal\nDevelopment",
-        "Frozen signal\n2023–2025",
+        "Strict reversal\nDevelopment",
+        "Strict reversal\nPrior OOS",
+        "11-factor EW\nExploratory",
     ]
     ic = [
         factors.loc["paper_score", "development_ic_mean"] * 100,
-        equal_30.loc["development", "ic_mean"] * 100,
-        equal_30.loc["frozen_oos", "ic_mean"] * 100,
+        strict_30.loc["development", "ic_mean"] * 100,
+        strict_30.loc["frozen_oos", "ic_mean"] * 100,
+        eligible_30.loc["exploratory_2023_2025", "ic_mean"] * 100,
     ]
     returns = [
         factors.loc["paper_score", "long_short_annual_return_30bp"] * 100,
-        equal_30.loc["development", "annual_return"] * 100,
-        equal_30.loc["frozen_oos", "annual_return"] * 100,
+        strict_30.loc["development", "annual_return"] * 100,
+        strict_30.loc["frozen_oos", "annual_return"] * 100,
+        eligible_30.loc["exploratory_2023_2025", "annual_return"] * 100,
     ]
-    colors = [GRAY, GREEN, BLUE]
-    figure, axes = plt.subplots(1, 2, figsize=(11.8, 4.8))
+    colors = [GRAY, GREEN, BLUE, ORANGE]
+    figure, axes = plt.subplots(1, 2, figsize=(12.8, 4.8))
     for axis, values, title, ylabel in (
         (axes[0], ic, "Rank IC", "Mean Rank IC (%)"),
         (axes[1], returns, "30 bp long–short return", "Annualized return (%)"),
     ):
-        bars = axis.bar(range(3), values, color=colors)
+        bars = axis.bar(range(4), values, color=colors)
         axis.bar_label(bars, fmt="%.2f", padding=3)
-        axis.set_xticks(range(3), labels)
+        axis.set_xticks(range(4), labels)
         axis.set_title(title, weight="bold")
         axis.set_ylabel(ylabel)
         axis.grid(axis="y", alpha=0.22)
-    figure.suptitle("The development-screened signal failed to persist out of sample")
+    figure.suptitle(
+        "The strict winner failed; qualified multi-factor diversification is exploratory"
+    )
     save(figure, output)
 
 
@@ -238,7 +245,12 @@ def walk_forward_models(results: Path, output: Path) -> None:
         ("Warm-up\nfeatures only", "2010-01-01", "2012-05-31", GRAY),
         ("Modern evaluation", "2012-05-31", "2015-01-01", "#b9d8e9"),
         ("IS development\nselect factors", "2015-01-01", "2023-01-01", IS_YELLOW),
-        ("OOS frozen\nhypothesis test", "2023-01-01", "2026-01-01", OOS_TEAL),
+        (
+            "Prior OOS for strict rule\nexploratory for revised models",
+            "2023-01-01",
+            "2026-01-01",
+            OOS_TEAL,
+        ),
     ]
     for label, start, end, color in sample_segments:
         start_date = pd.Timestamp(start)
@@ -267,7 +279,7 @@ def walk_forward_models(results: Path, output: Path) -> None:
     sample_axis.text(
         freeze_date,
         1.02,
-        "Freeze once",
+        "Original strict-rule freeze",
         ha="center",
         va="bottom",
         fontsize=9,
@@ -278,7 +290,9 @@ def walk_forward_models(results: Path, output: Path) -> None:
     sample_axis.set_yticks([])
     sample_axis.xaxis.set_major_locator(mdates.YearLocator(2))
     sample_axis.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    sample_axis.set_title("1. Global split: all research choices stop before OOS")
+    sample_axis.set_title(
+        "1. Evidence status: strict factor was frozen; revised multi-factor models are exploratory"
+    )
     sample_axis.grid(axis="x", alpha=0.18)
 
     rows = list(light.itertuples(index=False))
@@ -328,7 +342,9 @@ def walk_forward_models(results: Path, output: Path) -> None:
     fold_axis.set_ylim(-0.75, len(rows) - 0.25)
     fold_axis.xaxis.set_major_locator(mdates.YearLocator())
     fold_axis.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    fold_axis.set_title("2. Inside OOS: the 60-month mature-label window rolls forward")
+    fold_axis.set_title(
+        "2. Inside each historical forecast: the 60-month mature-label window rolls forward"
+    )
     fold_axis.grid(axis="x", alpha=0.2)
     fold_axis.legend(
         handles=[
@@ -341,7 +357,7 @@ def walk_forward_models(results: Path, output: Path) -> None:
         ncol=3,
         loc="lower left",
     )
-    figure.suptitle("Frozen OOS outside; rolling walk-forward inside", weight="bold")
+    figure.suptitle("Fixed time order outside; rolling walk-forward inside", weight="bold")
     figure.text(
         0.5,
         0.01,
@@ -355,39 +371,53 @@ def walk_forward_models(results: Path, output: Path) -> None:
 
 def portfolio_comparison(results: Path, output: Path) -> None:
     frame = pd.read_csv(results / "portfolio_model_comparison.csv")
-    frozen = frame[
-        (frame["segment"] == "frozen_oos") & (frame["cost_bps"] == 30)
+    evaluation = frame[
+        (frame["segment"] == "exploratory_2023_2025") & (frame["cost_bps"] == 30)
     ].set_index("model")
-    labels = ["CSI 300 EW proxy", "Elastic Net", "LightGBM"]
+    labels = [
+        "CSI 300 EW",
+        "Strict reversal",
+        "11-factor EW",
+        "Elastic Net",
+        "LightGBM",
+    ]
     returns = [
-        frozen.iloc[0]["benchmark_annual_return"] * 100,
-        frozen.loc["ElasticNet", "net_annual_return"] * 100,
-        frozen.loc["LightGBM", "net_annual_return"] * 100,
+        evaluation.loc["EligibleEqualWeight", "benchmark_annual_return"] * 100,
+        evaluation.loc["StrictReversal", "net_annual_return"] * 100,
+        evaluation.loc["EligibleEqualWeight", "net_annual_return"] * 100,
+        evaluation.loc["ElasticNet", "net_annual_return"] * 100,
+        evaluation.loc["LightGBM", "net_annual_return"] * 100,
     ]
     sharpes = [
-        frozen.iloc[0]["benchmark_sharpe"],
-        frozen.loc["ElasticNet", "net_sharpe"],
-        frozen.loc["LightGBM", "net_sharpe"],
+        evaluation.loc["EligibleEqualWeight", "benchmark_sharpe"],
+        evaluation.loc["StrictReversal", "net_sharpe"],
+        evaluation.loc["EligibleEqualWeight", "net_sharpe"],
+        evaluation.loc["ElasticNet", "net_sharpe"],
+        evaluation.loc["LightGBM", "net_sharpe"],
     ]
     drawdowns = [
-        frozen.iloc[0]["benchmark_max_drawdown"] * 100,
-        frozen.loc["ElasticNet", "net_max_drawdown"] * 100,
-        frozen.loc["LightGBM", "net_max_drawdown"] * 100,
+        evaluation.loc["EligibleEqualWeight", "benchmark_max_drawdown"] * 100,
+        evaluation.loc["StrictReversal", "net_max_drawdown"] * 100,
+        evaluation.loc["EligibleEqualWeight", "net_max_drawdown"] * 100,
+        evaluation.loc["ElasticNet", "net_max_drawdown"] * 100,
+        evaluation.loc["LightGBM", "net_max_drawdown"] * 100,
     ]
-    colors = [GRAY, BLUE, ORANGE]
-    figure, axes = plt.subplots(1, 3, figsize=(13.2, 4.6))
+    colors = [GRAY, RED, GREEN, BLUE, ORANGE]
+    figure, axes = plt.subplots(1, 3, figsize=(14.5, 4.8))
     for axis, values, title, fmt in (
         (axes[0], returns, "Annualized return", "%.2f%%"),
         (axes[1], sharpes, "Sharpe ratio", "%.2f"),
         (axes[2], drawdowns, "Maximum drawdown", "%.1f%%"),
     ):
-        bars = axis.bar(range(3), values, color=colors)
+        bars = axis.bar(range(5), values, color=colors)
         axis.bar_label(bars, fmt=fmt, padding=3, fontsize=9)
-        axis.set_xticks(range(3), labels, rotation=14, ha="right")
+        axis.set_xticks(range(5), labels, rotation=18, ha="right")
         axis.set_title(title, weight="bold")
         axis.axhline(0, color="#333333", linewidth=1)
         axis.grid(axis="y", alpha=0.22)
-    figure.suptitle("Neither optimized model beat the proxy benchmark after costs")
+    figure.suptitle(
+        "The simple eligible-factor portfolio beats the complex models in exploratory history"
+    )
     save(figure, output)
 
 
