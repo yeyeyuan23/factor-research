@@ -17,6 +17,14 @@ rm -rf "$OUTPUT_DIR"
 "$PYTHON" -m pb_roe optimize \
   --config "$CONFIG" \
   --factor-file "$OUTPUT_DIR/model_factor_panel.parquet" \
+  --prediction-file "$OUTPUT_DIR/strict_factor_equal_weight_predictions.parquet"
+"$PYTHON" -m pb_roe optimize \
+  --config "$CONFIG" \
+  --factor-file "$OUTPUT_DIR/model_factor_panel.parquet" \
+  --prediction-file "$OUTPUT_DIR/model_input_equal_weight_predictions.parquet"
+"$PYTHON" -m pb_roe optimize \
+  --config "$CONFIG" \
+  --factor-file "$OUTPUT_DIR/model_factor_panel.parquet" \
   --prediction-file "$OUTPUT_DIR/elastic-net_predictions.parquet"
 "$PYTHON" -m pb_roe optimize \
   --config "$CONFIG" \
@@ -25,4 +33,4 @@ rm -rf "$OUTPUT_DIR"
 "$PYTHON" -m pb_roe report --config "$CONFIG"
 "$PYTHON" -m pb_roe final-audit --config "$CONFIG"
 "$PYTHON" -m pytest
-"$PYTHON" -m ruff check --no-cache src tests
+"$PYTHON" -m ruff check --no-cache src tests scripts

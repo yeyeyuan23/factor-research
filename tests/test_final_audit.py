@@ -5,6 +5,8 @@ import pandas as pd
 from pb_roe.config import load_config
 from pb_roe.validation.final_audit import (
     REQUIRED_OUTPUTS,
+    _model_feature_alignment_check,
+    _model_feature_manifest_check,
     _paper_window_check,
     _prediction_time_check,
     audit_frozen_run,
@@ -121,3 +123,46 @@ def test_formal_audit_rejects_truncated_paper_window(tmp_path) -> None:
 
     assert not check.passed
     assert "periods=12" in check.details
+
+
+def test_formal_model_manifest_rejects_derived_duplicate(tmp_path) -> None:
+    config = load_config("configs/modern.yaml")
+    (tmp_path / "data_audit.json").write_text(
+        json.dumps({"input_manifest_sha256": "a" * 64}), encoding="utf-8"
+    )
+    (tmp_path / "model_feature_manifest.json").write_text(
+        json.dumps(
+            {
+                "config_fingerprint": config.fingerprint,
+                "canonical_input_manifest_sha256": "a" * 64,
+                "eligible_features": ["bp_z", "roe_z", "paper_score_z"],
+                "strict_standalone_features": ["bp_z"],
+                "evaluation_status": "exploratory_after_prior_oos_review",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    check = _model_feature_manifest_check(tmp_path, config)
+
+    assert not check.passed
+    assert "derived_duplicate=True" in check.details
+
+
+def test_formal_models_must_use_identical_manifest_features(tmp_path) -> None:
+    config = load_config("configs/modern.yaml")
+    manifest = {"eligible_features": ["bp_z", "roe_z"]}
+    (tmp_path / "model_feature_manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    (tmp_path / "elastic-net_run.json").write_text(
+        json.dumps({"features": ["bp_z", "roe_z"]}), encoding="utf-8"
+    )
+    (tmp_path / "lightgbm_run.json").write_text(
+        json.dumps({"features": ["bp_z"]}), encoding="utf-8"
+    )
+
+    check = _model_feature_alignment_check(tmp_path, config)
+
+    assert not check.passed
+    assert "lightgbm=['bp_z']" in check.details

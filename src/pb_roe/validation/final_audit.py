@@ -50,6 +50,11 @@ def _required_files(run_dir: Path, paper_dir: Path) -> FinalCheck:
             "data_audit.json",
             "evaluation_run.json",
             "ic_summary.csv",
+            "frozen_factor_selection.json",
+            "model_factor_eligibility.csv",
+            "model_feature_manifest.json",
+            "strict_factor_equal_weight_predictions.parquet",
+            "model_input_equal_weight_predictions.parquet",
             "dashboard.html",
             "elastic-net_predictions.parquet",
             "lightgbm_predictions.parquet",
@@ -59,6 +64,10 @@ def _required_files(run_dir: Path, paper_dir: Path) -> FinalCheck:
             "lightgbm_optimized_holdings.parquet",
             "lightgbm_optimized_returns.csv",
             "lightgbm_optimization_diagnostics.csv",
+            "strict_factor_equal_weight_optimized_holdings.parquet",
+            "strict_factor_equal_weight_optimized_returns.csv",
+            "model_input_equal_weight_optimized_holdings.parquet",
+            "model_input_equal_weight_optimized_returns.csv",
         ]
     else:
         required = [name for name in REQUIRED_OUTPUTS if not name.startswith("paper_")]
@@ -210,6 +219,65 @@ def _prediction_time_check(run_dir: Path, model: str) -> FinalCheck:
     )
 
 
+def _model_feature_manifest_check(run_dir: Path, config: ResearchConfig) -> FinalCheck:
+    providers = config.section("data").get("providers", {})
+    fixture = all(value == "fixture" for value in providers.values())
+    if config.mode != "modern" or fixture:
+        return FinalCheck("models.feature_manifest", True, "info", "not applicable")
+    path = run_dir / "model_feature_manifest.json"
+    if not path.is_file():
+        return FinalCheck("models.feature_manifest", False, "error", "manifest missing")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    features = list(payload.get("eligible_features", []))
+    strict = list(payload.get("strict_standalone_features", []))
+    audit_path = run_dir / "data_audit.json"
+    data_audit = (
+        json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.is_file() else {}
+    )
+    derived_duplicate = "paper_score_z" in features and {"bp_z", "roe_z"} <= set(features)
+    valid = (
+        payload.get("config_fingerprint") == config.fingerprint
+        and bool(features)
+        and set(strict) <= set(features)
+        and not derived_duplicate
+        and payload.get("canonical_input_manifest_sha256")
+        == data_audit.get("input_manifest_sha256")
+        and payload.get("evaluation_status") == "exploratory_after_prior_oos_review"
+    )
+    return FinalCheck(
+        "models.feature_manifest",
+        bool(valid),
+        "error",
+        f"features={features}; strict={strict}; derived_duplicate={derived_duplicate}; "
+        f"status={payload.get('evaluation_status')}",
+    )
+
+
+def _model_feature_alignment_check(run_dir: Path, config: ResearchConfig) -> FinalCheck:
+    providers = config.section("data").get("providers", {})
+    fixture = all(value == "fixture" for value in providers.values())
+    if config.mode != "modern" or fixture:
+        return FinalCheck("models.same_feature_inputs", True, "info", "not applicable")
+    manifest_path = run_dir / "model_feature_manifest.json"
+    run_paths = [run_dir / "elastic-net_run.json", run_dir / "lightgbm_run.json"]
+    if not manifest_path.is_file() or not all(path.is_file() for path in run_paths):
+        return FinalCheck(
+            "models.same_feature_inputs", False, "error", "manifest or model run metadata missing"
+        )
+    expected = list(json.loads(manifest_path.read_text(encoding="utf-8"))["eligible_features"])
+    observed = [
+        list(json.loads(path.read_text(encoding="utf-8")).get("features", []))
+        for path in run_paths
+    ]
+    valid = all(features == expected for features in observed)
+    return FinalCheck(
+        "models.same_feature_inputs",
+        bool(valid),
+        "error",
+        f"manifest={expected}; elastic_net={observed[0]}; lightgbm={observed[1]}",
+    )
+
+
 def _portfolio_check(run_dir: Path, config: ResearchConfig, model: str = "") -> list[FinalCheck]:
     prefix = f"{model}_" if model else ""
     check_prefix = f"portfolio.{model or 'legacy'}"
@@ -271,16 +339,20 @@ def _dashboard_check(run_dir: Path) -> FinalCheck:
 def _sample_split_check(config: ResearchConfig) -> FinalCheck:
     research = config.section("research")
     if not {"development_end", "oos_start", "end_date"} <= set(research):
-        return FinalCheck("research.frozen_oos", True, "info", "not applicable to smoke/paper")
+        return FinalCheck("research.time_windows", True, "info", "not applicable to smoke/paper")
     development_end = pd.Timestamp(research["development_end"])
     oos_start = pd.Timestamp(research["oos_start"])
     end = pd.Timestamp(research["end_date"])
     valid = development_end < oos_start <= end
+    model_status = str(config.section("models").get("evidence_status", ""))
+    if config.mode == "modern":
+        valid &= model_status == "exploratory_after_prior_oos_review"
     return FinalCheck(
-        "research.frozen_oos",
+        "research.time_windows",
         bool(valid),
         "error",
-        f"development_end={development_end.date()}, oos={oos_start.date()}..{end.date()}",
+        f"development_end={development_end.date()}, historical_evaluation="
+        f"{oos_start.date()}..{end.date()}, model_status={model_status}",
     )
 
 
@@ -292,7 +364,12 @@ def audit_frozen_run(
     root = Path(run_dir).expanduser().resolve()
     paper_root = Path(paper_run_dir).expanduser().resolve() if paper_run_dir else root
     portfolio_models = (
-        ["elastic-net", "lightgbm"]
+        [
+            "strict_factor_equal_weight",
+            "model_input_equal_weight",
+            "elastic-net",
+            "lightgbm",
+        ]
         if (root / "elastic-net_optimized_holdings.parquet").is_file()
         else [""]
     )
@@ -302,6 +379,8 @@ def audit_frozen_run(
         _paper_window_check(paper_root, config),
         _paper_exit_mark_check(paper_root, config),
         _causal_industry_check(config),
+        _model_feature_manifest_check(root, config),
+        _model_feature_alignment_check(root, config),
         _prediction_time_check(root, "elastic-net"),
         _prediction_time_check(root, "lightgbm"),
         *[check for model in portfolio_models for check in _portfolio_check(root, config, model)],

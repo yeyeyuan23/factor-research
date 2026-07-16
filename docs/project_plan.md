@@ -464,11 +464,11 @@ factor-research/
 | `03-pit-data-pipeline` | 历史成分、行情、公告时点、数据闸门和Parquet缓存 | 已完成（`e104f5f`；NOTICE_DATE、manifest与静态行业修复`d592d62`） | 主力模型，High reasoning |
 | `04-paper-reproduction` | 2005–2011原文组合、成本口径和结果对照 | 已完成（`25dc6dd`；最后可观测退出价修复`d592d62`） | 主力模型，High reasoning |
 | `05-modern-factor-evaluation` | 核心BP、ROE、PB-ROE的IC、分层、成本、显著性和暴露 | 已完成（`1e3407c`） | 主力模型，High reasoning |
-| `06-factor-library-and-freeze` | 12因子独立有效性冻结；新增数据质量、方向、冗余审计和模型特征manifest；输出严格因子与模型合格因子两套等权基准 | 修订中（保留原1个月反转冻结证据，不用2023–2025放宽门槛） | Mini实现固定公式，主力模型复核 |
-| `07-model-walk-forward` | Elastic Net主模型与唯一树模型LightGBM读取同一多因子manifest；输出系数/重要性稳定性和逐层增量 | 待按Commit06新manifest重跑；旧1因子结果只作问题诊断 | 主力模型，High reasoning |
-| `08-portfolio-optimization` | 使用新版两模型预测重跑Ledoit-Wolf、CVXPY约束、失败回退和成本检验；与PB-ROE、严格单因子、模型合格因子等权及基准比较 | 待Commit07完成后重跑 | 最强可用模型，High/XHigh reasoning |
-| `09-dashboard` | 更新离线Dashboard、Matplotlib研究图、英文HTML和讲稿；每个因子写明规律、生效逻辑和局限 | 待Commit06–08正式结果后更新 | Mini/快速模型，Medium reasoning |
-| `10-final-audit` | 新增模型manifest一致性、派生因子排除、两模型同输入和探索性证据标签检查；完成泄漏、约束、哈希和演示验收 | 待新版全链路完成后审计 | 最强可用模型，High/XHigh reasoning |
+| `06-factor-library-and-freeze` | 12因子独立有效性冻结；新增数据质量、方向、冗余审计和模型特征manifest；输出严格因子与模型合格因子两套等权基准 | 已完成（`feb06e3`）；严格名单1个，模型资格11个原始因子 | Mini实现固定公式，主力模型复核 |
+| `07-model-walk-forward` | Elastic Net主模型与唯一树模型LightGBM读取同一多因子manifest；输出系数/重要性稳定性和逐层增量 | 已完成（`5820667`）；正式walk-forward已重跑 | 主力模型，High reasoning |
+| `08-portfolio-optimization` | 使用新版两模型预测重跑Ledoit-Wolf、CVXPY约束、失败回退和成本检验；与PB-ROE、严格单因子、模型合格因子等权及基准比较 | 已完成（`bc25d15`）；四类信号已重跑 | 最强可用模型，High/XHigh reasoning |
+| `09-dashboard` | 更新离线Dashboard、Matplotlib研究图、英文HTML和讲稿；每个因子写明规律、生效逻辑和局限 | 已完成（`2e5ea74`） | Mini/快速模型，Medium reasoning |
+| `10-final-audit` | 新增模型manifest一致性、派生因子排除、两模型同输入和探索性证据标签检查；完成泄漏、约束、哈希和演示验收 | 已完成；82项测试、正式审计27/27、smoke审计27/27通过 | 最强可用模型，High/XHigh reasoning |
 
 本计划始终只有以上10个编号。后续修复提交只修正对应阶段，不新增Commit 11或其他计划编号。
 
@@ -501,9 +501,9 @@ factor-research/
 
 通过 PB-ROE、多因子等权、Elastic Net、LightGBM 的逐层对照，明确每一步究竟增加了什么。
 
-### 4. 从样本内拟合到冻结样本外检验
+### 4. 从样本内拟合到证据状态审计
 
-采用 Walk-forward，并将 2023–2025 作为不参与调参的最终样本外区间。
+采用Walk-forward隔离未来标签；严格反转保留原2023–2025冻结检验，而在该区间已经被查看后修订的多因子方案明确降级为探索性，等待新增月份确认。
 
 ### 5. 从预测能力到组合可交易性
 
