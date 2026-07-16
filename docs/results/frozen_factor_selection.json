@@ -1,18 +1,14 @@
 {
-  "config_fingerprint": "b15deeaf4b85f8b7",
+  "config_fingerprint": "29ec06374b065f12",
   "selection_sample": "2015-01-01/2022-12-31",
   "selected_features": [
-    "momentum_12_1_z",
-    "idiosyncratic_volatility_z",
-    "paper_score_z"
+    "reversal_1m_z"
   ],
   "selected_directions": {
-    "momentum_12_1_z": 1,
-    "idiosyncratic_volatility_z": -1,
-    "paper_score_z": 1
+    "reversal_1m_z": 1
   },
   "candidate_count": 12,
-  "selected_count": 3,
+  "selected_count": 1,
   "rules": {
     "development_start": "2015-01-01",
     "minimum_ic": 0.02,

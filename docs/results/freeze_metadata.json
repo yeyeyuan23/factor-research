@@ -1,0 +1,16 @@
+{
+  "modern_run": "results/runs/modern-pb-roe",
+  "paper_run": "results/runs/paper-reproduction",
+  "files": [
+    "core_factor_validation.csv",
+    "elastic_net_summary.csv",
+    "equal_weight_factor_baseline.csv",
+    "factor_validation_summary.csv",
+    "lightgbm_summary.csv",
+    "modern_factor_baseline.csv",
+    "modern_factor_segments.csv",
+    "paper_reproduction_full.csv",
+    "portfolio_model_comparison.csv",
+    "selected_factor_correlations.csv"
+  ]
+}

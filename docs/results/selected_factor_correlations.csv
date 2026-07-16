@@ -1,4 +1,2 @@
-factor,momentum_12_1_z,idiosyncratic_volatility_z,paper_score_z
-momentum_12_1_z,1.0,0.2795163533676257,-0.1516517008565416
-idiosyncratic_volatility_z,0.2795163533676257,1.0,-0.43083798038470467
-paper_score_z,-0.1516517008565416,-0.43083798038470467,1.0
+factor,reversal_1m_z
+reversal_1m_z,1.0

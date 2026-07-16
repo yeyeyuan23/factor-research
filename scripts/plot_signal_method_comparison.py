@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 COLORS = {
-    "三因子等权": "#2a9d6f",
+    "冻结因子信号": "#2a9d6f",
     "Elastic Net": "#2878b5",
     "LightGBM": "#d65a31",
 }
@@ -18,7 +18,9 @@ SEGMENTS = {"development": "开发期\n2015–2022", "frozen_oos": "冻结期\n2
 
 
 def load_results(run_dir: Path) -> pd.DataFrame:
-    equal = pd.read_csv(run_dir / "equal_weight_factor_ic.csv").assign(method="三因子等权")
+    equal = pd.read_csv(run_dir / "equal_weight_factor_ic.csv").assign(
+        method="冻结因子信号"
+    )
     elastic = pd.read_csv(run_dir / "elastic-net_ic_segments.csv").assign(method="Elastic Net")
     lightgbm = pd.read_csv(run_dir / "lightgbm_ic_segments.csv").assign(method="LightGBM")
     return pd.concat([equal, elastic, lightgbm], ignore_index=True)
@@ -51,7 +53,7 @@ def plot(frame: pd.DataFrame, output: Path) -> None:
     axes[0].legend(frameon=False)
     axes[1].set_title("Newey–West t值", fontweight="bold")
     axes[1].axhline(2, color="#777777", linestyle="--", linewidth=1.2)
-    figure.suptitle("三因子等权与两种模型的预测能力", fontsize=16)
+    figure.suptitle("冻结因子信号与两种模型的预测能力", fontsize=16)
     figure.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")

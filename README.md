@@ -8,10 +8,10 @@
 
 - 原研报主复现：`configs/paper.yaml`，2005–2011完整18期；
 - 现代主实验：`configs/modern.yaml`，历史沪深300，2015–2022开发期，2023–2025滚动样本外；
-- 冻结因子：PB-ROE综合、12–1月动量、低特异波动；
+- 冻结因子：开发期唯一通过全部门槛的1个月反转；冻结期IC转负；
 - 预测模型：Elastic Net与唯一树模型LightGBM；
-- 主组合：Elastic Net预测与基准相对主动风险优化；
-- 自动测试：70项通过；最终审计：15项通过。
+- 组合结论：两模型在2023–2025均未超过沪深300成分等权代理；
+- 自动测试：79项通过；最终审计：17项通过。
 
 当前正式结果、限制和证据强弱以最终研究报告为准，不以README中的摘要替代研究结论。
 
@@ -65,6 +65,8 @@ manifest.json
 - 股票池使用每个信号日有效的历史沪深300成分，不用当前成分回填历史；
 - 790只是研究窗口内历史成分并集，用于下载和还原，不是中证800；
 - 财务记录必须满足`effective_date <= signal_date`；
+- 现代ROE使用Eastmoney首次公告日`NOTICE_DATE`，数据审计检查公告滞后；
+- 当前行业字段是静态快照，不进入正式历史标签或组合约束；
 - 原始数据和canonical大文件保存在`data/processed/`，不提交Git；
 - 任何覆盖率闸门失败时停止生成正式结论；
 - `configs/paper_free.yaml`是旧的2007–2011截断对照，不得用于正式18期复现或最终审计。
@@ -102,7 +104,7 @@ $PY -m pb_roe validate-factors \
 
 $PY -m pb_roe train \
   --config configs/modern.yaml \
-  --input-dir "$MODERN_DATA" \
+  --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
   --model elastic-net
 
 $PY -m pb_roe train \
@@ -131,6 +133,8 @@ $PY -m pb_roe final-audit \
   --config configs/modern.yaml \
   --run-dir results/runs/modern-pb-roe \
   --paper-run-dir results/runs/paper-reproduction
+
+$PY scripts/freeze_results.py
 ```
 
 执行顺序不能交换：`validate-factors`先冻结因子，模型入口才允许训练；组合只能读取冻结预测；报告和审计只读取已有结果，不下载、训练或回测。
@@ -149,6 +153,7 @@ $PY -m pb_roe final-audit \
 .venv/bin/python scripts/plot_signal_method_comparison.py --help
 .venv/bin/python scripts/plot_portfolio_analysis.py --help
 .venv/bin/python scripts/plot_paper_reproduction.py --help
+.venv/bin/python scripts/plot_presentation_en.py --help
 ```
 
 绘图脚本只读取冻结结果。输出图保存在`docs/results/figures/`。
@@ -157,15 +162,17 @@ $PY -m pb_roe final-audit \
 
 ```bash
 .venv/bin/python -m pytest
-.venv/bin/python -m ruff check --no-cache src tests
+.venv/bin/python -m ruff check --no-cache src tests scripts
 ```
 
 最终审计检查：
 
 - 正式原研报复现必须为2005–2011完整18期；
 - 数据质量闸门；
+- ROE首次公告滞后、规范输入manifest和配置指纹；
 - Elastic Net和LightGBM训练、验证、预测的时间顺序，以及收益标签退出日在预测日前已经实现；
-- 满仓、非负权重、3%单票上限和30%换手上限；
+- 静态行业不进入正式历史目标或组合约束；
+- 满仓、非负权重、3%单票上限和漂移后30%换手上限；
 - Dashboard不依赖外部Plotly CDN；
 - 2023–2025冻结样本外配置；
 - 冻结结果文件SHA-256清单。
@@ -206,11 +213,13 @@ factor-research/
 - 模型与组合分析：[`docs/portfolio_analysis_report.md`](docs/portfolio_analysis_report.md)
 - 英文10分钟HTML展示：[`docs/presentation_en_10min.html`](docs/presentation_en_10min.html)
 - 英文10分钟逐页讲稿：[`docs/presentation_script_en_10min.md`](docs/presentation_script_en_10min.md)
-- 10分钟PPT：[`docs/PB-ROE复现与改进_10min.pptx`](docs/PB-ROE复现与改进_10min.pptx)
 
 ## 已知限制
 
 - 原研报复现使用免费源，不能称为Wind字段逐值复刻；
 - 2005–2006早期ROE按统一披露截止日生效，不是逐公司精确公告时点；
+- 免费财务接口不能保证保留每次历史修订快照；
+- BaoStock行业字段是当前静态快照，因此正式现代层未做历史行业约束；
 - 缺少可靠历史沪深300真实权重和历史总市值，现代基准使用成分等权代理；
-- 最终主动风险目标是在查看首次冻结期结果后修正，2023–2025只能作为后验稳健性证据。
+- 组合缺失下一月收益当前按0计，尚未实现完整退市/长期停牌持仓账本；
+- 当前正式冻结结果未跑赢基准，不能宣称获得可持续Alpha。

@@ -63,7 +63,7 @@ $PY -m pb_roe validate-factors --config configs/modern.yaml --input-dir "$MODERN
 
 $PY -m pb_roe train \
   --config configs/modern.yaml \
-  --input-dir "$MODERN_DATA" \
+  --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
   --model elastic-net
 
 $PY -m pb_roe train \
@@ -87,9 +87,16 @@ $PY -m pb_roe report \
   --config configs/modern.yaml \
   --run-dir results/runs/modern-pb-roe \
   --paper-run-dir results/runs/paper-reproduction
+
+$PY -m pb_roe final-audit \
+  --config configs/modern.yaml \
+  --run-dir results/runs/modern-pb-roe \
+  --paper-run-dir results/runs/paper-reproduction
+
+$PY scripts/freeze_results.py
 ```
 
-`validate-factors`必须先生成`frozen_factor_selection.json`；第一个训练命令会保存`model_factor_panel.parquet`，第二个模型读取同一面板，确保输入一致。报告命令只读取冻结结果，不下载、训练或回测。
+`validate-factors`必须先生成`frozen_factor_selection.json`和`model_factor_panel.parquet`；两个模型读取同一面板，确保输入一致。`freeze_results.py`只在最终审计通过后执行，把机器结果复制为可版本控制摘要。报告、冻结和绘图命令不下载、训练或回测。
 
 正式图表在相应研究阶段完成后生成：
 
@@ -104,7 +111,7 @@ MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_portfolio_analysis.py --run-dir r
 
 这些脚本全部使用Matplotlib并只读取结果文件。不要向`report`命令传`--static-dir`重新生成旧的手写SVG备份。
 
-当前真实数据适配层提供 BaoStock 行情与沪深 300 快照读取能力；财务公告时点、历史成分区间重建和正式全量下载仍需先落为 canonical Parquet。任何一项覆盖率未达到配置阈值时，不得生成论文结论。
+当前真实数据适配层使用BaoStock行情与沪深300历史快照，并直接保存Eastmoney季度业绩接口的首次公告日`NOTICE_DATE`和后续`UPDATE_DATE`。数据审计要求ROE公告滞后中位数不超过200天；任何覆盖或时点门槛失败时不得生成论文结论。
 
 `configs/paper.yaml` 现用于2005–2011全窗口规则复现：2005历史成分由首批名单和7月调整公告重建，2006年以后使用BaoStock历史快照；早期ROE只请求新浪2005、2006年度页，并按原研报固定披露完成日生效。`configs/paper_free.yaml` 保留为旧的2007–2011对照配置，不再作为主复现结果。
 

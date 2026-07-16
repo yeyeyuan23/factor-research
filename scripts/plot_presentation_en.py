@@ -154,7 +154,10 @@ def factor_gates(results: Path, output: Path) -> None:
         if is_selected:
             tick.set_weight("bold")
             tick.set_color(GREEN)
-    axis.set_title("Only 3 of 12 factors passed every pre-defined gate", weight="bold")
+    passed = int(ordered["selected"].sum())
+    axis.set_title(
+        f"Only {passed} of 12 factors passed every pre-defined gate", weight="bold"
+    )
     axis.tick_params(length=0)
     for edge in np.arange(-0.5, matrix.shape[1], 1):
         axis.axvline(edge, color="white", linewidth=1.5)
@@ -167,7 +170,11 @@ def equal_weight_improvement(results: Path, output: Path) -> None:
     factors = pd.read_csv(results / "factor_validation_summary.csv").set_index("factor")
     equal = pd.read_csv(results / "equal_weight_factor_baseline.csv")
     equal_30 = equal[equal["cost_bps"] == 30].set_index("segment")
-    labels = ["PB–ROE\nDevelopment", "3-factor EW\nDevelopment", "3-factor EW\nFrozen"]
+    labels = [
+        "PB–ROE\nDevelopment",
+        "Frozen signal\nDevelopment",
+        "Frozen signal\n2023–2025",
+    ]
     ic = [
         factors.loc["paper_score", "development_ic_mean"] * 100,
         equal_30.loc["development", "ic_mean"] * 100,
@@ -190,7 +197,7 @@ def equal_weight_improvement(results: Path, output: Path) -> None:
         axis.set_title(title, weight="bold")
         axis.set_ylabel(ylabel)
         axis.grid(axis="y", alpha=0.22)
-    figure.suptitle("The simple 3-factor combination clearly improves the PB–ROE baseline")
+    figure.suptitle("The development-screened signal failed to persist out of sample")
     save(figure, output)
 
 
@@ -200,7 +207,7 @@ def method_comparison(results: Path, output: Path) -> None:
     elastic = pd.read_csv(results / "elastic_net_summary.csv").set_index("segment")
     light = pd.read_csv(results / "lightgbm_summary.csv")
     light = light[light["model"] == "LightGBM"].set_index("segment")
-    methods = ["3-factor EW", "Elastic Net", "LightGBM"]
+    methods = ["Frozen signal", "Elastic Net", "LightGBM"]
     colors = [GREEN, BLUE, ORANGE]
     segments = ["Development", "Frozen"]
     values = {
@@ -229,7 +236,7 @@ def method_comparison(results: Path, output: Path) -> None:
         axis.bar_label(bars, fmt="%.2f%%", padding=3)
     axis.set_xticks(x, ["Development\n2015–2022", "Frozen\n2023–2025"])
     axis.set_ylabel("Mean Rank IC")
-    axis.set_title("More complex models did not beat equal weighting", weight="bold")
+    axis.set_title("All three methods lost ranking power after 2022", weight="bold")
     axis.grid(axis="y", alpha=0.22)
     axis.legend(frameon=False, ncol=3)
     save(figure, output)
@@ -269,7 +276,7 @@ def portfolio_comparison(results: Path, output: Path) -> None:
         axis.set_title(title, weight="bold")
         axis.axhline(0, color="#333333", linewidth=1)
         axis.grid(axis="y", alpha=0.22)
-    figure.suptitle("Elastic Net improved the proxy benchmark, but the edge is modest")
+    figure.suptitle("Neither optimized model beat the proxy benchmark after costs")
     save(figure, output)
 
 

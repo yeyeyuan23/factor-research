@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot the frozen three-factor model IC comparison with Matplotlib."""
+"""Plot the frozen-factor model IC comparison with Matplotlib."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ def plot_segment_comparison(run_dir: Path, output: Path) -> None:
     axes[1].set_title("Newey–West t值", fontweight="bold")
     axes[1].axhline(2, color="#777777", linestyle="--", linewidth=1.2, label="t = 2")
     axes[1].legend(frameon=False)
-    figure.suptitle("三因子模型预测能力对比", fontsize=16, fontweight="bold")
+    figure.suptitle("冻结因子模型预测能力对比", fontsize=16, fontweight="bold")
     figure.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")

@@ -66,7 +66,7 @@
 | M2 | 多因子等权得分 | 检验新增因子的直接增量 |
 | M3 | Elastic Net | 可解释的线性预测基准 |
 | M4 | LightGBM | 检验非线性和因子交互 |
-| M5 | LightGBM + 组合优化 | 检验预测到投资组合的转化 |
+| M5 | Elastic Net/LightGBM + 组合优化 | 检验两类预测到投资组合的转化 |
 
 不再同时使用 LightGBM 和 XGBoost。二者都属于梯度提升树，短周期项目中重复比较的边际研究价值较低。保留 LightGBM 作为唯一非线性模型，把资源用于数据时点、样本外检验和结果解释。
 
@@ -359,9 +359,9 @@ Elastic Net 用于提供可解释的线性基准；LightGBM 用于检验非线�
 
 ### 10.2 预测目标
 
-预测下一月行业和市值中性收益。标签定义为下一月个股收益对期初行业哑变量和对数市值进行截面回归后的残差。
+正式版本预测下一月原始个股收益。现有BaoStock行业字段是抓取时静态快照，若用于历史截面回归会引入分类前视，因此不进入正式标签。行业和市值中性收益仅在取得可靠PIT行业与市值数据后作为新版本重新冻结。
 
-组合绩效评价仍使用真实可交易收益相对沪深 300 计算，避免把中性化标签误当成实际投资收益。
+组合绩效始终使用真实可交易收益相对沪深300成分等权代理计算。
 
 ### 10.3 Walk-forward
 
@@ -399,7 +399,7 @@ $$
 - 满仓：$\sum_i w_i = 1$；
 - 不做空：$w_i \ge 0$；
 - 单票权重上限；
-- 相对基准的行业偏离上限；
+- 单票和换手限制；正式历史版本在缺少PIT行业数据时不启用行业偏离约束；
 - 单次换手上限；
 - 不可交易股票权重按执行规则冻结。
 
@@ -455,15 +455,15 @@ factor-research/
 | 计划 Commit | 工程交付 | 当前状态 | 推荐模型 |
 |---|---|---|---|
 | `01-research-spec-and-data-audit` | 研究口径、数据字典、覆盖率审计和停止条件 | 已完成（`bb59ab8`） | 最强可用模型，High reasoning |
-| `02-project-scaffold` | 配置、CLI、日志、目录、smoke fixture和测试框架 | 已完成（`c743421`） | Mini/快速模型，Medium reasoning |
-| `03-pit-data-pipeline` | 历史成分、行情、公告时点、数据闸门和Parquet缓存 | 已完成（`e104f5f`） | 主力模型，High reasoning |
-| `04-paper-reproduction` | 2005–2011原文组合、成本口径和结果对照 | 已完成（`25dc6dd`） | 主力模型，High reasoning |
+| `02-project-scaffold` | 配置、CLI、日志、目录、smoke fixture和测试框架 | 已完成（`c743421`；clean smoke修复`d592d62`） | Mini/快速模型，Medium reasoning |
+| `03-pit-data-pipeline` | 历史成分、行情、公告时点、数据闸门和Parquet缓存 | 已完成（`e104f5f`；NOTICE_DATE、manifest与静态行业修复`d592d62`） | 主力模型，High reasoning |
+| `04-paper-reproduction` | 2005–2011原文组合、成本口径和结果对照 | 已完成（`25dc6dd`；最后可观测退出价修复`d592d62`） | 主力模型，High reasoning |
 | `05-modern-factor-evaluation` | 核心BP、ROE、PB-ROE的IC、分层、成本、显著性和暴露 | 已完成（`1e3407c`） | 主力模型，High reasoning |
-| `06-factor-library-and-freeze` | 12个扩展候选、五分组验证、3因子冻结和等权基准 | 已完成（`f5fe62f`） | Mini实现固定公式，主力模型复核 |
-| `07-model-walk-forward` | 冻结3因子的Elastic Net和唯一树模型LightGBM | 已完成（`648dde5`；严格标签隔离修复与重跑`956cc05`） | 主力模型，High reasoning |
-| `08-portfolio-optimization` | Ledoit-Wolf风险估计、CVXPY约束、失败回退和成本检验 | 已完成（`9f37564`；事前股票池修复与重跑`956cc05`） | 最强可用模型，High/XHigh reasoning |
-| `09-dashboard` | 冻结结果的离线Dashboard和Matplotlib静态图 | 已完成（`4e26435`） | Mini/快速模型，Medium reasoning |
-| `10-final-audit` | 泄漏检查、18期复现检查、结果哈希冻结和演示验收 | 已完成（`271541d`；标签成熟审计升级`956cc05`） | 最强可用模型，High/XHigh reasoning |
+| `06-factor-library-and-freeze` | 12个扩展候选、五分组验证、按统一门槛冻结和等权基准 | 已完成（`f5fe62f`；公告时点修复后正式名单为1个月反转） | Mini实现固定公式，主力模型复核 |
+| `07-model-walk-forward` | 冻结名单的Elastic Net和唯一树模型LightGBM | 已完成（`648dde5`；严格标签隔离修复`956cc05`；正式重跑为1因子） | 主力模型，High reasoning |
+| `08-portfolio-optimization` | Ledoit-Wolf风险估计、CVXPY约束、失败回退和成本检验 | 已完成（`9f37564`；漂移后换手与静态行业修复`d592d62`） | 最强可用模型，High/XHigh reasoning |
+| `09-dashboard` | 冻结结果的离线Dashboard和Matplotlib静态图 | 已完成（`4e26435`；正式结果图已重生成） | Mini/快速模型，Medium reasoning |
+| `10-final-audit` | 泄漏检查、18期复现检查、输入/结果哈希冻结和演示验收 | 已完成（`271541d`；公告时点、行业、退出价与漂移换手审计已升级） | 最强可用模型，High/XHigh reasoning |
 
 本计划始终只有以上10个编号。后续修复提交只修正对应阶段，不新增Commit 11或其他计划编号。
 

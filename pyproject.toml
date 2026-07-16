@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-data = ["akshare>=1.16", "baostock>=0.8.9"]
+data = ["akshare>=1.16", "baostock>=0.8.9", "requests>=2.31"]
 dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6"]
 
 [project.scripts]

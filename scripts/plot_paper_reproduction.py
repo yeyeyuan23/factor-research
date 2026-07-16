@@ -9,7 +9,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-
 STRATEGIES = {
     "ROE20": "ROE Top20",
     "PB50_100": "PB 50–100",
