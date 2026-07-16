@@ -78,6 +78,8 @@ Low idiosyncratic volatility has stronger IC but fails monotonicity. Twelve-minu
 
 I do not rescue near-passes after seeing later results.
 
+The slide is interactive. During questions, I can click any factor to show its monthly IC path, five-group return chart, exact metrics and failed gates.
+
 ### Slide 8 — Frozen-factor test | 5:05–5:45
 
 The frozen list therefore contains only one-month reversal.
@@ -90,17 +92,15 @@ The honest conclusion is that the selected signal did not persist. The likely ex
 
 ### Slide 9 — Walk-forward windows and models | 5:45–7:10
 
-The left side of the chart shows one real forecast window rather than an abstract description.
+The upper bar separates two different ideas that should not be mixed. Prices from 2010 to early 2012 are warm-up inputs. Modern evaluation begins in 2012. Factor selection is restricted to the 2015-to-2022 in-sample development period. At the dashed line, every research choice is frozen. The entire 2023-to-2025 block is then used only for the hypothesis test.
 
-For the forecast on 31 January 2023, Elastic Net uses sixty mature signal months from December 2017 through November 2022.
+The lower panel zooms into that frozen block and shows three consecutive monthly forecasts. Each fold uses the latest sixty months whose return labels have fully matured, then rolls forward by one month.
 
-LightGBM uses the same eligible history but splits it in time order: the first forty-eight months fit the tree and the last twelve mature months validate early stopping. There is no random shuffle.
+LightGBM splits each eligible window in time order: the first forty-eight months fit the tree and the final twelve mature months validate early stopping. Elastic Net uses the same sixty months without a validation split. There is no random shuffle.
 
-The December 2022 signal is excluded. Its position entered on 3 January, but its return label did not finish until 1 February—one day after the forecast. The new January signal trades on 1 February and its label finishes on 1 March. Only after that date may it enter a later training window.
+The small red segment is the newest signal whose holding-period return has not yet ended. It is excluded from that forecast and becomes eligible only in a later fold. This is the operational rule that blocks label leakage.
 
-This rolling procedure repeats for every month.
-
-The right side shows the result. In the frozen period, the direct signal and Elastic Net both have IC of minus 1.89 percent. Elastic Net’s ICIR is minus 0.31. LightGBM has IC of minus 1.70 percent and ICIR of minus 0.35.
+In the frozen period, the direct signal and Elastic Net both have IC of minus 1.89 percent. Elastic Net’s ICIR is minus 0.31. LightGBM has IC of minus 1.70 percent and ICIR of minus 0.35.
 
 LightGBM is slightly less negative in mean IC, but neither model establishes stable incremental prediction. With only one frozen input, the tree also has little stable interaction structure to learn.
 

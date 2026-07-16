@@ -111,7 +111,7 @@ MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_presentation_en.py --results-dir 
 $PY scripts/build_standalone_presentation.py --input docs/presentation_en_10min.html --output docs/presentation_en_10min_standalone.html
 ```
 
-绘图脚本全部使用Matplotlib并只读取结果文件。最后一条命令把六张展示图编码进HTML；生成的`presentation_en_10min_standalone.html`不依赖同目录图片，可以作为单个文件直接发送。不要向`report`命令传`--static-dir`重新生成旧的手写SVG备份。
+绘图脚本全部使用Matplotlib并只读取结果文件。最后一条命令把5张主展示图和24张按需展开的因子明细图编码进HTML；生成的`presentation_en_10min_standalone.html`不依赖同目录图片，可以作为单个文件直接发送。不要向`report`命令传`--static-dir`重新生成旧的手写SVG备份。
 
 当前真实数据适配层使用BaoStock行情与沪深300历史快照，并直接保存Eastmoney季度业绩接口的首次公告日`NOTICE_DATE`和后续`UPDATE_DATE`。数据审计要求ROE公告滞后中位数不超过200天；任何覆盖或时点门槛失败时不得生成论文结论。
 

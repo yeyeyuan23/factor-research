@@ -193,13 +193,56 @@
     .fact .number { display: block; margin-bottom: .4vh; font-size: 2.2vw; font-weight: 800; }
     .fact p { margin: 0; font-size: 1.08vw; color: var(--muted); }
 
-    .gate-layout { display: grid; grid-template-columns: 2.55fr .75fr; gap: 2vw; flex: 1; min-height: 0; }
-    .gate-layout img { width: 100%; height: 100%; object-fit: contain; background: var(--white); }
-    .selected-list { display: flex; flex-direction: column; gap: 1.2vh; }
-    .selected-item { padding: 1.5vh 1.1vw; background: var(--green-soft); }
-    .selected-item b { display: block; font-size: 1.4vw; }
-    .selected-item span { font-size: 1.05vw; color: var(--muted); }
-    .gate-note { margin-top: auto; font-size: 1.07vw; color: var(--muted); }
+    .factor-layout { display: grid; grid-template-columns: 2.3fr .7fr; gap: 2vw; flex: 1; min-height: 0; }
+    .factor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8vw; align-content: stretch; }
+    .factor-button {
+      min-height: 12.5vh;
+      padding: 1.2vh 1vw;
+      border: 0;
+      border-left: .35vw solid var(--line);
+      color: var(--ink);
+      background: var(--white);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .factor-button:hover, .factor-button:focus-visible { background: var(--blue-soft); }
+    .factor-button.passed { border-color: var(--green); background: var(--green-soft); }
+    .factor-button b { display: block; margin-bottom: .5vh; font-size: 1.15vw; }
+    .factor-button span { display: block; color: var(--muted); font-size: .9vw; }
+    .factor-overview { display: flex; flex-direction: column; gap: 1.1vh; }
+    .factor-overview .selected-item { padding: 1.5vh 1.1vw; background: var(--green-soft); }
+    .factor-overview .selected-item b { display: block; font-size: 1.35vw; }
+    .factor-overview .selected-item span { font-size: 1vw; color: var(--muted); }
+    .factor-hint { margin-top: auto; padding: 1.5vh 1.1vw; background: var(--blue-soft); font-size: 1.05vw; }
+    .factor-dialog {
+      position: absolute;
+      z-index: 60;
+      display: none;
+      inset: 2.5vh 2.5vw;
+      padding: 2vh 2vw;
+      background: var(--paper);
+      box-shadow: 0 1vh 4vw rgba(20,35,58,.3);
+    }
+    .factor-dialog.open { display: flex; flex-direction: column; }
+    .factor-dialog-header { display: flex; align-items: center; gap: 1vw; margin-bottom: 1.2vh; }
+    .factor-dialog-header h3 { margin: 0; font-size: 2vw; }
+    .factor-status { padding: .5vh .7vw; background: var(--blue-soft); font-size: .95vw; font-weight: 750; }
+    .factor-dialog-close {
+      margin-left: auto;
+      padding: .65vh .8vw;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: var(--white);
+      font-size: 1.2vw;
+      cursor: pointer;
+    }
+    .factor-metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: .7vw; margin-bottom: 1.2vh; }
+    .factor-metrics div { padding: 1vh .7vw; background: var(--white); font-size: .85vw; color: var(--muted); }
+    .factor-metrics b { display: block; margin-top: .3vh; color: var(--ink); font-size: 1.12vw; }
+    .factor-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1vw; flex: 1; min-height: 0; }
+    .factor-charts img { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: var(--white); }
+    .factor-assets { display: none; }
 
     .model-slide .visual-grid { margin-top: .5vh; }
     .model-slide .figure-wrap img { max-height: 63vh; }
@@ -256,7 +299,7 @@
     @media (max-aspect-ratio: 4/3) {
       h2 { font-size: 3.7vw; }
       p, li { font-size: 1.7vw; }
-      .visual-grid, .gate-layout { grid-template-columns: 2fr 1fr; }
+      .visual-grid, .factor-layout { grid-template-columns: 2fr 1fr; }
     }
     @media print {
       html, body { height: auto; overflow: visible; background: white; }
@@ -399,16 +442,74 @@
     <section class="slide" data-title="Factor validation">
       <p class="eyebrow">06 · Twelve-factor validation</p>
       <h2>Only 1 of 12 factors passed every pre-defined gate</h2>
-      <div class="gate-layout">
-        <img src="results/figures/presentation-en/03-factor-gates.png" alt="Pass-fail matrix for twelve factor-validation gates">
-        <div class="selected-list">
+      <div class="factor-layout">
+        <div class="factor-grid" aria-label="Twelve factor validation results">
+          <button class="factor-button passed" type="button" data-factor="reversal-1m" data-name="1-Month Reversal" data-status="PASS · 5/5 gates" data-ic="4.47%" data-icir="0.86" data-t="2.29" data-monotonicity="1.00" data-return="5.92%" data-frozen="−1.89%" data-failed="None"><b>1-Month Reversal</b><span>5/5 · selected</span></button>
+          <button class="factor-button" type="button" data-factor="idiosyncratic-volatility" data-name="Low Idiosyncratic Volatility" data-status="FAIL · 4/5 gates" data-ic="5.76%" data-icir="0.93" data-t="3.00" data-monotonicity="0.70" data-return="3.45%" data-frozen="11.88%" data-failed="Monotonicity"><b>Low Idio Vol</b><span>4/5 · monotonicity</span></button>
+          <button class="factor-button" type="button" data-factor="beta-252d" data-name="Low Beta" data-status="FAIL · 4/5 gates" data-ic="4.90%" data-icir="0.66" data-t="2.06" data-monotonicity="0.60" data-return="0.38%" data-frozen="6.89%" data-failed="Monotonicity"><b>Low Beta</b><span>4/5 · monotonicity</span></button>
+          <button class="factor-button" type="button" data-factor="momentum-12-1" data-name="12–1 Momentum" data-status="FAIL · 4/5 gates" data-ic="2.94%" data-icir="0.49" data-t="1.39" data-monotonicity="1.00" data-return="6.23%" data-frozen="3.79%" data-failed="Newey–West significance"><b>12–1 Momentum</b><span>4/5 · significance</span></button>
+          <button class="factor-button" type="button" data-factor="paper-score" data-name="PB–ROE" data-status="FAIL · 3/5 gates" data-ic="3.66%" data-icir="0.62" data-t="2.06" data-monotonicity="0.60" data-return="−0.90%" data-frozen="5.49%" data-failed="Monotonicity; 30 bp spread"><b>PB–ROE</b><span>3/5 · mono, cost</span></button>
+          <button class="factor-button" type="button" data-factor="roe" data-name="ROE" data-status="FAIL · 3/5 gates" data-ic="2.68%" data-icir="0.69" data-t="1.74" data-monotonicity="0.80" data-return="−0.14%" data-frozen="−3.11%" data-failed="Newey–West significance; 30 bp spread"><b>ROE</b><span>3/5 · significance, cost</span></button>
+          <button class="factor-button" type="button" data-factor="gross-margin" data-name="Gross Margin" data-status="FAIL · 3/5 gates" data-ic="2.06%" data-icir="0.48" data-t="1.39" data-monotonicity="0.50" data-return="1.48%" data-frozen="−3.34%" data-failed="Newey–West significance; monotonicity"><b>Gross Margin</b><span>3/5 · significance, mono</span></button>
+          <button class="factor-button" type="button" data-factor="volatility-60d" data-name="Low Total Volatility" data-status="FAIL · 3/5 gates" data-ic="5.21%" data-icir="0.80" data-t="2.84" data-monotonicity="0.10" data-return="−2.96%" data-frozen="12.03%" data-failed="Monotonicity; 30 bp spread"><b>Low Total Vol</b><span>3/5 · mono, cost</span></button>
+          <button class="factor-button" type="button" data-factor="bp" data-name="BP" data-status="FAIL · 2/5 gates" data-ic="2.18%" data-icir="0.29" data-t="0.89" data-monotonicity="−0.20" data-return="−5.04%" data-frozen="9.36%" data-failed="Newey–West significance; monotonicity; 30 bp spread"><b>BP</b><span>2/5 · significance, mono, cost</span></button>
+          <button class="factor-button" type="button" data-factor="liquidity-20d" data-name="Low Liquidity" data-status="FAIL · 2/5 gates" data-ic="2.72%" data-icir="0.57" data-t="1.71" data-monotonicity="0.30" data-return="−1.97%" data-frozen="4.11%" data-failed="Newey–West significance; monotonicity; 30 bp spread"><b>Low Liquidity</b><span>2/5 · significance, mono, cost</span></button>
+          <button class="factor-button" type="button" data-factor="revenue-growth" data-name="Revenue Growth" data-status="FAIL · 1/5 gates" data-ic="−0.50%" data-icir="−0.11" data-t="−0.32" data-monotonicity="−0.10" data-return="−4.27%" data-frozen="−7.19%" data-failed="IC; Newey–West significance; monotonicity; 30 bp spread"><b>Revenue Growth</b><span>1/5 · four gates failed</span></button>
+          <button class="factor-button" type="button" data-factor="earnings-growth" data-name="Earnings Growth" data-status="FAIL · 0/5 gates" data-ic="−1.04%" data-icir="−0.28" data-t="−0.79" data-monotonicity="−0.70" data-return="−5.09%" data-frozen="−3.00%" data-failed="All five gates"><b>Earnings Growth</b><span>0/5 · all gates failed</span></button>
+        </div>
+        <div class="factor-overview">
           <div class="selected-item"><b>1-Month Reversal</b><span>Development IC 4.47%; ICIR 0.86; NW t = 2.29</span></div>
           <div class="selected-item"><b>Monotonicity 1.00</b><span>Q1 to Q5 group means are strictly ordered</span></div>
           <div class="selected-item"><b>30 bp return 5.92%</b><span>Positive in development, not guaranteed later</span></div>
-          <p class="gate-note">Five gates: IC, Newey–West significance, positive-year stability, five-group monotonicity and positive 30 bp spread. Factor direction is fixed in the development sample.</p>
+          <p class="factor-hint"><b>Interactive:</b> click any factor to inspect its monthly IC chart, five-group monotonicity and failed gates.</p>
         </div>
       </div>
-      <aside class="speaker-notes">I test twelve candidates with five identical development-sample gates: IC, Newey–West significance, positive-year stability, five-group monotonicity and a positive spread after thirty basis points. I do not choose the number in advance. Only one-month reversal passes all five, with development IC 4.47 percent and ICIR 0.86. Low idiosyncratic volatility has stronger IC but fails monotonicity; twelve-minus-one momentum fails significance; PB–ROE fails monotonicity and cost robustness.</aside>
+      <div class="factor-dialog" id="factor-dialog" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="factor-dialog-title">
+        <div class="factor-dialog-header">
+          <h3 id="factor-dialog-title">Factor details</h3>
+          <span class="factor-status" id="factor-dialog-status"></span>
+          <button class="factor-dialog-close" id="factor-dialog-close" type="button" aria-label="Close factor details">Close ×</button>
+        </div>
+        <div class="factor-metrics">
+          <div>Development IC<b id="factor-metric-ic"></b></div>
+          <div>ICIR<b id="factor-metric-icir"></b></div>
+          <div>NW t<b id="factor-metric-t"></b></div>
+          <div>Monotonicity<b id="factor-metric-monotonicity"></b></div>
+          <div>30 bp return<b id="factor-metric-return"></b></div>
+          <div>Failed gate(s)<b id="factor-metric-failed"></b></div>
+        </div>
+        <div class="factor-charts">
+          <img id="factor-ic-image" alt="Selected factor monthly IC analysis">
+          <img id="factor-quantile-image" alt="Selected factor five-group monotonicity analysis">
+        </div>
+      </div>
+      <template id="factor-assets">
+        <img data-factor="reversal-1m" data-kind="ic" data-src="results/figures/factor-analysis-12/reversal-1m-ic.png" alt="">
+        <img data-factor="reversal-1m" data-kind="quantiles" data-src="results/figures/factor-analysis-12/reversal-1m-quantiles.png" alt="">
+        <img data-factor="idiosyncratic-volatility" data-kind="ic" data-src="results/figures/factor-analysis-12/idiosyncratic-volatility-ic.png" alt="">
+        <img data-factor="idiosyncratic-volatility" data-kind="quantiles" data-src="results/figures/factor-analysis-12/idiosyncratic-volatility-quantiles.png" alt="">
+        <img data-factor="beta-252d" data-kind="ic" data-src="results/figures/factor-analysis-12/beta-252d-ic.png" alt="">
+        <img data-factor="beta-252d" data-kind="quantiles" data-src="results/figures/factor-analysis-12/beta-252d-quantiles.png" alt="">
+        <img data-factor="momentum-12-1" data-kind="ic" data-src="results/figures/factor-analysis-12/momentum-12-1-ic.png" alt="">
+        <img data-factor="momentum-12-1" data-kind="quantiles" data-src="results/figures/factor-analysis-12/momentum-12-1-quantiles.png" alt="">
+        <img data-factor="paper-score" data-kind="ic" data-src="results/figures/factor-analysis-12/paper-score-ic.png" alt="">
+        <img data-factor="paper-score" data-kind="quantiles" data-src="results/figures/factor-analysis-12/paper-score-quantiles.png" alt="">
+        <img data-factor="roe" data-kind="ic" data-src="results/figures/factor-analysis-12/roe-ic.png" alt="">
+        <img data-factor="roe" data-kind="quantiles" data-src="results/figures/factor-analysis-12/roe-quantiles.png" alt="">
+        <img data-factor="gross-margin" data-kind="ic" data-src="results/figures/factor-analysis-12/gross-margin-ic.png" alt="">
+        <img data-factor="gross-margin" data-kind="quantiles" data-src="results/figures/factor-analysis-12/gross-margin-quantiles.png" alt="">
+        <img data-factor="volatility-60d" data-kind="ic" data-src="results/figures/factor-analysis-12/volatility-60d-ic.png" alt="">
+        <img data-factor="volatility-60d" data-kind="quantiles" data-src="results/figures/factor-analysis-12/volatility-60d-quantiles.png" alt="">
+        <img data-factor="bp" data-kind="ic" data-src="results/figures/factor-analysis-12/bp-ic.png" alt="">
+        <img data-factor="bp" data-kind="quantiles" data-src="results/figures/factor-analysis-12/bp-quantiles.png" alt="">
+        <img data-factor="liquidity-20d" data-kind="ic" data-src="results/figures/factor-analysis-12/liquidity-20d-ic.png" alt="">
+        <img data-factor="liquidity-20d" data-kind="quantiles" data-src="results/figures/factor-analysis-12/liquidity-20d-quantiles.png" alt="">
+        <img data-factor="revenue-growth" data-kind="ic" data-src="results/figures/factor-analysis-12/revenue-growth-ic.png" alt="">
+        <img data-factor="revenue-growth" data-kind="quantiles" data-src="results/figures/factor-analysis-12/revenue-growth-quantiles.png" alt="">
+        <img data-factor="earnings-growth" data-kind="ic" data-src="results/figures/factor-analysis-12/earnings-growth-ic.png" alt="">
+        <img data-factor="earnings-growth" data-kind="quantiles" data-src="results/figures/factor-analysis-12/earnings-growth-quantiles.png" alt="">
+      </template>
+      <aside class="speaker-notes">I test twelve candidates with five identical development-sample gates: IC, Newey–West significance, positive-year stability, five-group monotonicity and a positive spread after thirty basis points. I do not choose the number in advance. Only one-month reversal passes all five, with development IC 4.47 percent and ICIR 0.86. Low idiosyncratic volatility has stronger IC but fails monotonicity; twelve-minus-one momentum fails significance; PB–ROE fails monotonicity and cost robustness. The tiles are interactive, so I can open any factor’s IC and five-group charts during questions.</aside>
     </section>
 
     <section class="slide" data-title="Frozen-factor test">
@@ -428,17 +529,17 @@
 
     <section class="slide model-slide" data-title="Walk-forward models">
       <p class="eyebrow">08 · Strict walk-forward comparison</p>
-      <h2>Every forecast uses a rolling, fully matured information set</h2>
+      <h2>Freeze once outside; roll one month at a time inside</h2>
       <div class="visual-grid wide">
-        <div class="figure-wrap"><img src="results/figures/presentation-en/05-walk-forward-models.png" alt="Walk-forward training and validation windows with model Rank IC comparison"></div>
+        <div class="figure-wrap"><img src="results/figures/presentation-en/05-walk-forward-timeline.png" alt="Global in-sample and out-of-sample split with three rolling walk-forward folds"></div>
         <div class="facts">
-          <div class="fact"><p><b>31 Jan 2023 forecast</b><br>Elastic Net uses 60 mature signal months through Nov 2022.</p></div>
-          <div class="fact"><p><b>Time-ordered validation</b><br>LightGBM fits 48 months and validates on the last 12 mature months.</p></div>
-          <div class="fact orange"><p><b>Leakage blocked</b><br>The Dec 2022 label ends on 1 Feb, so it is excluded on 31 Jan.</p></div>
+          <div class="fact"><p><b>Global freeze</b><br>Factor selection ends in 2022; 2023–2025 is hypothesis-test only.</p></div>
+          <div class="fact"><p><b>Inside each fold</b><br>Use 60 mature months; LightGBM fits 48 and validates on 12.</p></div>
+          <div class="fact orange"><p><b>Monthly roll</b><br>The newest unfinished label is excluded, then the window moves one month.</p></div>
           <div class="fact"><p><b>Frozen result</b><br>Elastic Net IC −1.89% (ICIR −0.31); LightGBM IC −1.70% (ICIR −0.35).</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">The chart makes one real forecast window explicit. On 31 January 2023, Elastic Net uses sixty mature signal months from December 2017 through November 2022. LightGBM fits the first forty-eight and validates on the last twelve in time order. The December 2022 signal is excluded because its return label ends on 1 February, one day after the forecast. The new position trades on 1 February and its label ends on 1 March. This process repeats every month. In the frozen period Elastic Net has IC minus 1.89 percent and ICIR minus 0.31; LightGBM has IC minus 1.70 percent and ICIR minus 0.35. Neither model provides stable incremental prediction.</aside>
+      <aside class="speaker-notes">The upper bar separates the global experiment: warm-up history, modern evaluation, the 2015-to-2022 development period, and the frozen 2023-to-2025 hypothesis test. No factor is re-selected after the dashed freeze line. The lower panel then shows three consecutive forecasts. Each fold uses sixty mature months and rolls forward by one month. LightGBM fits the first forty-eight and validates on the final twelve in time order; Elastic Net uses all sixty. The red segment is the newest label that has not finished and is therefore excluded. In the frozen period Elastic Net has IC minus 1.89 percent and ICIR minus 0.31; LightGBM has IC minus 1.70 percent and ICIR minus 0.35.</aside>
     </section>
 
     <section class="slide" data-title="Portfolio results">
@@ -484,14 +585,65 @@
     </section>
   </main>
 
-  <div class="help">←/→ navigate · N notes · F fullscreen</div>
+  <div class="help">←/→ navigate · click factor tiles · N notes · F fullscreen</div>
   <div class="progress" aria-hidden="true"></div>
 
   <script>
     (() => {
       const slides = [...document.querySelectorAll('.slide')];
       const progress = document.querySelector('.progress');
+      const factorDialog = document.getElementById('factor-dialog');
+      const factorDialogClose = document.getElementById('factor-dialog-close');
+      const factorAssets = new Map(
+        [...document.getElementById('factor-assets').content.querySelectorAll('img')]
+          .map(asset => [`${asset.dataset.factor}:${asset.dataset.kind}`, asset.dataset.src])
+      );
+      let lastFactorTrigger = null;
       let index = 0;
+
+      function closeFactorDialog() {
+        factorDialog.classList.remove('open');
+        factorDialog.setAttribute('aria-hidden', 'true');
+        lastFactorTrigger?.focus();
+      }
+
+      function openFactorDialog(button) {
+        const factor = button.dataset.factor;
+        lastFactorTrigger = button;
+        document.getElementById('factor-dialog-title').textContent = button.dataset.name;
+        document.getElementById('factor-dialog-status').textContent =
+          `${button.dataset.status} · Frozen IC ${button.dataset.frozen}`;
+        for (const [metric, value] of Object.entries({
+          ic: button.dataset.ic,
+          icir: button.dataset.icir,
+          t: button.dataset.t,
+          monotonicity: button.dataset.monotonicity,
+          return: button.dataset.return,
+          failed: button.dataset.failed,
+        })) {
+          document.getElementById(`factor-metric-${metric}`).textContent = value;
+        }
+        const icImage = document.getElementById('factor-ic-image');
+        const quantileImage = document.getElementById('factor-quantile-image');
+        icImage.src = factorAssets.get(`${factor}:ic`);
+        icImage.alt = `${button.dataset.name} monthly IC analysis`;
+        quantileImage.src = factorAssets.get(`${factor}:quantiles`);
+        quantileImage.alt = `${button.dataset.name} five-group monotonicity analysis`;
+        factorDialog.classList.add('open');
+        factorDialog.setAttribute('aria-hidden', 'false');
+        factorDialogClose.focus();
+      }
+
+      document.querySelectorAll('.factor-button').forEach(button => {
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          openFactorDialog(button);
+        });
+      });
+      factorDialogClose.addEventListener('click', event => {
+        event.stopPropagation();
+        closeFactorDialog();
+      });
 
       function show(next) {
         index = Math.max(0, Math.min(next, slides.length - 1));
@@ -517,6 +669,10 @@
       }
 
       document.addEventListener('keydown', event => {
+        if (factorDialog.classList.contains('open')) {
+          if (event.key === 'Escape') closeFactorDialog();
+          return;
+        }
         if (['ArrowRight', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); show(index + 1); }
         if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); show(index - 1); }
         if (event.key === 'Home') show(0);
@@ -526,7 +682,7 @@
       });
 
       document.addEventListener('click', event => {
-        if (event.target.closest('.speaker-notes')) return;
+        if (event.target.closest('.speaker-notes, .factor-dialog, .factor-button')) return;
         show(index + (event.clientX > innerWidth / 2 ? 1 : -1));
       });
 

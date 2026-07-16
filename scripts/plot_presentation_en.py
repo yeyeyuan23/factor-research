@@ -18,7 +18,10 @@ GREEN = "#238b65"
 ORANGE = "#d96534"
 GRAY = "#7a818a"
 RED = "#c94d56"
-PALE = "#e8edf2"
+IS_YELLOW = "#f2cf37"
+TRAIN_YELLOW = "#f7e9a8"
+OOS_TEAL = "#35b4cd"
+VALID_TEAL = "#74c9da"
 
 
 def save(figure: plt.Figure, output: Path) -> None:
@@ -125,8 +128,12 @@ def factor_gates(results: Path, output: Path) -> None:
         "revenue_growth": "Revenue Growth",
         "liquidity_20d": "Low Liquidity",
     }
-    selected = frame[frame["selected"]].sort_values("development_ic_mean", ascending=False)
-    failed = frame[~frame["selected"]].sort_values("development_ic_mean", ascending=False)
+    selected = frame[frame["selected"]].sort_values(
+        "development_ic_mean", ascending=False
+    )
+    failed = frame[~frame["selected"]].sort_values(
+        "development_ic_mean", ascending=False
+    )
     ordered = pd.concat([selected, failed], ignore_index=True)
     checks = pd.DataFrame(
         {
@@ -139,9 +146,17 @@ def factor_gates(results: Path, output: Path) -> None:
     )
     matrix = checks.astype(int).to_numpy()
     figure, axis = plt.subplots(figsize=(10.8, 6.7))
-    axis.imshow(matrix, aspect="auto", cmap=ListedColormap(["#f1c4c8", "#b9dfce"]), vmin=0, vmax=1)
+    axis.imshow(
+        matrix,
+        aspect="auto",
+        cmap=ListedColormap(["#f1c4c8", "#b9dfce"]),
+        vmin=0,
+        vmax=1,
+    )
     axis.set_xticks(range(checks.shape[1]), checks.columns, rotation=18, ha="right")
-    axis.set_yticks(range(len(ordered)), [names[value] for value in ordered["factor"]])
+    axis.set_yticks(
+        range(len(ordered)), [names[value] for value in ordered["factor"]]
+    )
     for row in range(matrix.shape[0]):
         for column in range(matrix.shape[1]):
             axis.text(
@@ -152,7 +167,9 @@ def factor_gates(results: Path, output: Path) -> None:
                 va="center",
                 fontsize=8,
             )
-    for tick, is_selected in zip(axis.get_yticklabels(), ordered["selected"], strict=True):
+    for tick, is_selected in zip(
+        axis.get_yticklabels(), ordered["selected"], strict=True
+    ):
         if is_selected:
             tick.set_weight("bold")
             tick.set_color(GREEN)
@@ -207,133 +224,131 @@ def walk_forward_models(results: Path, output: Path) -> None:
     example = pd.read_csv(results / "walk_forward_example.csv")
     for column in example.columns.difference(["model"]):
         example[column] = pd.to_datetime(example[column])
-    elastic_example = example.set_index("model").loc["Elastic Net"]
-    light_example = example.set_index("model").loc["LightGBM"]
-
-    equal = pd.read_csv(results / "equal_weight_factor_baseline.csv")
-    equal = equal[equal["cost_bps"] == 30].set_index("segment")
-    elastic = pd.read_csv(results / "elastic_net_summary.csv").set_index("segment")
-    light = pd.read_csv(results / "lightgbm_summary.csv")
-    light = light[light["model"] == "LightGBM"].set_index("segment")
-    methods = ["Frozen signal", "Elastic Net", "LightGBM"]
-    colors = [GREEN, BLUE, ORANGE]
-    segments = ["Development", "Frozen"]
-    values = {
-        "Development": [
-            equal.loc["development", "ic_mean"] * 100,
-            elastic.loc["development_2015_2022", "rank_ic_mean"] * 100,
-            light.loc["development_2015_2022", "rank_ic_mean"] * 100,
-        ],
-        "Frozen": [
-            equal.loc["frozen_oos", "ic_mean"] * 100,
-            elastic.loc["frozen_oos_2023_2025", "rank_ic_mean"] * 100,
-            light.loc["frozen_oos_2023_2025", "rank_ic_mean"] * 100,
-        ],
-    }
-    figure, (timeline, axis) = plt.subplots(
-        1,
+    light = example.loc[example["model"].eq("LightGBM")].sort_values(
+        "prediction_date"
+    )
+    figure, (sample_axis, fold_axis) = plt.subplots(
         2,
-        figsize=(14.2, 5.2),
-        gridspec_kw={"width_ratios": [1.45, 1]},
+        1,
+        figsize=(13.8, 7.2),
+        gridspec_kw={"height_ratios": [0.9, 2.1]},
     )
 
-    def add_window(row: float, start: pd.Timestamp, end: pd.Timestamp, color: str) -> None:
-        timeline.broken_barh(
-            [(mdates.date2num(start), mdates.date2num(end) - mdates.date2num(start))],
-            (row - 0.33, 0.66),
+    sample_segments = [
+        ("Warm-up\nfeatures only", "2010-01-01", "2012-05-31", GRAY),
+        ("Modern evaluation", "2012-05-31", "2015-01-01", "#b9d8e9"),
+        ("IS development\nselect factors", "2015-01-01", "2023-01-01", IS_YELLOW),
+        ("OOS frozen\nhypothesis test", "2023-01-01", "2026-01-01", OOS_TEAL),
+    ]
+    for label, start, end, color in sample_segments:
+        start_date = pd.Timestamp(start)
+        end_date = pd.Timestamp(end)
+        sample_axis.broken_barh(
+            [
+                (
+                    mdates.date2num(start_date),
+                    mdates.date2num(end_date) - mdates.date2num(start_date),
+                )
+            ],
+            (0.15, 0.7),
             facecolors=color,
         )
-
-    add_window(
-        3,
-        elastic_example["training_start"],
-        elastic_example["training_end"],
-        BLUE,
-    )
-    add_window(
-        2,
-        light_example["training_start"],
-        light_example["training_end"],
-        GREEN,
-    )
-    add_window(
-        1,
-        light_example["validation_start"],
-        light_example["validation_end"],
-        ORANGE,
-    )
-    add_window(
-        0,
-        light_example["excluded_signal_date"],
-        light_example["excluded_label_exit_date"],
-        RED,
-    )
-    prediction_date = light_example["prediction_date"]
-    timeline.axvline(prediction_date, color="#172033", linewidth=2, linestyle="--")
-    timeline.text(
-        prediction_date,
-        3.55,
-        "Predict\n31 Jan 2023",
+        sample_axis.text(
+            start_date + (end_date - start_date) / 2,
+            0.5,
+            label,
+            ha="center",
+            va="center",
+            fontsize=9,
+            weight="bold",
+        )
+    freeze_date = pd.Timestamp("2023-01-01")
+    sample_axis.axvline(freeze_date, color="#172033", linestyle="--", linewidth=2)
+    sample_axis.text(
+        freeze_date,
+        1.02,
+        "Freeze once",
         ha="center",
         va="bottom",
         fontsize=9,
         weight="bold",
     )
-    timeline.annotate(
-        "Trade 1 Feb; this label ends 1 Mar",
-        xy=(light_example["trade_date"], -0.35),
-        xytext=(mdates.date2num(pd.Timestamp("2019-05-01")), -0.9),
-        arrowprops={"arrowstyle": "->", "color": GRAY},
-        fontsize=8.5,
-        color="#333333",
+    sample_axis.set_xlim(pd.Timestamp("2010-01-01"), pd.Timestamp("2026-01-01"))
+    sample_axis.set_ylim(0, 1.2)
+    sample_axis.set_yticks([])
+    sample_axis.xaxis.set_major_locator(mdates.YearLocator(2))
+    sample_axis.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    sample_axis.set_title("1. Global split: all research choices stop before OOS")
+    sample_axis.grid(axis="x", alpha=0.18)
+
+    rows = list(light.itertuples(index=False))
+    y_positions = list(range(len(rows) - 1, -1, -1))
+    for row, y_position in zip(rows, y_positions, strict=True):
+        for start, end, color in (
+            (row.training_start, row.training_end, TRAIN_YELLOW),
+            (row.validation_start, row.validation_end, VALID_TEAL),
+        ):
+            fold_axis.broken_barh(
+                [(mdates.date2num(start), mdates.date2num(end) - mdates.date2num(start))],
+                (y_position - 0.31, 0.62),
+                facecolors=color,
+            )
+        fold_axis.broken_barh(
+            [
+                (
+                    mdates.date2num(row.excluded_signal_date),
+                    mdates.date2num(row.excluded_label_exit_date)
+                    - mdates.date2num(row.excluded_signal_date),
+                )
+            ],
+            (y_position - 0.31, 0.62),
+            facecolors=RED,
+        )
+        fold_axis.vlines(
+            row.prediction_date,
+            y_position - 0.48,
+            y_position + 0.48,
+            color="#172033",
+            linewidth=2,
+            linestyle="--",
+        )
+        fold_axis.text(
+            row.prediction_date,
+            y_position + 0.44,
+            f"Predict {row.prediction_date:%d %b}",
+            ha="right",
+            va="bottom",
+            fontsize=8,
+        )
+    fold_axis.set_yticks(
+        y_positions,
+        [f"Fold {index}: monthly refit" for index in range(1, len(rows) + 1)],
     )
-    timeline.set_yticks(
-        [3, 2, 1, 0],
-        [
-            "Elastic Net fit\n60 mature months",
-            "LightGBM fit\n48 mature months",
-            "LightGBM validation\nlast 12 mature months",
-            "Dec 2022 signal\nnot mature yet",
-        ],
-    )
-    timeline.set_xlim(pd.Timestamp("2017-07-01"), pd.Timestamp("2023-04-15"))
-    timeline.set_ylim(-1.2, 4)
-    timeline.xaxis.set_major_locator(mdates.YearLocator())
-    timeline.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    timeline.set_title("One audited forecast window", weight="bold")
-    timeline.grid(axis="x", alpha=0.22)
-    timeline.legend(
+    fold_axis.set_xlim(pd.Timestamp("2017-07-01"), pd.Timestamp("2023-05-31"))
+    fold_axis.set_ylim(-0.75, len(rows) - 0.25)
+    fold_axis.xaxis.set_major_locator(mdates.YearLocator())
+    fold_axis.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    fold_axis.set_title("2. Inside OOS: the 60-month mature-label window rolls forward")
+    fold_axis.grid(axis="x", alpha=0.2)
+    fold_axis.legend(
         handles=[
-            Patch(color=BLUE, label="Linear fit"),
-            Patch(color=GREEN, label="Tree fit"),
-            Patch(color=ORANGE, label="Tree validation"),
-            Patch(color=RED, label="Excluded label"),
+            Patch(color=TRAIN_YELLOW, label="LightGBM fit: first 48 months"),
+            Patch(color=VALID_TEAL, label="Validation: last 12 mature months"),
+            Patch(color=RED, label="Latest label not mature—excluded"),
         ],
         frameon=False,
         fontsize=8,
-        ncol=2,
-        loc="upper left",
+        ncol=3,
+        loc="lower left",
     )
-
-    x = np.arange(2)
-    width = 0.23
-    for index, method in enumerate(methods):
-        bars = axis.bar(
-            x + (index - 1) * width,
-            [values[segment][index] for segment in segments],
-            width,
-            label=method,
-            color=colors[index],
-        )
-        axis.bar_label(bars, fmt="%.2f%%", padding=3)
-    axis.set_xticks(x, ["Development\n2015–2022", "Frozen\n2023–2025"])
-    axis.set_ylabel("Mean Rank IC")
-    axis.set_title("All methods lost ranking power after 2022", weight="bold")
-    axis.grid(axis="y", alpha=0.22)
-    axis.legend(frameon=False, ncol=3)
-    figure.suptitle(
-        "Walk-forward: train only on labels realized before each prediction",
-        weight="bold",
+    figure.suptitle("Frozen OOS outside; rolling walk-forward inside", weight="bold")
+    figure.text(
+        0.5,
+        0.01,
+        "Elastic Net uses the same 60 mature months without a validation split.",
+        ha="center",
+        fontsize=9,
+        color="#333333",
     )
     save(figure, output)
 
@@ -395,7 +410,7 @@ def main() -> int:
     modern_baseline(results, output / "02-modern-baseline.png")
     factor_gates(results, output / "03-factor-gates.png")
     frozen_factor_test(results, output / "04-frozen-factor-test.png")
-    walk_forward_models(results, output / "05-walk-forward-models.png")
+    walk_forward_models(results, output / "05-walk-forward-timeline.png")
     portfolio_comparison(results, output / "06-portfolio-comparison.png")
     return 0
 

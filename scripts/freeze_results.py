@@ -127,8 +127,7 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
 
 
 def freeze_walk_forward_example(run_dir: Path, output: Path) -> None:
-    """Freeze one audited prediction month for the presentation timeline."""
-    prediction_date = pd.Timestamp("2023-01-31")
+    """Freeze three audited prediction months for the presentation timeline."""
     panel = pd.read_parquet(
         run_dir / "model_factor_panel.parquet",
         columns=["signal_date", "entry_date", "exit_date"],
@@ -136,35 +135,43 @@ def freeze_walk_forward_example(run_dir: Path, output: Path) -> None:
     for column in ["signal_date", "entry_date", "exit_date"]:
         panel[column] = pd.to_datetime(panel[column])
 
-    current = panel.loc[panel["signal_date"].eq(prediction_date)].iloc[0]
-    excluded = panel.loc[
-        panel["signal_date"].lt(prediction_date)
-        & panel["exit_date"].gt(prediction_date)
-    ].sort_values("signal_date").iloc[-1]
-
     rows = []
     for model, stem in (("Elastic Net", "elastic-net"), ("LightGBM", "lightgbm")):
         predictions = pd.read_parquet(run_dir / f"{stem}_predictions.parquet")
         predictions["signal_date"] = pd.to_datetime(predictions["signal_date"])
-        row = predictions.loc[predictions["signal_date"].eq(prediction_date)].iloc[0]
-        rows.append(
-            {
-                "model": model,
-                "prediction_date": prediction_date,
-                "training_start": row["training_start"],
-                "training_end": row["training_end"],
-                "validation_start": row.get("validation_start", pd.NaT),
-                "validation_end": row.get("validation_end", pd.NaT),
-                "training_label_exit_end": row["training_label_exit_end"],
-                "validation_label_exit_end": row.get(
-                    "validation_label_exit_end", pd.NaT
-                ),
-                "excluded_signal_date": excluded["signal_date"],
-                "excluded_label_exit_date": excluded["exit_date"],
-                "trade_date": current["entry_date"],
-                "prediction_label_exit_date": current["exit_date"],
-            }
-        )
+        prediction_dates = sorted(
+            predictions.loc[
+                predictions["signal_date"].ge(pd.Timestamp("2023-01-01")),
+                "signal_date",
+            ].unique()
+        )[:3]
+        for prediction_date in prediction_dates:
+            current = panel.loc[panel["signal_date"].eq(prediction_date)].iloc[0]
+            excluded = panel.loc[
+                panel["signal_date"].lt(prediction_date)
+                & panel["exit_date"].gt(prediction_date)
+            ].sort_values("signal_date").iloc[-1]
+            row = predictions.loc[
+                predictions["signal_date"].eq(prediction_date)
+            ].iloc[0]
+            rows.append(
+                {
+                    "model": model,
+                    "prediction_date": prediction_date,
+                    "training_start": row["training_start"],
+                    "training_end": row["training_end"],
+                    "validation_start": row.get("validation_start", pd.NaT),
+                    "validation_end": row.get("validation_end", pd.NaT),
+                    "training_label_exit_end": row["training_label_exit_end"],
+                    "validation_label_exit_end": row.get(
+                        "validation_label_exit_end", pd.NaT
+                    ),
+                    "excluded_signal_date": excluded["signal_date"],
+                    "excluded_label_exit_date": excluded["exit_date"],
+                    "trade_date": current["entry_date"],
+                    "prediction_label_exit_date": current["exit_date"],
+                }
+            )
     pd.DataFrame(rows).to_csv(output / "walk_forward_example.csv", index=False)
 
 
