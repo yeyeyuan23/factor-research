@@ -15,6 +15,7 @@ from pb_roe.evaluation.exposures import (
 from pb_roe.evaluation.ic import calculate_ic, summarize_ic
 from pb_roe.evaluation.performance import performance_metrics
 from pb_roe.evaluation.quantiles import long_short_spread, quantile_backtest
+from pb_roe.factors.eligibility import build_model_factor_eligibility
 from pb_roe.models.dataset import load_model_panel
 
 
@@ -89,6 +90,54 @@ def _factor_metrics(
     return row, quantile_returns
 
 
+def _equal_weight_outputs(
+    panel: pd.DataFrame,
+    development: pd.DataFrame,
+    evaluation: pd.DataFrame,
+    feature_directions: dict[str, int],
+    costs: list[float],
+    quantiles: int,
+    evaluation_segment: str,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def add_score(frame: pd.DataFrame) -> pd.DataFrame:
+        scored = frame.copy()
+        scored["equal_weight_score"] = pd.concat(
+            [scored[feature] * direction for feature, direction in feature_directions.items()],
+            axis=1,
+        ).mean(axis=1)
+        return scored
+
+    full = add_score(panel)
+    ic_timeseries = calculate_ic(full, ["equal_weight_score"], return_column="target_return")
+    segment_rows: list[dict[str, object]] = []
+    performance_rows: list[dict[str, object]] = []
+    for segment, sample in (
+        ("development", development),
+        (evaluation_segment, evaluation),
+    ):
+        scored = add_score(sample)
+        summary = _segment_summary(scored, "equal_weight_score").to_dict()
+        summary["segment"] = segment
+        segment_rows.append(summary)
+        for cost in costs:
+            quantile_returns = quantile_backtest(
+                scored,
+                "equal_weight_score",
+                return_column="target_return",
+                quantiles=quantiles,
+                cost_rate=cost,
+            )
+            spreads = long_short_spread(quantile_returns)
+            performance_rows.append(
+                {
+                    "segment": segment,
+                    "cost_bps": int(round(cost * 10_000)),
+                    **performance_metrics(spreads["net_spread"]),
+                }
+            )
+    return ic_timeseries, pd.DataFrame(segment_rows), pd.DataFrame(performance_rows)
+
+
 def validate_factors_from_cli(
     config_path: str, factor_file: str | None, input_dir: str | None = None
 ) -> int:
@@ -102,7 +151,7 @@ def validate_factors_from_cli(
             pd.Timestamp(settings["development_start"]), pd.Timestamp(research["development_end"])
         )
     ].copy()
-    frozen = panel[
+    evaluation_sample = panel[
         pd.to_datetime(panel["signal_date"]).between(
             pd.Timestamp(research["oos_start"]), pd.Timestamp(research["end_date"])
         )
@@ -122,7 +171,7 @@ def validate_factors_from_cli(
             costs,
             quantiles,
         )
-        oos = frozen.copy()
+        oos = evaluation_sample.copy()
         oos[f"{feature}_oriented"] = oos[feature] * int(specification["direction"])
         oos_summary = _segment_summary(oos, f"{feature}_oriented")
         row.update(
@@ -159,58 +208,66 @@ def validate_factors_from_cli(
     selected_directions = dict(
         zip(selected_rows["feature"], selected_rows["direction"], strict=True)
     )
-    equal_weight = panel.copy()
-    equal_weight["equal_weight_score"] = pd.concat(
-        [equal_weight[feature] * direction for feature, direction in selected_directions.items()],
-        axis=1,
-    ).mean(axis=1)
-    equal_weight_ic = calculate_ic(
-        equal_weight, ["equal_weight_score"], return_column="target_return"
+    strict_ic, strict_segments, strict_performance = _equal_weight_outputs(
+        panel,
+        development,
+        evaluation_sample,
+        selected_directions,
+        costs,
+        quantiles,
+        "frozen_oos",
     )
-    segment_rows = []
-    equal_weight_performance_rows = []
-    for segment, sample in (("development", development), ("frozen_oos", frozen)):
-        sample = sample.copy()
-        sample["equal_weight_score"] = pd.concat(
-            [sample[feature] * direction for feature, direction in selected_directions.items()],
-            axis=1,
-        ).mean(axis=1)
-        summary = _segment_summary(sample, "equal_weight_score").to_dict()
-        summary["segment"] = segment
-        segment_rows.append(summary)
-        for cost in costs:
-            quantile_returns = quantile_backtest(
-                sample,
-                "equal_weight_score",
-                return_column="target_return",
-                quantiles=quantiles,
-                cost_rate=cost,
-            )
-            spreads = long_short_spread(quantile_returns)
-            equal_weight_performance_rows.append(
-                {
-                    "segment": segment,
-                    "cost_bps": int(round(cost * 10_000)),
-                    **performance_metrics(spreads["net_spread"]),
-                }
-            )
     correlations = mean_factor_correlation(development, selected)
+    eligibility, model_correlations, model_features = build_model_factor_eligibility(
+        development,
+        candidates,
+        available,
+        config.section("evaluation")["model_input_eligibility"],
+    )
+    candidate_directions = {
+        f"{factor}_z": int(specification["direction"])
+        for factor, specification in candidates.items()
+    }
+    model_directions = {feature: candidate_directions[feature] for feature in model_features}
+    model_ic, model_segments, model_performance = _equal_weight_outputs(
+        panel,
+        development,
+        evaluation_sample,
+        model_directions,
+        costs,
+        quantiles,
+        "exploratory_2023_2025",
+    )
     output = config.output_dir()
     output.mkdir(parents=True, exist_ok=True)
+    panel.to_parquet(output / "model_factor_panel.parquet", index=False)
     validation.round(6).to_csv(output / "factor_validation.csv", index=False, float_format="%.6f")
     pd.concat(quantile_outputs, ignore_index=True).to_csv(
         output / "factor_validation_quantiles.csv", index=False
     )
     correlations.to_csv(output / "selected_factor_correlations.csv")
-    pd.DataFrame(segment_rows).round(6).to_csv(
+    strict_segments.round(6).to_csv(
         output / "equal_weight_factor_ic.csv", index=False, float_format="%.6f"
     )
-    pd.DataFrame(equal_weight_performance_rows).round(6).to_csv(
+    strict_performance.round(6).to_csv(
         output / "equal_weight_factor_performance.csv",
         index=False,
         float_format="%.6f",
     )
-    equal_weight_ic.to_csv(output / "equal_weight_factor_ic_timeseries.csv", index=False)
+    strict_ic.to_csv(output / "equal_weight_factor_ic_timeseries.csv", index=False)
+    eligibility.round(6).to_csv(
+        output / "model_factor_eligibility.csv", index=False, float_format="%.6f"
+    )
+    model_correlations.to_csv(output / "model_factor_correlations.csv")
+    model_segments.round(6).to_csv(
+        output / "model_input_equal_weight_ic.csv", index=False, float_format="%.6f"
+    )
+    model_performance.round(6).to_csv(
+        output / "model_input_equal_weight_performance.csv",
+        index=False,
+        float_format="%.6f",
+    )
+    model_ic.to_csv(output / "model_input_equal_weight_ic_timeseries.csv", index=False)
     frozen_payload = {
         "config_fingerprint": config.fingerprint,
         "selection_sample": f"{settings['development_start']}/{research['development_end']}",
@@ -223,5 +280,34 @@ def validate_factors_from_cli(
     (output / "frozen_factor_selection.json").write_text(
         json.dumps(frozen_payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
     )
-    print(json.dumps(frozen_payload, ensure_ascii=False, indent=2, default=str))
+    data_audit_path = output / "data_audit.json"
+    input_manifest_sha256 = None
+    if data_audit_path.is_file():
+        input_manifest_sha256 = json.loads(
+            data_audit_path.read_text(encoding="utf-8")
+        ).get("input_manifest_sha256")
+    model_payload = {
+        "config_fingerprint": config.fingerprint,
+        "canonical_input_manifest_sha256": input_manifest_sha256,
+        "eligibility_sample": f"{settings['development_start']}/{research['development_end']}",
+        "eligible_features": model_features,
+        "feature_directions": model_directions,
+        "strict_standalone_features": selected,
+        "candidate_count": len(eligibility),
+        "eligible_count": len(model_features),
+        "evaluation_period": f"{research['oos_start']}/{research['end_date']}",
+        "evaluation_status": "exploratory_after_prior_oos_review",
+        "rules": dict(config.section("evaluation")["model_input_eligibility"]),
+    }
+    (output / "model_feature_manifest.json").write_text(
+        json.dumps(model_payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
+    )
+    print(
+        json.dumps(
+            {"standalone_selection": frozen_payload, "model_inputs": model_payload},
+            ensure_ascii=False,
+            indent=2,
+            default=str,
+        )
+    )
     return 0

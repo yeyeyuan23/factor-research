@@ -56,8 +56,19 @@ evaluation:
       bp: {category: Value, direction: 1}
       paper_score: {category: Value, direction: 1}
       roe: {category: Quality, direction: 1}
+  model_input_eligibility:
+    minimum_valid_months: 3
+    minimum_monthly_coverage: 0.50
+    minimum_coverage_pass_rate: 0.50
+    minimum_median_stock_count: 2
+    minimum_unique_values: 2
+    significantly_opposite_t: -1000000.0
+    maximum_absolute_correlation: 1.01
+    exclude_derived_features: [paper_score_z]
+    representative_priority: [bp_z, roe_z]
 
 models:
+  evidence_status: smoke_only
   train_months: 12
   validation_months: 3
   minimum_train_months: 6
