@@ -11,7 +11,7 @@
 - 冻结因子：开发期唯一通过全部门槛的1个月反转；冻结期IC转负；
 - 预测模型：Elastic Net与唯一树模型LightGBM；
 - 组合结论：两模型在2023–2025均未超过沪深300成分等权代理；
-- 自动测试：79项通过；最终审计：17项通过。
+- 自动测试全套通过；最终审计：17项通过。
 
 当前正式结果、限制和证据强弱以最终研究报告为准，不以README中的摘要替代研究结论。
 
@@ -69,7 +69,6 @@ manifest.json
 - 当前行业字段是静态快照，不进入正式历史标签或组合约束；
 - 原始数据和canonical大文件保存在`data/processed/`，不提交Git；
 - 任何覆盖率闸门失败时停止生成正式结论；
-- `configs/paper_free.yaml`是旧的2007–2011截断对照，不得用于正式18期复现或最终审计。
 
 字段、主键、单位和PIT规则见[`docs/data_dictionary.md`](docs/data_dictionary.md)。
 
@@ -183,12 +182,12 @@ $PY scripts/freeze_results.py
 
 ```text
 factor-research/
-├── configs/                 正式、对照和smoke实验配置
+├── configs/                 原研报、现代实验和smoke配置
 ├── data/                    本地原始、缓存和canonical数据
 ├── docs/                    计划书、研究报告、运行手册和提交结果
 │   └── results/             可版本控制的汇总表与Matplotlib图
 ├── results/runs/            本地完整运行产物，不提交大文件
-├── scripts/                 smoke、绘图和PPT构建脚本
+├── scripts/                 smoke、结果冻结和Matplotlib绘图脚本
 ├── src/pb_roe/
 │   ├── data/                Provider、PIT拼接、存储和质量闸门
 │   ├── reproduction/        原研报规则复现
@@ -213,6 +212,7 @@ factor-research/
 - 模型与组合分析：[`docs/portfolio_analysis_report.md`](docs/portfolio_analysis_report.md)
 - 英文10分钟HTML展示：[`docs/presentation_en_10min.html`](docs/presentation_en_10min.html)
 - 英文10分钟逐页讲稿：[`docs/presentation_script_en_10min.md`](docs/presentation_script_en_10min.md)
+- 工程代码走读：[`docs/code_walkthrough.md`](docs/code_walkthrough.md)
 
 ## 已知限制
 

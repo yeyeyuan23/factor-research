@@ -113,15 +113,7 @@ MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_portfolio_analysis.py --run-dir r
 
 当前真实数据适配层使用BaoStock行情与沪深300历史快照，并直接保存Eastmoney季度业绩接口的首次公告日`NOTICE_DATE`和后续`UPDATE_DATE`。数据审计要求ROE公告滞后中位数不超过200天；任何覆盖或时点门槛失败时不得生成论文结论。
 
-`configs/paper.yaml` 现用于2005–2011全窗口规则复现：2005历史成分由首批名单和7月调整公告重建，2006年以后使用BaoStock历史快照；早期ROE只请求新浪2005、2006年度页，并按原研报固定披露完成日生效。`configs/paper_free.yaml` 保留为旧的2007–2011对照配置，不再作为主复现结果。
-
-构建免费数据：
-
-```bash
-.venv/bin/python -m pb_roe data ingest \
-  --config configs/paper_free.yaml \
-  --output-dir data/processed/paper_free
-```
+`configs/paper.yaml` 用于2005–2011全窗口规则复现：2005历史成分由首批名单和7月调整公告重建，2006年以后使用BaoStock历史快照；早期ROE只请求新浪2005、2006年度页，并按原研报固定披露完成日生效。旧的2007–2011截断配置和运行目录已经删除，不能再作为正式入口。
 
 BaoStock 登录会话不支持多进程并发，`download_workers` 必须为 1。下载器按股票和季度缓存，接口中断后重复同一命令即可续跑；不要通过并发绕过这一限制。
 

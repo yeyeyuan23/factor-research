@@ -257,7 +257,7 @@
       <p class="eyebrow">Summer Research Project · Quantitative Investing</p>
       <h1>Reproducing and<br>Modernizing the<br><span class="accent">PB–ROE Strategy</span></h1>
       <p class="subtitle">From a 2011 stock-selection rule to a modern, point-in-time factor portfolio</p>
-      <p class="title-meta">10-minute research presentation · CSI 300 universe</p>
+      <p class="title-meta">10-minute research presentation · CSI 300 · Freeze 29ec06374b065f12</p>
       <aside class="speaker-notes">Good morning. My project asks whether a Chinese equity strategy published in 2011 survives modern point-in-time testing. I reproduce PB–ROE, test twelve candidate factors, compare Elastic Net with LightGBM, and build constrained portfolios. The historical rule is broadly reproducible, but the modern improvement fails out of sample. That negative result is the central finding.</aside>
     </section>
 
@@ -343,7 +343,7 @@
       <p class="eyebrow">06 · Frozen-factor test</p>
       <h2>The only development winner failed after 2022</h2>
       <div class="visual-grid wide">
-        <div class="figure-wrap"><img src="results/figures/presentation-en/04-equal-weight-improvement.png" alt="PB–ROE and frozen-factor comparison"></div>
+        <div class="figure-wrap"><img src="results/figures/presentation-en/04-frozen-factor-test.png" alt="PB–ROE and frozen-factor comparison"></div>
         <div class="facts">
           <div class="fact"><p><b>Frozen input</b><br>Only standardized one-month reversal</p></div>
           <div class="fact green"><span class="number">4.47%</span><p>Development Rank IC; 30 bp return is 5.92%.</p></div>
@@ -397,7 +397,7 @@
             <li>The historical PB–ROE direction and return magnitude are broadly reproducible.</li>
             <li>PB–ROE retains modern ranking information, although its economic payoff has weakened.</li>
             <li>The corrected first-announcement timing passes a hard lag audit.</li>
-            <li>PB–ROE retains modern ranking information, but its payoff is weaker.</li>
+            <li>No return label enters model training before its holding period has ended.</li>
           </ul>
         </div>
         <div class="claim-box limits">

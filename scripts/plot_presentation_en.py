@@ -166,7 +166,7 @@ def factor_gates(results: Path, output: Path) -> None:
     save(figure, output)
 
 
-def equal_weight_improvement(results: Path, output: Path) -> None:
+def frozen_factor_test(results: Path, output: Path) -> None:
     factors = pd.read_csv(results / "factor_validation_summary.csv").set_index("factor")
     equal = pd.read_csv(results / "equal_weight_factor_baseline.csv")
     equal_30 = equal[equal["cost_bps"] == 30].set_index("segment")
@@ -298,7 +298,7 @@ def main() -> int:
     paper_reproduction(results, output / "01-paper-reproduction.png")
     modern_baseline(results, output / "02-modern-baseline.png")
     factor_gates(results, output / "03-factor-gates.png")
-    equal_weight_improvement(results, output / "04-equal-weight-improvement.png")
+    frozen_factor_test(results, output / "04-frozen-factor-test.png")
     method_comparison(results, output / "05-method-comparison.png")
     portfolio_comparison(results, output / "06-portfolio-comparison.png")
     return 0

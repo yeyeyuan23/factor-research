@@ -223,6 +223,12 @@ def main() -> int:
     metadata = {
         "modern_run": str(run_dir),
         "paper_run": str(paper_dir),
+        "config_fingerprint": json.loads(
+            (run_dir / "final_audit.json").read_text(encoding="utf-8")
+        )["config_fingerprint"],
+        "canonical_input_manifest_sha256": json.loads(
+            (run_dir / "data_audit.json").read_text(encoding="utf-8")
+        )["input_manifest_sha256"],
         "files": sorted(path.name for path in output.glob("*.csv")),
     }
     (output / "freeze_metadata.json").write_text(
