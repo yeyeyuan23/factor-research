@@ -15,18 +15,14 @@ from pb_roe.evaluation.quantiles import long_short_spread, quantile_backtest
 DEVELOPMENT_END = pd.Timestamp("2022-12-31")
 OOS_START = pd.Timestamp("2023-01-01")
 LABELS = {
-    "earnings_growth": "盈利增长",
+    "ep": "EP盈利收益率",
+    "ocf_to_price": "OCF/P经营现金流收益率",
     "revenue_growth": "营收增长",
     "momentum_12_1": "12–1月动量",
     "reversal_1m": "1月反转",
-    "gross_margin": "毛利率",
     "roe": "ROE",
-    "beta_252d": "低Beta",
-    "idiosyncratic_volatility": "低特异波动",
-    "liquidity_20d": "低流动性",
     "volatility_60d": "低总波动率",
     "bp": "BP",
-    "paper_score": "PB-ROE综合",
 }
 
 

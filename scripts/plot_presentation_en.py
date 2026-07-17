@@ -115,18 +115,14 @@ def modern_baseline(results: Path, output: Path) -> None:
 def factor_gates(results: Path, output: Path) -> None:
     frame = pd.read_csv(results / "factor_validation_summary.csv")
     names = {
-        "paper_score": "PB–ROE",
+        "ep": "EP",
+        "ocf_to_price": "OCF/P",
         "momentum_12_1": "12–1 Momentum",
-        "idiosyncratic_volatility": "Low Idio Vol",
         "bp": "BP",
-        "beta_252d": "Low Beta",
         "volatility_60d": "Low Total Vol",
         "reversal_1m": "1M Reversal",
         "roe": "ROE",
-        "gross_margin": "Gross Margin",
-        "earnings_growth": "Earnings Growth",
         "revenue_growth": "Revenue Growth",
-        "liquidity_20d": "Low Liquidity",
     }
     selected = frame[frame["selected"]].sort_values(
         "development_ic_mean", ascending=False
@@ -175,7 +171,8 @@ def factor_gates(results: Path, output: Path) -> None:
             tick.set_color(GREEN)
     passed = int(ordered["selected"].sum())
     axis.set_title(
-        f"Only {passed} of 12 factors passed every pre-defined gate", weight="bold"
+        f"Only {passed} of {len(ordered)} factors passed every pre-defined gate",
+        weight="bold",
     )
     axis.tick_params(length=0)
     for edge in np.arange(-0.5, matrix.shape[1], 1):
@@ -188,15 +185,12 @@ def factor_gates(results: Path, output: Path) -> None:
 def factor_incrementality(results: Path, output: Path) -> None:
     frame = pd.read_csv(results / "factor_incremental_analysis.csv")
     names = {
-        "gross_margin": "Gross margin",
+        "ep": "EP",
+        "ocf_to_price": "OCF/P",
         "revenue_growth": "Revenue growth",
-        "earnings_growth": "Earnings growth",
         "momentum_12_1": "12–1 momentum",
         "reversal_1m": "1M reversal",
         "volatility_60d": "Low total vol",
-        "liquidity_20d": "Low liquidity",
-        "beta_252d": "Low beta",
-        "idiosyncratic_volatility": "Low idio vol",
     }
     frame["label"] = frame["factor"].map(names)
     colors = frame["incremental_pass"].map({True: GREEN, False: GRAY})
@@ -228,7 +222,10 @@ def factor_incrementality(results: Path, output: Path) -> None:
         loc="center left",
         bbox_to_anchor=(0.995, 0.5),
     )
-    figure.suptitle("Six extensions add development-sample information beyond PB–ROE")
+    passed = int(frame["incremental_pass"].sum())
+    figure.suptitle(
+        f"{passed} of {len(frame)} extensions add development-sample information beyond PB–ROE"
+    )
     save(figure, output)
 
 
@@ -382,7 +379,7 @@ def portfolio_comparison(results: Path, output: Path) -> None:
     labels = [
         "CSI 300 EW",
         "PB–ROE",
-        "8-factor EW",
+        "5-factor EW",
         "Elastic Net",
         "LightGBM",
     ]

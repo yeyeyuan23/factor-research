@@ -1,5 +1,5 @@
 {
-  "config_fingerprint": "7db2bcd810915c31",
+  "config_fingerprint": "2d2d6423df3fca31",
   "selection_sample": "2015-01-01/2022-12-31",
   "selected_features": [
     "reversal_1m_z"
@@ -7,7 +7,7 @@
   "selected_directions": {
     "reversal_1m_z": 1
   },
-  "candidate_count": 12,
+  "candidate_count": 8,
   "selected_count": 1,
   "rules": {
     "development_start": "2015-01-01",

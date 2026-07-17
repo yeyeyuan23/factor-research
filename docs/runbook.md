@@ -115,13 +115,13 @@ $PY -m pb_roe final-audit \
 $PY scripts/freeze_results.py
 ```
 
-`validate-factors`必须先生成严格名单`frozen_factor_selection.json`、PB-ROE增量表`factor_incremental_analysis.csv`、资格表`model_factor_eligibility.csv`、输入清单`model_feature_manifest.json`和`model_factor_panel.parquet`。两个模型读取同一8因子manifest和同一面板。严格名单回答“能否独立交易”，增量表回答“是否改善PB-ROE”，manifest回答“能否作为多因子模型输入”，三者不能混用。`freeze_results.py`只在最终审计通过后执行，把机器结果复制为可版本控制摘要。报告、冻结和绘图命令不下载、训练或回测。
+`validate-factors`必须先生成严格名单`frozen_factor_selection.json`、PB-ROE增量表`factor_incremental_analysis.csv`、资格表`model_factor_eligibility.csv`、输入清单`model_feature_manifest.json`和`model_factor_panel.parquet`。两个模型读取同一5因子manifest和同一面板。严格名单回答“能否独立交易”，增量表回答“是否改善PB-ROE”，manifest回答“能否作为多因子模型输入”，三者不能混用。`freeze_results.py`只在最终审计通过后执行，把机器结果复制为可版本控制摘要。报告、冻结和绘图命令不下载、训练或回测。
 
 正式图表在相应研究阶段完成后生成：
 
 ```bash
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_factor_ic.py --run-dir results/runs/modern-pb-roe --output docs/results/figures/equal-weight-ic-matplotlib.png --quantile-output docs/results/figures/equal-weight-quantiles-30bp.png
-MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_all_factor_analysis.py --run-dir results/runs/modern-pb-roe --output-dir docs/results/figures/factor-analysis-12
+MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_all_factor_analysis.py --run-dir results/runs/modern-pb-roe --output-dir docs/results/figures/factor-analysis-8
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_modern_core_factors.py --run-dir results/runs/modern-pb-roe --ic-output docs/results/figures/modern-core-factor-ic.png --quantile-output docs/results/figures/modern-core-factor-quantiles.png
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_model_comparison.py --run-dir results/runs/modern-pb-roe --segment-output docs/results/figures/model-ic-segment-comparison.png --timeseries-output docs/results/figures/model-ic-timeseries.png
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_factor_incremental.py --input docs/results/factor_incremental_analysis.csv --output docs/results/figures/factor-incremental-analysis.png

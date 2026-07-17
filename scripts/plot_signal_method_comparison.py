@@ -11,7 +11,7 @@ import pandas as pd
 
 COLORS = {
     "PB-ROE": "#7a7f87",
-    "8因子等权": "#2a9d6f",
+    "5因子等权": "#2a9d6f",
     "Elastic Net": "#2878b5",
     "LightGBM": "#d65a31",
 }
@@ -24,7 +24,7 @@ SEGMENTS = {
 def load_results(run_dir: Path) -> pd.DataFrame:
     pb_roe = pd.read_csv(run_dir / "pb_roe_baseline_ic.csv").assign(method="PB-ROE")
     eligible = pd.read_csv(run_dir / "model_input_equal_weight_ic.csv").assign(
-        method="8因子等权"
+        method="5因子等权"
     )
     elastic = pd.read_csv(run_dir / "elastic-net_ic_segments.csv").assign(method="Elastic Net")
     lightgbm = pd.read_csv(run_dir / "lightgbm_ic_segments.csv").assign(method="LightGBM")

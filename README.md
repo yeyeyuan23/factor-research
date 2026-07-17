@@ -8,11 +8,12 @@
 
 - 原研报主复现：`configs/paper.yaml`，2005–2011完整18期；
 - 现代主实验：`configs/modern.yaml`，历史沪深300，2012–2014评价准备，2015–2022开发，2023–2025历史检验；
+- 新因子池：PB-ROE单列为基线；8个独立候选按Value、Quality & Growth、Market Behavior和Risk四类组织；
 - 严格单因子结论：开发期唯一通过全部交易门槛的是1个月反转，但它在预先冻结的2023–2025检验中IC转负；
-- PB-ROE增量资格：BP和ROE为核心；9个扩展候选中，12–1月动量、1个月反转、低总波动、低流动性、低Beta和低特异波动通过残差IC、Add-one IC与年度稳定性门槛；
-- 预测模型：8因子简单等权、Elastic Net与唯一树模型LightGBM读取同一manifest；PB-ROE作为必须比较的基线，不与BP、ROE重复输入模型；
-- 当前结果：8因子等权在2023–2025探索性历史检验中优于PB-ROE与基准，Elastic Net与LightGBM均未优于简单等权；该区间已经被观察，不能称为新版模型的真正冻结样本外；
-- 自动测试87项通过；正式最终审计31/31通过；deterministic smoke全链路31/31通过。
+- PB-ROE增量资格：BP和ROE为核心；6个扩展候选中，12–1月动量、1个月反转和低60日波动通过残差IC、Add-one IC与年度稳定性门槛；EP、OCF/P和营收增长保留报告但不进入模型；
+- 预测模型：5因子简单等权、Elastic Net与唯一树模型LightGBM读取同一manifest，并训练下一月收益的月内截面排名；PB-ROE不重复输入；
+- 当前结果：2023–2025探索期5因子等权Rank IC 8.35%、30bp净年化11.44%、Sharpe 0.61；PB-ROE净年化11.56%、Sharpe 0.51；Elastic Net Rank IC最高但组合仅7.78%，LightGBM未超过线性模型；
+- 自动测试90项通过；正式最终审计31/31通过；deterministic smoke全链路31/31通过。
 
 当前正式结果、限制和证据强弱以最终研究报告为准，不以README中的摘要替代研究结论。
 
@@ -230,7 +231,7 @@ factor-research/
 - 研究口径：[`docs/research_spec.md`](docs/research_spec.md)
 - 数据字典：[`docs/data_dictionary.md`](docs/data_dictionary.md)
 - 运行手册：[`docs/runbook.md`](docs/runbook.md)
-- 12因子分析：[`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)
+- 8因子分析：[`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)
 - 模型与组合分析：[`docs/portfolio_analysis_report.md`](docs/portfolio_analysis_report.md)
 - 英文10分钟HTML展示：[`docs/presentation_en_10min.html`](docs/presentation_en_10min.html)
 - 可直接发送的单文件HTML：[`docs/presentation_en_10min_standalone.html`](docs/presentation_en_10min_standalone.html)
@@ -245,4 +246,4 @@ factor-research/
 - BaoStock行业字段是当前静态快照，因此正式现代层未做历史行业约束；
 - 缺少可靠历史沪深300真实权重和历史总市值，现代基准使用成分等权代理；
 - 组合缺失下一月收益当前按0计，尚未实现完整退市/长期停牌持仓账本；
-- 8因子等权在已观察的2023–2025历史区间跑赢PB-ROE与基准，但这仍是探索性结果，不能宣称获得可持续样本外Alpha。
+- 5因子等权在已观察的2023–2025历史区间改善Sharpe与回撤，但30bp绝对年化略低于PB-ROE；这仍是探索性结果，不能宣称获得可持续样本外Alpha。

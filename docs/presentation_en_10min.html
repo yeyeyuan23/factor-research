@@ -193,28 +193,73 @@
     .fact .number { display: block; margin-bottom: .4vh; font-size: 2.2vw; font-weight: 800; }
     .fact p { margin: 0; font-size: 1.08vw; color: var(--muted); }
 
-    .factor-layout { display: grid; grid-template-columns: 2.3fr .7fr; gap: 2vw; flex: 1; min-height: 0; }
-    .factor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8vw; align-content: stretch; }
+    .factor-summary-layout {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 2vw;
+      flex: 1;
+      min-height: 0;
+    }
+    .gate-panel, .factor-results { min-height: 0; background: var(--white); }
+    .gate-panel { padding: 2vh 1.4vw; border-left: .4vw solid var(--blue); }
+    .gate-panel h3 { margin-bottom: 1.5vh; font-size: 1.45vw; }
+    .gate-list { display: flex; flex-direction: column; }
+    .gate-row {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: .8vw;
+      padding: 1.25vh 0;
+      border-top: 1px solid var(--line);
+    }
+    .gate-row b { font-size: 1.05vw; }
+    .gate-row span { color: var(--muted); font-size: .95vw; line-height: 1.3; }
+    .factor-results { display: flex; flex-direction: column; padding: 2vh 1.5vw; }
+    .factor-winner {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.2vw;
+      align-items: center;
+      padding-bottom: 1.5vh;
+      border-bottom: .45vh solid var(--green);
+    }
+    .factor-winner .score { color: var(--green); font-size: 3.1vw; font-weight: 850; line-height: 1; }
+    .factor-winner-copy p { margin: .5vh 0 0; color: var(--muted); font-size: .95vw; }
+    .factor-winner-copy .later { color: var(--red); font-weight: 750; }
+    .factor-groups { display: flex; flex-direction: column; margin-top: 1.2vh; }
+    .factor-group {
+      display: grid;
+      grid-template-columns: 8.5vw 1fr;
+      gap: .8vw;
+      align-items: baseline;
+      padding: .85vh 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .factor-group > b { color: var(--muted); font-size: .95vw; }
+    .factor-links { line-height: 1.45; }
     .factor-button {
-      min-height: 12.5vh;
-      padding: 1.2vh 1vw;
+      margin: 0 .35vw .25vh 0;
+      padding: 0;
       border: 0;
-      border-left: .35vw solid var(--line);
+      border-bottom: 1px dotted var(--muted);
       color: var(--ink);
-      background: var(--white);
+      background: transparent;
       font: inherit;
       text-align: left;
       cursor: pointer;
+      font-size: .95vw;
     }
-    .factor-button:hover, .factor-button:focus-visible { background: var(--blue-soft); }
-    .factor-button.passed { border-color: var(--green); background: var(--green-soft); }
-    .factor-button b { display: block; margin-bottom: .5vh; font-size: 1.15vw; }
-    .factor-button span { display: block; color: var(--muted); font-size: .9vw; }
-    .factor-overview { display: flex; flex-direction: column; gap: 1.1vh; }
-    .factor-overview .selected-item { padding: 1.5vh 1.1vw; background: var(--green-soft); }
-    .factor-overview .selected-item b { display: block; font-size: 1.35vw; }
-    .factor-overview .selected-item span { font-size: 1vw; color: var(--muted); }
-    .factor-hint { margin-top: auto; padding: 1.5vh 1.1vw; background: var(--blue-soft); font-size: 1.05vw; }
+    .factor-button:hover, .factor-button:focus-visible { color: var(--blue); background: var(--blue-soft); }
+    .factor-button.passed { border-color: var(--green); color: var(--green); font-size: 1.35vw; font-weight: 800; }
+    .factor-hint { margin: auto 0 0; padding-top: 1vh; color: var(--muted); font-size: .9vw; }
+    .factor-bridge {
+      grid-column: 1 / -1;
+      padding: 1.25vh 1.2vw;
+      border-left: .4vw solid var(--blue);
+      background: var(--blue-soft);
+      font-size: 1.12vw;
+      font-weight: 750;
+    }
     .factor-dialog {
       position: absolute;
       z-index: 60;
@@ -302,7 +347,7 @@
     @media (max-aspect-ratio: 4/3) {
       h2 { font-size: 3.7vw; }
       p, li { font-size: 1.7vw; }
-      .visual-grid, .factor-layout { grid-template-columns: 2fr 1fr; }
+      .visual-grid, .factor-summary-layout { grid-template-columns: 1fr 1fr; }
     }
     @media print {
       html, body { height: auto; overflow: visible; background: white; }
@@ -325,7 +370,7 @@
       <h1>Reproducing and<br>Modernizing the<br><span class="accent">PB–ROE Strategy</span></h1>
       <p class="subtitle">From a 2011 stock-selection rule to a modern, point-in-time factor portfolio</p>
       <p class="title-meta">10-minute research presentation · CSI 300 · Audited point-in-time workflow</p>
-      <aside class="speaker-notes">Good morning. My project rebuilds a Chinese PB–ROE rule published in 2011 as a modern point-in-time research process. I reproduce the historical rule, diagnose modern PB–ROE, require every extension to prove incremental information beyond that baseline, compare an eight-factor equal-weight score with Elastic Net and LightGBM, and build constrained portfolios. The historical rule is broadly reproducible. Simple diversification improves the baseline, but machine learning adds no value over equal weighting, and the revised result is exploratory rather than untouched out of sample.</aside>
+      <aside class="speaker-notes">Good morning. Our project rebuilds a Chinese PB–ROE rule published in 2011 as a modern point-in-time research process. We reproduce the historical rule, diagnose modern PB–ROE, redesign a compact eight-factor pool, require every extension to prove incremental information beyond that baseline, compare five-factor equal weight with Elastic Net and LightGBM, and build constrained portfolios. The historical rule is broadly reproducible. The revised factor mix improves risk-adjusted performance but not absolute return, and machine learning does not improve the final portfolio.</aside>
     </section>
 
     <section class="slide" data-title="Economic logic">
@@ -361,7 +406,7 @@
           </ul>
         </div>
       </div>
-      <aside class="speaker-notes">PB–ROE is a value-quality hypothesis. ROE measures the profitability earned on book capital, while PB measures the price paid for that capital. If investors extrapolate recent weakness or arbitrage is limited, profitable but cheaply valued firms may be repriced slowly. This mechanism can fail: low PB can be a value trap, ROE can be cyclical or accounting-driven, the trade can become crowded, and costs can absorb the spread. I therefore require positive IC, ICIR, ordered group returns, post-cost payoff and frozen-period persistence rather than accepting an attractive cumulative curve.</aside>
+      <aside class="speaker-notes">PB–ROE is a value-quality hypothesis. ROE measures the profitability earned on book capital, while PB measures the price paid for that capital. If investors extrapolate recent weakness or arbitrage is limited, profitable but cheaply valued firms may be repriced slowly. This mechanism can fail: low PB can be a value trap, ROE can be cyclical or accounting-driven, the trade can become crowded, and costs can absorb the spread. We therefore require positive IC, ICIR, ordered group returns, post-cost payoff and frozen-period persistence rather than accepting an attractive cumulative curve.</aside>
     </section>
 
     <section class="slide" data-title="Engineering and AI governance">
@@ -373,14 +418,14 @@
           <div class="pipeline-mini">
             <div>5 canonical<br>Parquet tables</div>
             <div>Point-in-time<br>monthly panel</div>
-            <div>12 factors<br>1/99 + z-score</div>
+            <div>8 independent factors<br>1/99 + z-score</div>
             <div>IC, groups<br>walk-forward</div>
             <div>CVXPY<br>portfolio</div>
           </div>
           <div class="engine-facts">
             <div><b>Historical CSI 300</b>Active membership interval at every signal date</div>
             <div><b>Standardized cross-sections</b>Monthly winsorization and z-score</div>
-            <div><b>87 automated tests</b>PIT, factors, models, portfolio and reporting</div>
+            <div><b>90 automated tests</b>PIT, factors, models, portfolio and reporting</div>
             <div><b>31 release audits</b>Hashes, leakage, incrementality, five portfolios and offline report</div>
           </div>
         </div>
@@ -391,7 +436,7 @@
           <div class="ai-block"><b>Independent checks</b><p>Git commits, deterministic seeds, tests, data/result hashes and Python-generated figures.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">The project is an executable cross-sectional research environment, not a spreadsheet backtest. Five canonical Parquet tables feed a point-in-time monthly panel. Twelve factors are winsorized at one and ninety-nine percent and standardized within each month. The same panel supports IC, quantile tests, incremental screening, walk-forward models and a constrained CVXPY portfolio. AI assisted specification review, implementation, debugging and documentation. I retained responsibility for the research choices and conclusions. Eighty-seven automated tests and thirty-one release audits independently verify the result.</aside>
+      <aside class="speaker-notes">The project is an executable cross-sectional research environment, not a spreadsheet backtest. Five canonical Parquet tables feed a point-in-time monthly panel. Eight independent factors are winsorized at one and ninety-nine percent and standardized within each month. The same panel supports IC, quantile tests, incremental screening, walk-forward models and a constrained CVXPY portfolio. AI assisted specification review, implementation, debugging and documentation. We retained responsibility for the research choices and conclusions. Ninety automated tests and thirty-one release audits independently verify the result.</aside>
     </section>
 
     <section class="slide" data-title="Time design">
@@ -399,9 +444,9 @@
       <h2>Separate windows prevent data mixing and future information</h2>
       <div class="timeline">
         <div class="period"><small>Historical test</small><b>2005–2011</b><p>18 original-paper holding periods. This is the only window used for historical reproduction.</p></div>
-        <div class="period"><small>Warm-up</small><b>2010–Apr 2012</b><p>Price history for momentum, beta, volatility and covariance. It is input history, not a missing backtest.</p></div>
+        <div class="period"><small>Warm-up</small><b>2010–Apr 2012</b><p>Price history for momentum, volatility and covariance. It is input history, not a missing backtest.</p></div>
         <div class="period"><small>Modern research</small><b>May 2012–2022</b><p>Modern PB–ROE evaluation begins in 2012. Factor selection and model development use 2015–2022.</p></div>
-        <div class="period"><small>Evidence split</small><b>2023–2025</b><p>Prior OOS for strict reversal; exploratory history for the revised 8-factor models.</p></div>
+        <div class="period"><small>Evidence split</small><b>2023–2025</b><p>Prior OOS for strict reversal; exploratory history for the revised 5-input models.</p></div>
       </div>
       <div class="point-in-time">
         <div><b>Signal</b>Month-end close</div>
@@ -409,7 +454,7 @@
         <div><b>Trade</b>Next trading-day open</div>
         <div><b>Label</b>Usable only after its exit date</div>
       </div>
-      <aside class="speaker-notes">The original reproduction is separate and contains eighteen real holding periods from 2005 to 2011. In the modern line, 2010 to April 2012 supplies trailing prices for momentum, beta, volatility and covariance; it is input history, not a missing backtest. Modern PB–ROE evaluation starts in May 2012. Standalone gates and PB–ROE incremental screening use 2015 through 2022. Strict reversal was fixed before the 2023 to 2025 test, but the revised eight-factor design was created after that period had been inspected, so the same dates are exploratory for the revised models. Every fold still excludes unfinished labels.</aside>
+      <aside class="speaker-notes">The original reproduction is separate and contains eighteen real holding periods from 2005 to 2011. In the modern line, 2010 to April 2012 supplies trailing prices for momentum, volatility and covariance; it is input history, not a missing backtest. Modern PB–ROE evaluation starts in May 2012. Standalone gates and PB–ROE incremental screening use 2015 through 2022. Strict reversal was fixed before the 2023 to 2025 test, but the revised factor design was created after that period had been inspected, so the same dates are exploratory for the revised models. Every fold still excludes unfinished labels.</aside>
     </section>
 
     <section class="slide" data-title="Historical reproduction">
@@ -424,7 +469,7 @@
           <div class="fact orange"><p><b>Not a field-by-field Wind replication.</b> Free data, industry versions and execution details explain part of the gap.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">The original score rewards high ROE and low PB. Using historical CSI 300 constituents and only information available at each signal date, the Top 50 portfolio earns 29.86 percent annualized after the paper’s cost assumptions, versus 35 percent in the report, and beats the proxy benchmark in twelve of eighteen periods. The direction and magnitude are reproducible. The industry-equal-weight version is not the best in my data, so this is not a field-by-field Wind replication.</aside>
+      <aside class="speaker-notes">The original score rewards high ROE and low PB. Using historical CSI 300 constituents and only information available at each signal date, the Top 50 portfolio earns 29.86 percent annualized after the paper’s cost assumptions, versus 35 percent in the report, and beats the proxy benchmark in twelve of eighteen periods. The direction and magnitude are reproducible. The industry-equal-weight version is not the best in our data, so this is not a field-by-field Wind replication.</aside>
     </section>
 
     <section class="slide" data-title="Modern PB–ROE">
@@ -439,33 +484,65 @@
           <div class="fact"><p>Static industry labels are descriptive only; they are excluded from the formal historical target and constraints.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">In the modern monthly sample, PB–ROE has a mean Rank IC of 5.13 percent, an annualized ICIR of 0.82 and a Newey–West t-statistic of 3.73. But the return after thirty basis points is only 2.78 percent annualized and five-group monotonicity is 0.70, below my selection gate. ROE alone has little economic payoff. The signal survives statistically, while its tradable payoff is much weaker than in the historical paper.</aside>
+      <aside class="speaker-notes">In the modern monthly sample, PB–ROE has a mean Rank IC of 5.13 percent, an annualized ICIR of 0.82 and a Newey–West t-statistic of 3.73. But the return after thirty basis points is only 2.78 percent annualized and five-group monotonicity is 0.70, below our selection gate. ROE alone has little economic payoff. The signal survives statistically, while its tradable payoff is much weaker than in the historical paper.</aside>
     </section>
 
     <section class="slide" data-title="Factor validation">
-      <p class="eyebrow">06 · Twelve-factor validation</p>
-      <h2>Only 1 of 12 factors passed every pre-defined gate</h2>
-      <div class="factor-layout">
-        <div class="factor-grid" aria-label="Twelve factor validation results">
-          <button class="factor-button passed" type="button" data-factor="reversal-1m" data-name="1-Month Reversal" data-status="PASS · 5/5 gates" data-ic="4.47%" data-icir="0.86" data-t="2.29" data-monotonicity="1.00" data-return="5.92%" data-frozen="−1.89%" data-failed="None"><b>1-Month Reversal</b><span>5/5 · selected</span></button>
-          <button class="factor-button" type="button" data-factor="idiosyncratic-volatility" data-name="Low Idiosyncratic Volatility" data-status="FAIL · 4/5 gates" data-ic="5.76%" data-icir="0.93" data-t="3.00" data-monotonicity="0.70" data-return="3.45%" data-frozen="11.88%" data-failed="Monotonicity"><b>Low Idio Vol</b><span>4/5 · monotonicity</span></button>
-          <button class="factor-button" type="button" data-factor="beta-252d" data-name="Low Beta" data-status="FAIL · 4/5 gates" data-ic="4.90%" data-icir="0.66" data-t="2.06" data-monotonicity="0.60" data-return="0.38%" data-frozen="6.89%" data-failed="Monotonicity"><b>Low Beta</b><span>4/5 · monotonicity</span></button>
-          <button class="factor-button" type="button" data-factor="momentum-12-1" data-name="12–1 Momentum" data-status="FAIL · 4/5 gates" data-ic="2.94%" data-icir="0.49" data-t="1.39" data-monotonicity="1.00" data-return="6.23%" data-frozen="3.79%" data-failed="Newey–West significance"><b>12–1 Momentum</b><span>4/5 · significance</span></button>
-          <button class="factor-button" type="button" data-factor="paper-score" data-name="PB–ROE" data-status="FAIL · 4/5 gates" data-ic="4.32%" data-icir="0.71" data-t="2.17" data-monotonicity="0.20" data-return="0.45%" data-frozen="7.22%" data-failed="Monotonicity"><b>PB–ROE</b><span>4/5 · monotonicity</span></button>
-          <button class="factor-button" type="button" data-factor="roe" data-name="ROE" data-status="FAIL · 3/5 gates" data-ic="3.28%" data-icir="0.70" data-t="1.74" data-monotonicity="0.70" data-return="0.46%" data-frozen="−1.62%" data-failed="Newey–West significance; monotonicity"><b>ROE</b><span>3/5 · significance, mono</span></button>
-          <button class="factor-button" type="button" data-factor="gross-margin" data-name="Gross Margin" data-status="FAIL · 4/5 gates" data-ic="2.23%" data-icir="0.51" data-t="1.45" data-monotonicity="0.80" data-return="0.99%" data-frozen="−2.66%" data-failed="Newey–West significance"><b>Gross Margin</b><span>4/5 · significance</span></button>
-          <button class="factor-button" type="button" data-factor="volatility-60d" data-name="Low Total Volatility" data-status="FAIL · 3/5 gates" data-ic="5.21%" data-icir="0.80" data-t="2.84" data-monotonicity="0.10" data-return="−2.96%" data-frozen="12.03%" data-failed="Monotonicity; 30 bp spread"><b>Low Total Vol</b><span>3/5 · mono, cost</span></button>
-          <button class="factor-button" type="button" data-factor="bp" data-name="BP" data-status="FAIL · 2/5 gates" data-ic="2.18%" data-icir="0.29" data-t="0.89" data-monotonicity="−0.20" data-return="−5.04%" data-frozen="9.36%" data-failed="Newey–West significance; monotonicity; 30 bp spread"><b>BP</b><span>2/5 · significance, mono, cost</span></button>
-          <button class="factor-button" type="button" data-factor="liquidity-20d" data-name="Low Liquidity" data-status="FAIL · 2/5 gates" data-ic="2.72%" data-icir="0.57" data-t="1.71" data-monotonicity="0.30" data-return="−1.97%" data-frozen="4.11%" data-failed="Newey–West significance; monotonicity; 30 bp spread"><b>Low Liquidity</b><span>2/5 · significance, mono, cost</span></button>
-          <button class="factor-button" type="button" data-factor="revenue-growth" data-name="Revenue Growth" data-status="FAIL · 3/5 gates" data-ic="2.01%" data-icir="0.49" data-t="1.30" data-monotonicity="0.70" data-return="3.76%" data-frozen="−3.48%" data-failed="Newey–West significance; monotonicity"><b>Revenue Growth</b><span>3/5 · significance, mono</span></button>
-          <button class="factor-button" type="button" data-factor="earnings-growth" data-name="Earnings Growth" data-status="FAIL · 1/5 gates" data-ic="1.09%" data-icir="0.27" data-t="0.80" data-monotonicity="0.60" data-return="−0.32%" data-frozen="−0.41%" data-failed="IC; Newey–West significance; monotonicity; 30 bp spread"><b>Earnings Growth</b><span>1/5 · four gates failed</span></button>
+      <p class="eyebrow">06 · Eight-factor validation</p>
+      <h2>Standalone test: only reversal passed all five gates</h2>
+      <div class="factor-summary-layout">
+        <div class="gate-panel">
+          <h3>Five rules fixed before testing</h3>
+          <div class="gate-list">
+            <div class="gate-row"><b>Predictive strength</b><span>Mean Rank IC ≥ 2%</span></div>
+            <div class="gate-row"><b>Statistical confidence</b><span>Newey–West t ≥ 2</span></div>
+            <div class="gate-row"><b>Year-to-year consistency</b><span>Positive IC in ≥ 50% of years</span></div>
+            <div class="gate-row"><b>Ordered portfolios</b><span>Five-group monotonicity ≥ 0.80</span></div>
+            <div class="gate-row"><b>After-cost payoff</b><span>30 bp long–short return &gt; 0</span></div>
+          </div>
         </div>
-        <div class="factor-overview">
-          <div class="selected-item"><b>1-Month Reversal</b><span>Development IC 4.47%; ICIR 0.86; NW t = 2.29</span></div>
-          <div class="selected-item"><b>Monotonicity 1.00</b><span>Q1 to Q5 group means are strictly ordered</span></div>
-          <div class="selected-item"><b>30 bp return 5.92%</b><span>Positive in development, not guaranteed later</span></div>
-          <p class="factor-hint"><b>Interactive:</b> click any factor to inspect its monthly IC chart, five-group monotonicity and failed gates.</p>
+        <div class="factor-results">
+          <div class="factor-winner">
+            <div class="score">1 / 8</div>
+            <div class="factor-winner-copy">
+              <b>1-Month Reversal</b>
+              <p>Passed in development: IC 4.47% · NW t 2.29 · net return 5.92%</p>
+              <p class="later">Later IC (2023–2025): −1.89%</p>
+            </div>
+          </div>
+          <div class="factor-groups" aria-label="Eight factor validation results grouped by economic category">
+            <div class="factor-group">
+              <b>Value</b>
+              <div class="factor-links">
+                <button class="factor-button" type="button" data-factor="bp" data-name="BP" data-status="FAIL · 2/5 gates" data-ic="2.18%" data-icir="0.29" data-t="0.89" data-monotonicity="−0.20" data-return="−5.04%" data-frozen="9.36%" data-failed="Significance; monotonicity; 30 bp spread">BP</button>
+                <button class="factor-button" type="button" data-factor="ep" data-name="EP" data-status="FAIL · 1/5 gates" data-ic="0.85%" data-icir="0.18" data-t="0.55" data-monotonicity="−0.80" data-return="−4.80%" data-frozen="5.76%" data-failed="IC; significance; monotonicity; 30 bp spread">EP</button>
+              </div>
+            </div>
+            <div class="factor-group">
+              <b>Quality &amp; Growth</b>
+              <div class="factor-links">
+                <button class="factor-button" type="button" data-factor="roe" data-name="ROE" data-status="FAIL · 3/5 gates" data-ic="3.28%" data-icir="0.70" data-t="1.74" data-monotonicity="0.70" data-return="0.46%" data-frozen="−1.62%" data-failed="Newey–West significance; monotonicity">ROE</button>
+                <button class="factor-button" type="button" data-factor="ocf-to-price" data-name="OCF/P" data-status="FAIL · 2/5 gates" data-ic="1.83%" data-icir="0.45" data-t="1.26" data-monotonicity="0.30" data-return="4.19%" data-frozen="4.11%" data-failed="IC; significance; monotonicity">OCF/P</button>
+                <button class="factor-button" type="button" data-factor="revenue-growth" data-name="Revenue Growth" data-status="FAIL · 3/5 gates" data-ic="2.01%" data-icir="0.49" data-t="1.30" data-monotonicity="0.70" data-return="3.76%" data-frozen="−3.48%" data-failed="Newey–West significance; monotonicity">Revenue Growth</button>
+              </div>
+            </div>
+            <div class="factor-group">
+              <b>Market Behavior</b>
+              <div class="factor-links">
+                <button class="factor-button" type="button" data-factor="momentum-12-1" data-name="12–1 Momentum" data-status="FAIL · 4/5 gates" data-ic="2.94%" data-icir="0.49" data-t="1.39" data-monotonicity="1.00" data-return="6.23%" data-frozen="3.79%" data-failed="Newey–West significance">12–1 Momentum</button>
+                <button class="factor-button passed" type="button" data-factor="reversal-1m" data-name="1-Month Reversal" data-status="PASS · 5/5 gates" data-ic="4.47%" data-icir="0.86" data-t="2.29" data-monotonicity="1.00" data-return="5.92%" data-frozen="−1.89%" data-failed="None">1-Month Reversal</button>
+              </div>
+            </div>
+            <div class="factor-group">
+              <b>Risk</b>
+              <div class="factor-links">
+                <button class="factor-button" type="button" data-factor="volatility-60d" data-name="Low Total Volatility" data-status="FAIL · 3/5 gates" data-ic="5.21%" data-icir="0.80" data-t="2.84" data-monotonicity="0.10" data-return="−2.96%" data-frozen="12.03%" data-failed="Monotonicity; 30 bp spread">Low Total Volatility</button>
+              </div>
+            </div>
+          </div>
+          <p class="factor-hint">Click a factor name for its IC chart, five-group result and failed gates.</p>
         </div>
+        <div class="factor-bridge">Standalone validity ≠ incremental value. Next, we test what each factor adds beyond PB–ROE.</div>
       </div>
       <div class="factor-dialog" id="factor-dialog" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="factor-dialog-title">
         <div class="factor-dialog-header">
@@ -492,47 +569,39 @@
         </div>
       </div>
       <template id="factor-assets">
-        <img data-factor="reversal-1m" data-kind="ic" data-src="results/figures/factor-analysis-12/reversal-1m-ic.png" alt="">
-        <img data-factor="reversal-1m" data-kind="quantiles" data-src="results/figures/factor-analysis-12/reversal-1m-quantiles.png" alt="">
-        <img data-factor="idiosyncratic-volatility" data-kind="ic" data-src="results/figures/factor-analysis-12/idiosyncratic-volatility-ic.png" alt="">
-        <img data-factor="idiosyncratic-volatility" data-kind="quantiles" data-src="results/figures/factor-analysis-12/idiosyncratic-volatility-quantiles.png" alt="">
-        <img data-factor="beta-252d" data-kind="ic" data-src="results/figures/factor-analysis-12/beta-252d-ic.png" alt="">
-        <img data-factor="beta-252d" data-kind="quantiles" data-src="results/figures/factor-analysis-12/beta-252d-quantiles.png" alt="">
-        <img data-factor="momentum-12-1" data-kind="ic" data-src="results/figures/factor-analysis-12/momentum-12-1-ic.png" alt="">
-        <img data-factor="momentum-12-1" data-kind="quantiles" data-src="results/figures/factor-analysis-12/momentum-12-1-quantiles.png" alt="">
-        <img data-factor="paper-score" data-kind="ic" data-src="results/figures/factor-analysis-12/paper-score-ic.png" alt="">
-        <img data-factor="paper-score" data-kind="quantiles" data-src="results/figures/factor-analysis-12/paper-score-quantiles.png" alt="">
-        <img data-factor="roe" data-kind="ic" data-src="results/figures/factor-analysis-12/roe-ic.png" alt="">
-        <img data-factor="roe" data-kind="quantiles" data-src="results/figures/factor-analysis-12/roe-quantiles.png" alt="">
-        <img data-factor="gross-margin" data-kind="ic" data-src="results/figures/factor-analysis-12/gross-margin-ic.png" alt="">
-        <img data-factor="gross-margin" data-kind="quantiles" data-src="results/figures/factor-analysis-12/gross-margin-quantiles.png" alt="">
-        <img data-factor="volatility-60d" data-kind="ic" data-src="results/figures/factor-analysis-12/volatility-60d-ic.png" alt="">
-        <img data-factor="volatility-60d" data-kind="quantiles" data-src="results/figures/factor-analysis-12/volatility-60d-quantiles.png" alt="">
-        <img data-factor="bp" data-kind="ic" data-src="results/figures/factor-analysis-12/bp-ic.png" alt="">
-        <img data-factor="bp" data-kind="quantiles" data-src="results/figures/factor-analysis-12/bp-quantiles.png" alt="">
-        <img data-factor="liquidity-20d" data-kind="ic" data-src="results/figures/factor-analysis-12/liquidity-20d-ic.png" alt="">
-        <img data-factor="liquidity-20d" data-kind="quantiles" data-src="results/figures/factor-analysis-12/liquidity-20d-quantiles.png" alt="">
-        <img data-factor="revenue-growth" data-kind="ic" data-src="results/figures/factor-analysis-12/revenue-growth-ic.png" alt="">
-        <img data-factor="revenue-growth" data-kind="quantiles" data-src="results/figures/factor-analysis-12/revenue-growth-quantiles.png" alt="">
-        <img data-factor="earnings-growth" data-kind="ic" data-src="results/figures/factor-analysis-12/earnings-growth-ic.png" alt="">
-        <img data-factor="earnings-growth" data-kind="quantiles" data-src="results/figures/factor-analysis-12/earnings-growth-quantiles.png" alt="">
+        <img data-factor="bp" data-kind="ic" data-src="results/figures/factor-analysis-8/bp-ic.png" alt="">
+        <img data-factor="bp" data-kind="quantiles" data-src="results/figures/factor-analysis-8/bp-quantiles.png" alt="">
+        <img data-factor="ep" data-kind="ic" data-src="results/figures/factor-analysis-8/ep-ic.png" alt="">
+        <img data-factor="ep" data-kind="quantiles" data-src="results/figures/factor-analysis-8/ep-quantiles.png" alt="">
+        <img data-factor="roe" data-kind="ic" data-src="results/figures/factor-analysis-8/roe-ic.png" alt="">
+        <img data-factor="roe" data-kind="quantiles" data-src="results/figures/factor-analysis-8/roe-quantiles.png" alt="">
+        <img data-factor="ocf-to-price" data-kind="ic" data-src="results/figures/factor-analysis-8/ocf-to-price-ic.png" alt="">
+        <img data-factor="ocf-to-price" data-kind="quantiles" data-src="results/figures/factor-analysis-8/ocf-to-price-quantiles.png" alt="">
+        <img data-factor="revenue-growth" data-kind="ic" data-src="results/figures/factor-analysis-8/revenue-growth-ic.png" alt="">
+        <img data-factor="revenue-growth" data-kind="quantiles" data-src="results/figures/factor-analysis-8/revenue-growth-quantiles.png" alt="">
+        <img data-factor="momentum-12-1" data-kind="ic" data-src="results/figures/factor-analysis-8/momentum-12-1-ic.png" alt="">
+        <img data-factor="momentum-12-1" data-kind="quantiles" data-src="results/figures/factor-analysis-8/momentum-12-1-quantiles.png" alt="">
+        <img data-factor="reversal-1m" data-kind="ic" data-src="results/figures/factor-analysis-8/reversal-1m-ic.png" alt="">
+        <img data-factor="reversal-1m" data-kind="quantiles" data-src="results/figures/factor-analysis-8/reversal-1m-quantiles.png" alt="">
+        <img data-factor="volatility-60d" data-kind="ic" data-src="results/figures/factor-analysis-8/volatility-60d-ic.png" alt="">
+        <img data-factor="volatility-60d" data-kind="quantiles" data-src="results/figures/factor-analysis-8/volatility-60d-quantiles.png" alt="">
       </template>
-      <aside class="speaker-notes">I test twelve candidates with five identical development gates: IC, Newey–West significance, positive-year stability, five-group monotonicity and a positive spread after thirty basis points. Only one-month reversal passes all five, and its later IC falls to minus 1.89 percent. This standalone test is preserved as negative evidence. It is not enough for model eligibility: an extension must separately prove residual information and Add-one improvement beyond PB–ROE. Each interactive tile shows the factor’s market pattern, mechanism, limitation, monthly IC and five-group result.</aside>
+      <aside class="speaker-notes">We test eight independent candidates in four economic groups: value, quality and growth, market behavior, and risk. The five rules were fixed before testing: predictive strength, statistical confidence, year-to-year consistency, ordered five-group returns and a positive spread after thirty basis points. Only one-month reversal passes all five in development, with IC 4.47 percent and a 5.92 percent after-cost return. Its later IC falls to minus 1.89 percent, so we preserve that failure. Standalone failure does not mean a factor is useful in combination; the next slide tests incremental value beyond PB–ROE.</aside>
     </section>
 
     <section class="slide" data-title="Two-layer factor evidence">
       <p class="eyebrow">07 · From PB–ROE diagnosis to factor extensions</p>
-      <h2>Six extensions add development-sample information beyond PB–ROE</h2>
+      <h2>Three of six extensions add information beyond PB–ROE</h2>
       <div class="visual-grid wide">
-        <div class="figure-wrap"><img src="results/figures/presentation-en/04-factor-incrementality.png" alt="Residual IC, Add-one IC and yearly improvement for nine PB–ROE extensions"></div>
+        <div class="figure-wrap"><img src="results/figures/presentation-en/04-factor-incrementality.png" alt="Residual IC, Add-one IC and yearly improvement for six PB–ROE extensions"></div>
         <div class="facts">
-          <div class="fact green"><span class="number">6 / 9</span><p>Extensions pass residual IC, Add-one IC and yearly-improvement gates.</p></div>
-          <div class="fact"><span class="number">8</span><p>Final inputs: core BP and ROE plus six incremental extensions.</p></div>
+          <div class="fact green"><span class="number">3 / 6</span><p>Momentum, reversal and low volatility pass every incremental gate.</p></div>
+          <div class="fact"><span class="number">5</span><p>Final inputs: core BP and ROE plus three incremental extensions.</p></div>
           <div class="fact orange"><span class="number">−1.89%</span><p>Strict reversal still fails its prior-OOS standalone test.</p></div>
-          <div class="fact"><p><b>No outcome-driven relaxation.</b><br>The incremental rules were frozen before this rerun.</p></div>
+          <div class="fact"><p><b>Financial additions were not forced in.</b><br>EP, OCF/P and revenue growth fail the Add-one test.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">This slide is the bridge from the PB–ROE diagnosis to the modern extension. BP and ROE are the core. For each of nine other candidates, I regress it on BP and ROE each month and test the residual IC. I then add one-third of the candidate to two-thirds PB–ROE and require a positive IC improvement in at least half of development years. Momentum, reversal, low total volatility, low liquidity, low beta and low idiosyncratic volatility pass. Gross margin, revenue growth and earnings growth fail. The final manifest therefore has eight inputs.</aside>
+      <aside class="speaker-notes">This slide connects the PB–ROE diagnosis to the modern extension. BP and ROE are the core. For each of six extensions, we regress it on BP and ROE each month and test residual IC. We then add one-third of the candidate to two-thirds PB–ROE and require a positive IC improvement in at least half of development years. Momentum, reversal and low total volatility pass. EP, operating cash flow to price and revenue growth do not improve Add-one IC, so they remain documented candidates but do not enter the model. The final manifest has five inputs.</aside>
     </section>
 
     <section class="slide model-slide" data-title="Walk-forward models">
@@ -544,25 +613,25 @@
           <div class="fact"><p><b>Evidence status</b><br>Prior OOS for strict reversal; exploratory for the revised models.</p></div>
           <div class="fact"><p><b>Inside each fold</b><br>Use 60 mature months; LightGBM fits 48 and validates on 12.</p></div>
           <div class="fact orange"><p><b>Monthly roll</b><br>The newest unfinished label is excluded, then the window moves one month.</p></div>
-          <div class="fact"><p><b>Exploratory IC</b><br>PB–ROE 7.22%; 8-factor EW 10.91%; Elastic Net 1.91%; LightGBM 3.48%.</p></div>
+          <div class="fact"><p><b>Exploratory IC</b><br>PB–ROE 7.22%; 5-factor EW 8.35%; Elastic Net 8.86%; LightGBM 8.42%.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">Each fold uses at most sixty mature months and rolls one month forward. LightGBM fits the earlier forty-eight and validates on the final twelve in time order; Elastic Net uses the full mature window. The unfinished label is excluded. In exploratory history, PB–ROE IC is 7.22 percent and eight-factor equal weight reaches 10.91 percent. Elastic Net has 1.91 percent and LightGBM 3.48 percent. More flexible weighting adds estimation error rather than incremental signal.</aside>
+      <aside class="speaker-notes">Each fold uses at most sixty mature months and rolls one month forward. LightGBM fits the earlier forty-eight and validates on the final twelve in time order; Elastic Net uses the full mature window. Models train on each month's centered return rank, which matches the Rank IC objective, while portfolios still use realized returns. In exploratory history, PB–ROE IC is 7.22 percent, five-factor equal weight is 8.35 percent, Elastic Net is 8.86 percent and LightGBM is 8.42 percent. The linear model ranks best, while the tree still does not beat it.</aside>
     </section>
 
     <section class="slide" data-title="Portfolio results">
       <p class="eyebrow">09 · Constrained portfolio</p>
-      <h2>Simple factor diversification beat both machine-learning models</h2>
+      <h2>Simple factor diversification delivered the best risk-adjusted result</h2>
       <div class="visual-grid wide">
         <div class="figure-wrap"><img src="results/figures/presentation-en/06-portfolio-comparison.png" alt="Frozen-period return, Sharpe and drawdown comparison"></div>
         <div class="facts">
-          <div class="fact green"><span class="number">15.87%</span><p>8-factor equal-weight annualized return after 30 bp.</p></div>
+          <div class="fact green"><span class="number">0.61</span><p>5-factor equal-weight Sharpe after 30 bp—the highest tested.</p></div>
+          <div class="fact"><span class="number">11.44%</span><p>5-factor equal-weight annualized return after 30 bp.</p></div>
           <div class="fact"><span class="number">11.56%</span><p>PB–ROE baseline annualized return after 30 bp.</p></div>
-          <div class="fact orange"><span class="number">1.65%</span><p>Elastic Net; LightGBM earns 5.25% versus a 5.58% proxy benchmark.</p></div>
-          <div class="fact orange"><p>Costs include forced exits; the 30% discretionary cap expands only to an audited unavoidable floor.</p></div>
+          <div class="fact orange"><span class="number">7.78%</span><p>Elastic Net; LightGBM earns 6.95% versus a 5.58% proxy benchmark.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">I send PB–ROE, eight-factor equal weight, Elastic Net and LightGBM through the same fully invested, long-only optimizer. After thirty basis points, the proxy benchmark earns 5.58 percent, PB–ROE earns 11.56 percent and eight-factor equal weight earns 15.87 percent with Sharpe 0.86 and maximum drawdown minus 12.25 percent. Elastic Net earns 1.65 percent and LightGBM 5.25 percent. Costs include every trade. The thirty-percent discretionary turnover cap expands only when forced exits make it mathematically impossible, and only to the audited minimum.</aside>
+      <aside class="speaker-notes">We send PB–ROE, five-factor equal weight, Elastic Net and LightGBM through the same fully invested, long-only optimizer. After thirty basis points, the proxy benchmark earns 5.58 percent, PB–ROE earns 11.56 percent and five-factor equal weight earns 11.44 percent. The simple combination does not beat PB–ROE on raw return, but its Sharpe is higher at 0.61 versus 0.51 and its maximum drawdown is slightly smaller at minus 12.14 percent. Elastic Net earns 7.78 percent and LightGBM 6.95 percent. Higher Rank IC did not fully translate into portfolio return.</aside>
     </section>
 
     <section class="slide" data-title="Conclusion">
@@ -583,17 +652,17 @@
           <ul>
             <li>The original paper is not reproduced field by field.</li>
             <li>The development-selected reversal signal does not persist after 2022.</li>
-            <li>Elastic Net and LightGBM do not beat the 8-factor equal-weight baseline.</li>
+            <li>Elastic Net and LightGBM do not beat the 5-factor equal-weight portfolio.</li>
             <li>The revised positive result is not untouched out of sample.</li>
           </ul>
         </div>
       </div>
       <div class="closing">The MVP result: diversify reliable weak signals; do not assume complexity is alpha.</div>
-      <aside class="speaker-notes">To conclude, historical PB–ROE is broadly reproducible and retains modern ranking information. The standalone winner fails its prior out-of-sample test. A separate incremental audit finds six extensions beyond PB and ROE, and their eight-factor equal-weight score is promising. Elastic Net and LightGBM do not improve on that baseline. The main contribution is a point-in-time process that connects diagnosis to extension, preserves negative evidence, compares complexity with a simple benchmark and labels revised results honestly. The decisive next step is new data after this code and manifest freeze. Thank you.</aside>
+      <aside class="speaker-notes">To conclude, historical PB–ROE is broadly reproducible and retains modern ranking information. The standalone winner fails its prior out-of-sample test. A separate incremental audit retains three extensions beyond BP and ROE. Their five-factor equal-weight portfolio improves Sharpe and drawdown versus PB–ROE but not raw return. Elastic Net has the best exploratory Rank IC, yet neither model beats simple equal weight in the portfolio. The contribution is a point-in-time process that preserves negative evidence and tests whether complexity adds value. The decisive next step is truly new data after this code and manifest freeze. Thank you.</aside>
     </section>
   </main>
 
-  <div class="help">←/→ navigate · click factor tiles · N notes · F fullscreen</div>
+  <div class="help">←/→ navigate · click factor names · N notes · F fullscreen</div>
   <div class="progress" aria-hidden="true"></div>
 
   <script>
@@ -608,17 +677,13 @@
       );
       const factorRationale = {
         'bp': ['Higher book value relative to price may earn a value premium.', 'Mean reversion and compensation for distressed fundamentals.', 'Value traps and stale accounting book values.'],
-        'paper-score': ['Cheap firms with high profitability should dominate pure value.', 'ROE may filter low-quality value traps.', 'Derived from BP and ROE, so it is excluded when both primitives enter a model.'],
+        'ep': ['Higher trailing earnings relative to price indicate cheaper current profits.', 'Earnings yield complements book-value-based valuation.', 'Losses and cyclical earnings peaks can make EP misleading.'],
         'roe': ['More profitable book capital may compound faster.', 'Persistent profitability and efficient capital allocation.', 'Leverage, cyclicality and a small equity denominator can inflate ROE.'],
-        'gross-margin': ['High margins may indicate pricing power.', 'Product differentiation and operating quality.', 'Strong industry dependence and no reliable PIT industry neutralization.'],
+        'ocf-to-price': ['Higher operating cash flow relative to price may indicate cash-backed value.', 'Cash flow can validate accounting earnings and complement EP.', 'Cash flow is seasonal and less comparable for financial firms.'],
         'revenue-growth': ['Expanding sales may precede future earnings growth.', 'Demand growth and scale expansion.', 'Growth may already be priced and is sensitive to base effects.'],
-        'earnings-growth': ['Profit acceleration may trigger expectation revisions.', 'Operating leverage and improving fundamentals.', 'Non-recurring items, cyclicality and base effects create noise.'],
         'momentum-12-1': ['Medium-term winners may continue to outperform.', 'Slow information diffusion and investor underreaction.', 'Crowding and trend reversals can produce sharp crashes.'],
         'reversal-1m': ['Recent extreme losers may rebound over the next month.', 'Temporary liquidity shocks and short-term overreaction.', 'High turnover, transaction costs and failure in persistent trends.'],
-        'volatility-60d': ['Low-volatility stocks may have better risk-adjusted returns.', 'Leverage constraints and lottery preference.', 'May proxy defensive industries and overlaps with idiosyncratic volatility.'],
-        'liquidity-20d': ['Less liquid stocks may earn compensation.', 'Investors require a liquidity-risk premium.', 'Capacity and market impact are only approximated; direction depends on definition.'],
-        'beta-252d': ['Low-beta stocks may outperform on a risk-adjusted basis.', 'Leverage constraints can make high-beta stocks overpriced.', 'Beta is time-varying and sensitive to the market proxy and window.'],
-        'idiosyncratic-volatility': ['Low residual volatility may outperform high lottery-like risk.', 'Lottery preference and limits to diversification.', 'Depends on a simplified market model and may overlap with total volatility.'],
+        'volatility-60d': ['Low-volatility stocks may have better risk-adjusted returns.', 'Leverage constraints and lottery preference.', 'May proxy defensive industries or a particular market regime.'],
       };
       let lastFactorTrigger = null;
       let index = 0;

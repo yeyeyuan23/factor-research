@@ -7,8 +7,8 @@ YAML研究口径
   -> 五张canonical数据表与时点审计
   -> 原研报规则复现
   -> 现代PB-ROE评价
-  -> 12因子独立验证 + PB-ROE增量检验 + 8因子manifest
-  -> PB-ROE / 8因子等权 / 两模型walk-forward预测（严格反转作旁证）
+  -> 8因子独立验证 + PB-ROE增量检验 + 5因子manifest
+  -> PB-ROE / 5因子等权 / 两模型walk-forward预测（严格反转作旁证）
   -> 风险约束组合与成本核算
   -> 冻结结果、图片、HTML和最终审计
 ```
@@ -143,7 +143,7 @@ ROE截面百分位 + (1 - PB截面百分位)
 
 主要输出是`modern_factor_panel.parquet`以及IC、五分组、成本和暴露CSV。建议配合阅读`tests/test_evaluation.py`。
 
-## 7. Commit06：12因子独立验证、PB-ROE增量与模型输入资格
+## 7. Commit06：8因子独立验证、PB-ROE增量与模型输入资格
 
 因子公式在`factors/library.py`，模型面板构造在`models/dataset.py`，PB-ROE增量检验在`factors/incremental.py`，资格筛选在`factors/eligibility.py`，统一编排在`factors/validation.py`。
 
@@ -151,22 +151,22 @@ ROE截面百分位 + (1 - PB截面百分位)
 
 ```text
 2015–2022开发期
-  -> 对12个候选逐一计算IC、NW t、年度稳定性、五分组单调性、30bp后价差
+  -> 对8个独立候选逐一计算IC、NW t、年度稳定性、五分组单调性、30bp后价差
   -> 同时通过全部门槛的因子写入frozen_factor_selection.json
   -> 名单冻结后，才查看2023–2025原预留表现
 ```
 
 正式门槛是开发期IC均值不低于2%、NW t不低于2、正IC年份占比不低于50%、五分组单调性不低于80%、30bp后多空价差为正。当前唯一通过者是`reversal_1m_z`，但它在原预留区间IC转负。
 
-第二层以PB-ROE为基线：BP和ROE作为核心固定保留；对其余9个候选逐月回归`candidate ~ BP + ROE`得到残差IC，并比较`2/3 PB-ROE + 1/3 candidate`的Add-one IC和年度改善比例。扩展因子只有在残差IC、Add-one增量、年度稳定性、覆盖、方向和冗余全部通过时才能进入模型。
+第二层以PB-ROE为基线：BP和ROE作为核心固定保留；对EP、OCF/P、营收增长、动量、反转和低波6个扩展逐月回归`candidate ~ BP + ROE`得到残差IC，并比较`2/3 PB-ROE + 1/3 candidate`的Add-one IC和年度改善比例。扩展因子只有在残差IC、Add-one增量、年度稳定性、覆盖、方向和冗余全部通过时才能进入模型。
 
-正式通过的6个扩展是12–1月动量、1个月反转、低总波动、低流动性、低Beta和低特异波动。加上BP与ROE，manifest共8个特征。毛利率、营收增长和盈利增长被剔除；派生`paper_score_z`只作为比较基线，不与BP、ROE重复输入。结果写入`factor_incremental_analysis.csv`、`model_factor_eligibility.csv`、`model_factor_correlations.csv`和`model_feature_manifest.json`。
+正式通过的3个扩展是12–1月动量、1个月反转和低60日波动。加上BP与ROE，manifest共5个特征。EP、OCF/P和营收增长因Add-one不改善而剔除；派生`paper_score_z`只作为比较基线，不与BP、ROE重复输入。结果写入`factor_incremental_analysis.csv`、`model_factor_eligibility.csv`、`model_factor_correlations.csv`和`model_feature_manifest.json`。
 
-`model_factor_panel.parquet`是Commit07唯一允许读取的模型输入；入口检查manifest的配置指纹、canonical输入哈希和特征顺序。`pb_roe_baseline_predictions.parquet`保存原现代基线，`strict_factor_equal_weight_predictions.parquet`保存严格单因子旁证，`model_input_equal_weight_predictions.parquet`保存8因子简单等权基准。建议配合阅读`tests/test_factor_library.py`和`tests/test_factor_validation.py`。
+`model_factor_panel.parquet`是Commit07唯一允许读取的模型输入；入口检查manifest的配置指纹、canonical输入哈希和特征顺序。`pb_roe_baseline_predictions.parquet`保存原现代基线，`strict_factor_equal_weight_predictions.parquet`保存严格单因子旁证，`model_input_equal_weight_predictions.parquet`保存5因子简单等权基准。建议配合阅读`tests/test_factor_library.py`和`tests/test_factor_validation.py`。
 
 ## 8. Commit07：严格walk-forward模型
 
-入口是`models/runner.py`。两个模型读取完全相同的8因子manifest：
+入口是`models/runner.py`。两个模型读取完全相同的5因子manifest，并拟合月内中心化收益排名：
 
 - `models/linear.py`：Elastic Net线性基准；
 - `models/lightgbm.py`：唯一树模型LightGBM。
@@ -199,7 +199,7 @@ lightgbm_predictions.parquet
 2. `portfolio/optimizer.py`解基准相对均值—方差问题；
 3. 约束满仓、只做多、单票不超过3%、漂移后可自主换手不超过30%；若指数强制退出和漂移后单票超限已使30%数学上不可行，只扩展到可审计的不可避免修复下限；
 4. 成本始终按全部实际换手收取；若其他数值问题导致求解失败，排序回退也必须满足有效换手与权重约束；
-5. 对PB-ROE、严格反转旁证、8因子等权、Elastic Net和LightGBM分别核算10/30/50bp成本，并与沪深300成分等权代理比较。
+5. 对PB-ROE、严格反转旁证、5因子等权、Elastic Net和LightGBM分别核算10/30/50bp成本，并与沪深300成分等权代理比较。
 
 “漂移后换手”表示先让上期持仓随实际收益自然变化，再计算调仓差额；不是简单拿两期目标权重相减。输出包括目标持仓、组合月收益、汇总绩效和求解诊断。建议配合阅读`tests/test_portfolio.py`。
 
@@ -225,7 +225,7 @@ lightgbm_predictions.parquet
 - 收益退出价在当时可观察；
 - 静态行业没有进入正式历史目标和组合约束；
 - 模型训练标签在预测时已经实现；
-- 模型manifest与canonical数据哈希一致、6个扩展均有PB-ROE增量证据、派生PB-ROE未重复输入、两模型特征完全相同；
+- 模型manifest与canonical数据哈希一致、3个扩展均有PB-ROE增量证据、派生PB-ROE未重复输入、两模型特征完全相同；
 - 组合满仓、非负、单票上限以及逐月可自主/不可避免换手规则成立；
 - Dashboard不依赖外部CDN；
 - 严格反转的2023–2025预留检验与新版模型探索性历史检验标签没有混淆；
@@ -305,11 +305,11 @@ column -s, -t < docs/results/portfolio/portfolio_summary.csv
 ```text
 原研报规则能否在可得免费数据上复现？
   -> 现代PB-ROE是否仍有稳定预测力？
-  -> 12个候选中哪些能独立通过统一门槛？
+  -> 8个候选中哪些能独立通过统一门槛？
   -> 哪些扩展因子相对PB-ROE有残差IC和Add-one增量？
   -> 严格反转到2023–2025是否仍有效？
-  -> PB-ROE、8因子等权、Elastic Net或LightGBM谁更稳定？
+  -> PB-ROE、5因子等权、Elastic Net或LightGBM谁更稳定？
   -> 计入风险、换手和成本后能否超过基准？
 ```
 
-当前答案是：原研报方向和量级得到基本复现，但行业版本不一致；现代候选只有1个月反转能独立通过，且原预留检验失效；9个扩展中6个证明开发期PB-ROE增量，加上BP和ROE形成8因子manifest；简单方向等权在2023–2025探索区间优于PB-ROE和基准，Elastic Net与LightGBM都没有击败简单等权。因而工程既保留严格负结果，也把多因子分散的正结果正确降级为待未来验证的探索性证据。
+当前答案是：原研报方向和量级得到基本复现，但行业版本不一致；8个现代候选只有1个月反转能独立通过，且原预留检验失效；6个扩展中3个证明开发期PB-ROE增量，加上BP和ROE形成5因子manifest；5因子等权在探索区间改善Sharpe与回撤但未提高绝对年化，Elastic Net仅有Rank IC增量，LightGBM未超过线性模型。工程同时保留负结果和探索性正证据。

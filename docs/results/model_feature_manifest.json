@@ -1,5 +1,5 @@
 {
-  "config_fingerprint": "7db2bcd810915c31",
+  "config_fingerprint": "2d2d6423df3fca31",
   "canonical_input_manifest_sha256": "47b90c9e50996fa6a4e5026c79ad022b59f3f2cc5280f2a5864d03cd1977f8d9",
   "eligibility_sample": "2015-01-01/2022-12-31",
   "eligible_features": [
@@ -7,20 +7,14 @@
     "roe_z",
     "momentum_12_1_z",
     "reversal_1m_z",
-    "volatility_60d_z",
-    "liquidity_20d_z",
-    "beta_252d_z",
-    "idiosyncratic_volatility_z"
+    "volatility_60d_z"
   ],
   "feature_directions": {
     "bp_z": 1,
     "roe_z": 1,
     "momentum_12_1_z": 1,
     "reversal_1m_z": 1,
-    "volatility_60d_z": -1,
-    "liquidity_20d_z": -1,
-    "beta_252d_z": -1,
-    "idiosyncratic_volatility_z": -1
+    "volatility_60d_z": -1
   },
   "core_features": [
     "bp_z",
@@ -29,10 +23,7 @@
   "incremental_features": [
     "momentum_12_1_z",
     "reversal_1m_z",
-    "volatility_60d_z",
-    "liquidity_20d_z",
-    "beta_252d_z",
-    "idiosyncratic_volatility_z"
+    "volatility_60d_z"
   ],
   "incremental_baseline_feature": "paper_score_z",
   "incremental_rules": {
@@ -51,8 +42,8 @@
   "strict_standalone_features": [
     "reversal_1m_z"
   ],
-  "candidate_count": 12,
-  "eligible_count": 8,
+  "candidate_count": 8,
+  "eligible_count": 5,
   "evaluation_period": "2023-01-01/2025-12-31",
   "evaluation_status": "exploratory_after_prior_oos_review",
   "rules": {
@@ -73,16 +64,13 @@
     ],
     "representative_priority": [
       "bp_z",
+      "ep_z",
       "roe_z",
-      "gross_margin_z",
+      "ocf_to_price_z",
       "revenue_growth_z",
-      "earnings_growth_z",
       "momentum_12_1_z",
       "reversal_1m_z",
-      "volatility_60d_z",
-      "liquidity_20d_z",
-      "beta_252d_z",
-      "idiosyncratic_volatility_z"
+      "volatility_60d_z"
     ]
   }
 }

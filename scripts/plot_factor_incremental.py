@@ -18,15 +18,12 @@ GRAY = "#9aa0a6"
 def plot(input_path: Path, output: Path) -> None:
     frame = pd.read_csv(input_path)
     names = {
-        "gross_margin": "毛利率",
+        "ep": "EP盈利收益率",
+        "ocf_to_price": "OCF/P",
         "revenue_growth": "营收增长",
-        "earnings_growth": "盈利增长",
         "momentum_12_1": "12–1月动量",
         "reversal_1m": "1个月反转",
         "volatility_60d": "低波动",
-        "liquidity_20d": "低流动性",
-        "beta_252d": "低Beta",
-        "idiosyncratic_volatility": "低特异波动",
     }
     frame["label"] = frame["factor"].map(names)
     colors = frame["incremental_pass"].map({True: GREEN, False: GRAY})
@@ -59,7 +56,7 @@ def plot(input_path: Path, output: Path) -> None:
         loc="center left",
         bbox_to_anchor=(0.995, 0.5),
     )
-    figure.suptitle("9个扩展因子相对PB-ROE的开发期增量检验", fontsize=16)
+    figure.suptitle("6个扩展因子相对PB-ROE的开发期增量检验", fontsize=16)
     figure.tight_layout(rect=(0, 0, 0.96, 0.93))
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")

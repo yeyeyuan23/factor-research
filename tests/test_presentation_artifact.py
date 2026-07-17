@@ -19,9 +19,9 @@ def test_presentation_is_complete_and_shareable() -> None:
     assert source.count('<section class="slide') == 11
     assert source.count('<aside class="speaker-notes') == 11
     assert len(image_sources) == 5
-    assert len(factor_buttons) == 12
-    assert len(set(factor_buttons)) == 12
-    assert len(factor_sources) == 24
+    assert len(factor_buttons) == 8
+    assert len(set(factor_buttons)) == 8
+    assert len(factor_sources) == 16
     assert set(factor_assets) == {
         (factor, kind) for factor in factor_buttons for kind in ("ic", "quantiles")
     }
@@ -31,7 +31,7 @@ def test_presentation_is_complete_and_shareable() -> None:
     )
 
     standalone = STANDALONE.read_text(encoding="utf-8")
-    assert standalone.count("data:image/png;base64,") == 29
+    assert standalone.count("data:image/png;base64,") == 21
     assert 'src="results/figures/' not in standalone
     assert 'data-src="results/figures/' not in standalone
     assert "https://" not in standalone
