@@ -39,12 +39,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--input",
-        default="docs/presentation_en_10min.html",
+        default="docs/pre.html",
         type=Path,
     )
     parser.add_argument(
         "--output",
-        default="docs/presentation_en_10min_standalone.html",
+        default="docs/presentation_standalone.html",
         type=Path,
     )
     args = parser.parse_args()

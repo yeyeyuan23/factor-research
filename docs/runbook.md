@@ -128,10 +128,10 @@ MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_factor_incremental.py --input doc
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_signal_method_comparison.py --run-dir results/runs/modern-pb-roe --output docs/results/figures/signal-method-ic-comparison.png
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_portfolio_analysis.py --run-dir results/runs/modern-pb-roe --performance-output docs/results/figures/portfolio-performance.png --segment-output docs/results/figures/portfolio-segment-metrics.png --yearly-output docs/results/figures/portfolio-oos-yearly.png
 MPLCONFIGDIR=/private/tmp/mpl $PY scripts/plot_presentation_en.py --results-dir docs/results --output-dir docs/results/figures/presentation-en
-$PY scripts/build_standalone_presentation.py --input docs/presentation_en_10min.html --output docs/presentation_en_10min_standalone.html
+$PY scripts/build_standalone_presentation.py --input docs/pre.html --output docs/presentation_standalone.html
 ```
 
-绘图脚本全部使用Matplotlib并只读取结果文件。最后一条命令把主展示图和按需展开的因子明细图编码进HTML；生成的`presentation_en_10min_standalone.html`不依赖同目录图片，可以作为单个文件直接发送。不要向`report`命令传`--static-dir`重新生成旧的手写SVG备份。
+绘图脚本全部使用Matplotlib并只读取结果文件。最后一条命令把主展示图和按需展开的因子明细图编码进HTML；生成的`presentation_standalone.html`不依赖同目录图片，可以作为单个文件直接发送。不要向`report`命令传`--static-dir`重新生成旧的手写SVG备份。
 
 当前真实数据适配层使用BaoStock行情与沪深300历史快照，并直接保存Eastmoney季度业绩接口的首次公告日`NOTICE_DATE`和后续`UPDATE_DATE`。数据审计要求ROE公告滞后中位数不超过200天；任何覆盖或时点门槛失败时不得生成论文结论。
 

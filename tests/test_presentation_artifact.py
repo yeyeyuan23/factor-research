@@ -2,8 +2,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "docs" / "presentation_en_10min.html"
-STANDALONE = ROOT / "docs" / "presentation_en_10min_standalone.html"
+SOURCE = ROOT / "docs" / "pre.html"
+STANDALONE = ROOT / "docs" / "presentation_standalone.html"
 
 
 def test_presentation_is_complete_and_shareable() -> None:

@@ -289,6 +289,7 @@ PB-ROE绝对年化最高；5因子等权仅低0.12个百分点，但Sharpe更高
 - 模型组合报告：[`portfolio_analysis_report.md`](portfolio_analysis_report.md)
 - 工程走读：[`code_walkthrough.md`](code_walkthrough.md)
 - 运行手册：[`runbook.md`](runbook.md)
-- 英文10分钟展示：[`presentation_en_10min.html`](presentation_en_10min.html)
+- 英文10分钟展示：[`pre.html`](pre.html)
+- 可分享HTML与PPT：[`presentation_standalone.html`](presentation_standalone.html)、[`presentation_standalone.pptx`](presentation_standalone.pptx)
 - 英文讲稿：[`presentation_script_en_10min.md`](presentation_script_en_10min.md)
 - 机器审计：[`results/final_audit_summary.json`](results/final_audit_summary.json)

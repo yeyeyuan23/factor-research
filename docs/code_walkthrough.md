@@ -210,7 +210,9 @@ lightgbm_predictions.parquet
 - `reporting/dashboard.py`：从运行结果生成可断网打开的Plotly HTML；
 - `scripts/freeze_results.py`：最终审计通过后，把正式摘要复制到`docs/results/`并记录配置、输入和文件哈希；
 - `scripts/plot_*.py`：只读冻结结果，用Matplotlib生成论文和展示图片；
-- `docs/presentation_en_10min.html`：英文10分钟展示页，只引用`docs/results/figures/presentation-en/`中的PNG；
+- `docs/pre.html`：英文10分钟展示页，只引用`docs/results/figures/presentation-en/`中的PNG；
+- `docs/presentation_standalone.html`：嵌入全部图片、可直接分享的单文件展示；
+- `docs/presentation_standalone.pptx`：与HTML视觉一致并包含英文演讲备注的PowerPoint；
 - `scripts/build_standalone_presentation.py`：把上述PNG嵌入可直接发送的单文件HTML；
 - `docs/presentation_script_en_10min.md`：逐页英文讲稿。
 

@@ -233,8 +233,9 @@ factor-research/
 - 运行手册：[`docs/runbook.md`](docs/runbook.md)
 - 8因子分析：[`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)
 - 模型与组合分析：[`docs/portfolio_analysis_report.md`](docs/portfolio_analysis_report.md)
-- 英文10分钟HTML展示：[`docs/presentation_en_10min.html`](docs/presentation_en_10min.html)
-- 可直接发送的单文件HTML：[`docs/presentation_en_10min_standalone.html`](docs/presentation_en_10min_standalone.html)
+- 英文10分钟HTML展示：[`docs/pre.html`](docs/pre.html)
+- 可直接发送的单文件HTML：[`docs/presentation_standalone.html`](docs/presentation_standalone.html)
+- PowerPoint展示：[`docs/presentation_standalone.pptx`](docs/presentation_standalone.pptx)
 - 英文10分钟逐页讲稿：[`docs/presentation_script_en_10min.md`](docs/presentation_script_en_10min.md)
 - 工程代码走读：[`docs/code_walkthrough.md`](docs/code_walkthrough.md)
 
