@@ -487,11 +487,11 @@ factor-research/
 | `03-pit-data-pipeline` | 历史成分、行情、公告时点、数据闸门和Parquet缓存 | 已完成（`e104f5f`；NOTICE_DATE、manifest与静态行业修复`d592d62`） | 主力模型，High reasoning |
 | `04-paper-reproduction` | 2005–2011原文组合、成本口径和结果对照 | 已完成（`25dc6dd`；最后可观测退出价修复`d592d62`） | 主力模型，High reasoning |
 | `05-modern-factor-evaluation` | 核心BP、ROE、PB-ROE的IC、分层、成本、显著性和暴露 | 已完成（`1e3407c`） | 主力模型，High reasoning |
-| `06-factor-library-and-freeze` | 保留12因子独立诊断；新增9个扩展候选相对PB-ROE的残差IC、Add-one和年度稳定性检验，再执行数据、方向与冗余资格，冻结模型manifest | 修订中；不新增Commit编号 | Mini实现固定公式，主力模型复核 |
-| `07-model-walk-forward` | Elastic Net主模型与唯一树模型LightGBM读取增量筛选后的同一manifest；输出系数/重要性稳定性并与简单等权比较 | 待Commit06修订结果重跑 | 主力模型，High reasoning |
-| `08-portfolio-optimization` | 对PB-ROE、增量合格因子等权、Elastic Net和LightGBM使用同一优化器、风险约束和成本口径 | 待Commit07重跑后更新 | 最强可用模型，High/XHigh reasoning |
-| `09-dashboard` | 更新离线Dashboard、增量检验Python图、英文HTML和讲稿；明确2到3的研究逻辑 | 待Commit06–08新结果 | Mini/快速模型，Medium reasoning |
-| `10-final-audit` | 增加增量分析文件、核心特征、Add-one规则、两模型同manifest和证据标签检查；完成全量验收 | 待新版全链路完成后重审计 | 最强可用模型，High/XHigh reasoning |
+| `06-factor-library-and-freeze` | 保留12因子独立诊断；新增9个扩展候选相对PB-ROE的残差IC、Add-one和年度稳定性检验，再执行数据、方向与冗余资格，冻结模型manifest | 已完成（`9acce8a`）；结果：6个扩展通过，最终8因子 | Mini实现固定公式，主力模型复核 |
+| `07-model-walk-forward` | Elastic Net主模型与唯一树模型LightGBM读取增量筛选后的同一manifest；输出系数/重要性稳定性并与简单等权比较 | 已完成（模型入口`5820667`；8因子重跑结果冻结`0255d90`） | 主力模型，High reasoning |
+| `08-portfolio-optimization` | 对PB-ROE、增量合格因子等权、Elastic Net和LightGBM使用同一优化器、风险约束和成本口径 | 已完成（统一比较`bc25d15`；不可避免换手审计修复`57ee2be`；结果`0255d90`） | 最强可用模型，High/XHigh reasoning |
+| `09-dashboard` | 更新离线Dashboard、增量检验Python图、英文HTML和讲稿；明确2到3的研究逻辑 | 已完成（`0255d90`） | Mini/快速模型，Medium reasoning |
+| `10-final-audit` | 增加增量分析文件、核心特征、Add-one规则、两模型同manifest和证据标签检查；完成全量验收 | 已完成（审计合同`a166d3d`、`9acce8a`、`57ee2be`）；87项测试、smoke 31/31、正式审计31/31 | 最强可用模型，High/XHigh reasoning |
 
 本计划始终只有以上10个编号。后续修复提交只修正对应阶段，不新增Commit 11或其他计划编号。
 
