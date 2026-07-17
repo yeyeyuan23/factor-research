@@ -163,6 +163,9 @@ def optimize_from_cli(
                 "status": result.status,
                 "objective_value": result.objective_value,
                 "used_fallback": result.used_fallback,
+                "forced_exit_weight": result.forced_exit_weight,
+                "unavoidable_turnover_floor": result.unavoidable_turnover_floor,
+                "effective_turnover_limit": result.turnover_limit,
                 "missing_realized_return_count": int(missing_realized.sum()),
                 "missing_realized_weight": float(result.weights[missing_realized].sum()),
             }
@@ -231,7 +234,10 @@ def optimize_from_cli(
         "fallback_months": int(diagnostics["used_fallback"].sum()),
         "prediction_units": "monthly_return_annualized_for_annual_covariance",
         "risk_objective": "benchmark_relative_active_risk",
-        "turnover_basis": "drifted_pretrade_weights_including_forced_exits",
+        "turnover_basis": (
+            "drifted_pretrade_weights; costs include forced exits; the 30% discretionary "
+            "cap expands only to an unavoidable forced-exit and position-cap repair floor"
+        ),
         "industry_constraints": settings.enforce_industry_constraints,
         "evidence_status": config.section("models").get("evidence_status"),
         "output": str(output),

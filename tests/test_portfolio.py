@@ -2,7 +2,11 @@ import numpy as np
 import pandas as pd
 
 from pb_roe.data.providers.fixture import fixture_bundle
-from pb_roe.portfolio.optimizer import PortfolioConstraints, optimize_portfolio
+from pb_roe.portfolio.optimizer import (
+    PortfolioConstraints,
+    optimize_portfolio,
+    turnover_constrained_fallback,
+)
 from pb_roe.portfolio.risk import ledoit_wolf_covariance, trailing_return_matrix
 from pb_roe.portfolio.runner import (
     _annualize_monthly_predictions,
@@ -119,6 +123,82 @@ def test_optimizer_turnover_includes_forced_exit_weight() -> None:
     )
     assert np.isclose(result.turnover, expected_turnover)
     assert result.turnover >= previous["EXIT"] - 1e-6
+    assert result.turnover <= max(settings.max_turnover, result.forced_exit_weight) + 1e-6
+
+
+def test_unavoidable_forced_exit_sets_the_turnover_floor() -> None:
+    securities = [f"S{i}" for i in range(40)]
+    settings = PortfolioConstraints(
+        risk_aversion=1.0,
+        turnover_penalty=0.0,
+        max_weight=0.03,
+        max_industry_deviation=1.0,
+        max_turnover=0.30,
+        enforce_industry_constraints=False,
+    )
+    previous = pd.Series(
+        {**{security: 0.015 for security in securities}, "EXIT": 0.40}
+    )
+
+    result = optimize_portfolio(
+        pd.Series(range(40), index=securities, dtype=float),
+        pd.DataFrame(np.eye(40) * 0.01, index=securities, columns=securities),
+        pd.Series("Unknown", index=securities),
+        previous_weights=previous,
+        constraints=settings,
+    )
+
+    assert np.isclose(result.forced_exit_weight, 0.40)
+    assert np.isclose(result.unavoidable_turnover_floor, 0.40)
+    assert np.isclose(result.turnover_limit, 0.40)
+    assert result.turnover <= 0.40 + 1e-6
+
+
+def test_position_cap_repairs_are_part_of_the_unavoidable_turnover_floor() -> None:
+    securities = [f"S{i}" for i in range(40)]
+    settings = PortfolioConstraints(
+        risk_aversion=1.0,
+        turnover_penalty=0.0,
+        max_weight=0.03,
+        max_industry_deviation=1.0,
+        max_turnover=0.30,
+        enforce_industry_constraints=False,
+    )
+    current = {security: 0.035 for security in securities[:10]}
+    current.update({security: 0.37 / 30 for security in securities[10:]})
+    previous = pd.Series({**current, "EXIT": 0.28})
+
+    result = optimize_portfolio(
+        pd.Series(range(40), index=securities, dtype=float),
+        pd.DataFrame(np.eye(40) * 0.01, index=securities, columns=securities),
+        pd.Series("Unknown", index=securities),
+        previous_weights=previous,
+        constraints=settings,
+    )
+
+    assert np.isclose(result.forced_exit_weight, 0.28)
+    assert np.isclose(result.unavoidable_turnover_floor, 0.33)
+    assert np.isclose(result.turnover_limit, 0.33)
+    assert result.turnover <= 0.33 + 1e-6
+
+
+def test_ranking_fallback_still_respects_turnover_limit() -> None:
+    securities = [f"S{i}" for i in range(40)]
+    expected = pd.Series(range(40), index=securities, dtype=float)
+    previous = pd.Series(1 / 40, index=securities)
+
+    fallback = turnover_constrained_fallback(
+        expected,
+        previous,
+        forced_exit_weight=0.0,
+        max_weight=0.03,
+        max_turnover=0.30,
+    )
+    turnover = 0.5 * (fallback - previous).abs().sum()
+
+    assert np.isclose(fallback.sum(), 1.0)
+    assert fallback.max() <= 0.03 + 1e-6
+    assert turnover <= 0.30 + 1e-6
 
 
 def test_zero_alpha_minimizes_active_risk_at_benchmark() -> None:

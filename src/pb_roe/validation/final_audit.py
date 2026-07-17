@@ -71,6 +71,7 @@ def _required_files(run_dir: Path, paper_dir: Path) -> FinalCheck:
             "lightgbm_optimization_diagnostics.csv",
             "pb_roe_baseline_optimized_holdings.parquet",
             "pb_roe_baseline_optimized_returns.csv",
+            "pb_roe_baseline_optimization_diagnostics.csv",
             "strict_factor_equal_weight_optimized_holdings.parquet",
             "strict_factor_equal_weight_optimized_returns.csv",
             "model_input_equal_weight_optimized_holdings.parquet",
@@ -337,12 +338,56 @@ def _portfolio_check(run_dir: Path, config: ResearchConfig, model: str = "") -> 
     if returns_path.is_file():
         returns = pd.read_csv(returns_path)
         max_turnover = float(config.section("portfolio")["max_turnover"])
+        diagnostics_path = run_dir / f"{prefix}optimization_diagnostics.csv"
+        diagnostics = (
+            pd.read_csv(diagnostics_path)
+            if diagnostics_path.is_file()
+            else pd.DataFrame()
+        )
+        if {
+            "signal_date",
+            "forced_exit_weight",
+            "unavoidable_turnover_floor",
+            "effective_turnover_limit",
+        } <= set(diagnostics):
+            turnover_audit = returns[["signal_date", "turnover"]].merge(
+                diagnostics[
+                    [
+                        "signal_date",
+                        "forced_exit_weight",
+                        "unavoidable_turnover_floor",
+                        "effective_turnover_limit",
+                    ]
+                ],
+                on="signal_date",
+                how="left",
+                validate="one_to_one",
+            )
+            justified_floor = turnover_audit["unavoidable_turnover_floor"].fillna(0.0)
+            allowed = justified_floor.clip(
+                lower=max_turnover
+            )
+            valid_turnover = turnover_audit["turnover"] <= allowed + 1e-6
+            valid_turnover &= (
+                turnover_audit["effective_turnover_limit"] - allowed
+            ).abs() <= 1e-6
+            maximum_excess = float((turnover_audit["turnover"] - allowed).max())
+            maximum_forced_exit = float(turnover_audit["forced_exit_weight"].max())
+            maximum_floor = float(justified_floor.max())
+        else:
+            valid_turnover = returns["turnover"] <= max_turnover + 1e-6
+            maximum_excess = float((returns["turnover"] - max_turnover).max())
+            maximum_forced_exit = 0.0
+            maximum_floor = maximum_forced_exit
         checks.append(
             FinalCheck(
                 f"{check_prefix}.turnover_limit",
-                bool(returns["turnover"].max() <= max_turnover + 1e-6),
+                bool(valid_turnover.all()),
                 "error",
-                f"maximum turnover={returns['turnover'].max():.6g}, limit={max_turnover}",
+                f"maximum turnover={returns['turnover'].max():.6g}, "
+                f"maximum forced exit={maximum_forced_exit:.6g}, "
+                f"maximum unavoidable floor={maximum_floor:.6g}, "
+                f"maximum excess over allowed={maximum_excess:.3g}",
             )
         )
     return checks
