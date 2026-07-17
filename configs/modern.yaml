@@ -80,6 +80,15 @@ evaluation:
       liquidity_20d: {category: Risk & Trading, direction: -1}
       beta_252d: {category: Risk & Trading, direction: -1}
       idiosyncratic_volatility: {category: Risk & Trading, direction: -1}
+  factor_incremental:
+    baseline_feature: paper_score_z
+    core_features: [bp_z, roe_z]
+    candidate_weight: 0.3333333333333333
+    cost_rate: 0.003
+    maximum_baseline_correlation: 0.85
+    minimum_residual_ic: 0.0
+    minimum_add_one_delta_ic: 0.0
+    minimum_improvement_year_rate: 0.50
   model_input_eligibility:
     minimum_valid_months: 60
     minimum_monthly_coverage: 0.80
@@ -88,6 +97,8 @@ evaluation:
     minimum_unique_values: 20
     significantly_opposite_t: -2.00
     maximum_absolute_correlation: 0.85
+    core_features: [bp_z, roe_z]
+    require_incremental_pass: true
     exclude_derived_features: [paper_score_z]
     representative_priority:
       - bp_z

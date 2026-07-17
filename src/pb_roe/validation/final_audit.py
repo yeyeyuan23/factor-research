@@ -53,6 +53,11 @@ def _required_files(run_dir: Path, paper_dir: Path) -> FinalCheck:
             "frozen_factor_selection.json",
             "model_factor_eligibility.csv",
             "model_feature_manifest.json",
+            "factor_incremental_analysis.csv",
+            "factor_incremental_ic_timeseries.csv",
+            "pb_roe_baseline_predictions.parquet",
+            "pb_roe_baseline_ic.csv",
+            "pb_roe_baseline_performance.csv",
             "strict_factor_equal_weight_predictions.parquet",
             "model_input_equal_weight_predictions.parquet",
             "dashboard.html",
@@ -64,6 +69,8 @@ def _required_files(run_dir: Path, paper_dir: Path) -> FinalCheck:
             "lightgbm_optimized_holdings.parquet",
             "lightgbm_optimized_returns.csv",
             "lightgbm_optimization_diagnostics.csv",
+            "pb_roe_baseline_optimized_holdings.parquet",
+            "pb_roe_baseline_optimized_returns.csv",
             "strict_factor_equal_weight_optimized_holdings.parquet",
             "strict_factor_equal_weight_optimized_returns.csv",
             "model_input_equal_weight_optimized_holdings.parquet",
@@ -230,15 +237,33 @@ def _model_feature_manifest_check(run_dir: Path, config: ResearchConfig) -> Fina
     payload = json.loads(path.read_text(encoding="utf-8"))
     features = list(payload.get("eligible_features", []))
     strict = list(payload.get("strict_standalone_features", []))
+    core = list(payload.get("core_features", []))
+    incremental = list(payload.get("incremental_features", []))
+    settings = config.section("evaluation")["factor_incremental"]
+    expected_core = list(settings["core_features"])
     audit_path = run_dir / "data_audit.json"
     data_audit = (
         json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.is_file() else {}
     )
     derived_duplicate = "paper_score_z" in features and {"bp_z", "roe_z"} <= set(features)
+    incremental_path = run_dir / "factor_incremental_analysis.csv"
+    incremental_table = (
+        pd.read_csv(incremental_path).set_index("feature")
+        if incremental_path.is_file()
+        else pd.DataFrame()
+    )
+    incremental_evidence = (
+        bool(incremental)
+        and not incremental_table.empty
+        and set(incremental) <= set(incremental_table.index)
+        and incremental_table.loc[incremental, "incremental_pass"].astype(bool).all()
+    )
     valid = (
         payload.get("config_fingerprint") == config.fingerprint
         and bool(features)
-        and set(strict) <= set(features)
+        and core == expected_core
+        and set(features) == set(core + incremental)
+        and incremental_evidence
         and not derived_duplicate
         and payload.get("canonical_input_manifest_sha256")
         == data_audit.get("input_manifest_sha256")
@@ -248,7 +273,8 @@ def _model_feature_manifest_check(run_dir: Path, config: ResearchConfig) -> Fina
         "models.feature_manifest",
         bool(valid),
         "error",
-        f"features={features}; strict={strict}; derived_duplicate={derived_duplicate}; "
+        f"features={features}; core={core}; incremental={incremental}; strict={strict}; "
+        f"incremental_evidence={incremental_evidence}; derived_duplicate={derived_duplicate}; "
         f"status={payload.get('evaluation_status')}",
     )
 
@@ -365,6 +391,7 @@ def audit_frozen_run(
     paper_root = Path(paper_run_dir).expanduser().resolve() if paper_run_dir else root
     portfolio_models = (
         [
+            "pb_roe_baseline",
             "strict_factor_equal_weight",
             "model_input_equal_weight",
             "elastic-net",

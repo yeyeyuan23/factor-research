@@ -17,6 +17,10 @@ rm -rf "$OUTPUT_DIR"
 "$PYTHON" -m pb_roe optimize \
   --config "$CONFIG" \
   --factor-file "$OUTPUT_DIR/model_factor_panel.parquet" \
+  --prediction-file "$OUTPUT_DIR/pb_roe_baseline_predictions.parquet"
+"$PYTHON" -m pb_roe optimize \
+  --config "$CONFIG" \
+  --factor-file "$OUTPUT_DIR/model_factor_panel.parquet" \
   --prediction-file "$OUTPUT_DIR/strict_factor_equal_weight_predictions.parquet"
 "$PYTHON" -m pb_roe optimize \
   --config "$CONFIG" \

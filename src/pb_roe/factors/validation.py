@@ -16,6 +16,7 @@ from pb_roe.evaluation.ic import calculate_ic, summarize_ic
 from pb_roe.evaluation.performance import performance_metrics
 from pb_roe.evaluation.quantiles import long_short_spread, quantile_backtest
 from pb_roe.factors.eligibility import build_model_factor_eligibility
+from pb_roe.factors.incremental import build_pb_roe_incremental_analysis
 from pb_roe.models.dataset import load_model_panel
 
 
@@ -230,11 +231,20 @@ def validate_factors_from_cli(
         "frozen_oos",
     )
     correlations = mean_factor_correlation(development, selected)
+    incremental_settings = config.section("evaluation")["factor_incremental"]
+    incremental_analysis, incremental_timeseries = build_pb_roe_incremental_analysis(
+        development,
+        candidates,
+        available,
+        incremental_settings,
+        quantiles,
+    )
     eligibility, model_correlations, model_features = build_model_factor_eligibility(
         development,
         candidates,
         available,
         config.section("evaluation")["model_input_eligibility"],
+        incremental_analysis,
     )
     candidate_directions = {
         f"{factor}_z": int(specification["direction"])
@@ -246,6 +256,15 @@ def validate_factors_from_cli(
         development,
         evaluation_sample,
         model_directions,
+        costs,
+        quantiles,
+        "exploratory_2023_2025",
+    )
+    pb_roe_ic, pb_roe_segments, pb_roe_performance = _equal_weight_outputs(
+        panel,
+        development,
+        evaluation_sample,
+        {"paper_score_z": 1},
         costs,
         quantiles,
         "exploratory_2023_2025",
@@ -269,6 +288,24 @@ def validate_factors_from_cli(
     strict_ic.to_csv(output / "equal_weight_factor_ic_timeseries.csv", index=False)
     _equal_weight_predictions(panel, selected_directions, "strict_factor_equal_weight").to_parquet(
         output / "strict_factor_equal_weight_predictions.parquet", index=False
+    )
+    _equal_weight_predictions(panel, {"paper_score_z": 1}, "pb_roe_baseline").to_parquet(
+        output / "pb_roe_baseline_predictions.parquet", index=False
+    )
+    pb_roe_segments.round(6).to_csv(
+        output / "pb_roe_baseline_ic.csv", index=False, float_format="%.6f"
+    )
+    pb_roe_performance.round(6).to_csv(
+        output / "pb_roe_baseline_performance.csv",
+        index=False,
+        float_format="%.6f",
+    )
+    pb_roe_ic.to_csv(output / "pb_roe_baseline_ic_timeseries.csv", index=False)
+    incremental_analysis.round(6).to_csv(
+        output / "factor_incremental_analysis.csv", index=False, float_format="%.6f"
+    )
+    incremental_timeseries.to_csv(
+        output / "factor_incremental_ic_timeseries.csv", index=False
     )
     eligibility.round(6).to_csv(
         output / "model_factor_eligibility.csv", index=False, float_format="%.6f"
@@ -310,6 +347,14 @@ def validate_factors_from_cli(
         "eligibility_sample": f"{settings['development_start']}/{research['development_end']}",
         "eligible_features": model_features,
         "feature_directions": model_directions,
+        "core_features": list(incremental_settings["core_features"]),
+        "incremental_features": [
+            feature
+            for feature in model_features
+            if feature not in set(incremental_settings["core_features"])
+        ],
+        "incremental_baseline_feature": incremental_settings["baseline_feature"],
+        "incremental_rules": dict(incremental_settings),
         "strict_standalone_features": selected,
         "candidate_count": len(eligibility),
         "eligible_count": len(model_features),

@@ -109,6 +109,8 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
         output / "selected_factor_correlations.csv",
     )
     for name in (
+        "factor_incremental_analysis.csv",
+        "factor_incremental_ic_timeseries.csv",
         "model_factor_eligibility.csv",
         "model_factor_correlations.csv",
         "model_feature_manifest.json",
@@ -146,6 +148,20 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
             "max_drawdown",
         ]
     ].to_csv(output / "model_input_equal_weight_baseline.csv", index=False)
+
+    pb_roe_ic = pd.read_csv(run_dir / "pb_roe_baseline_ic.csv")
+    pb_roe_performance = pd.read_csv(run_dir / "pb_roe_baseline_performance.csv")
+    pb_roe_ic = pb_roe_ic[["segment", "ic_mean", "newey_west_t"]]
+    pb_roe_performance.merge(pb_roe_ic, on="segment", validate="many_to_one")[[
+        "segment",
+        "cost_bps",
+        "ic_mean",
+        "newey_west_t",
+        "cumulative_return",
+        "annual_return",
+        "sharpe",
+        "max_drawdown",
+    ]].to_csv(output / "pb_roe_baseline.csv", index=False)
 
 
 def freeze_walk_forward_example(run_dir: Path, output: Path) -> None:
@@ -277,6 +293,7 @@ def freeze_model_summary(run_dir: Path, output: Path, stem: str, model: str) -> 
 def freeze_portfolios(run_dir: Path, output: Path) -> None:
     rows = []
     for model, stem in (
+        ("PBROE", "pb_roe_baseline"),
         ("StrictReversal", "strict_factor_equal_weight"),
         ("EligibleEqualWeight", "model_input_equal_weight"),
         ("ElasticNet", "elastic-net"),

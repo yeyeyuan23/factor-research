@@ -56,6 +56,15 @@ evaluation:
       bp: {category: Value, direction: 1}
       paper_score: {category: Value, direction: 1}
       roe: {category: Quality, direction: 1}
+  factor_incremental:
+    baseline_feature: paper_score_z
+    core_features: [bp_z, roe_z]
+    candidate_weight: 0.3333333333333333
+    cost_rate: 0.003
+    maximum_baseline_correlation: 1.01
+    minimum_residual_ic: -1.0
+    minimum_add_one_delta_ic: -1.0
+    minimum_improvement_year_rate: 0.0
   model_input_eligibility:
     minimum_valid_months: 3
     minimum_monthly_coverage: 0.50
@@ -64,6 +73,8 @@ evaluation:
     minimum_unique_values: 2
     significantly_opposite_t: -1000000.0
     maximum_absolute_correlation: 1.01
+    core_features: [bp_z, roe_z]
+    require_incremental_pass: true
     exclude_derived_features: [paper_score_z]
     representative_priority: [bp_z, roe_z]
 

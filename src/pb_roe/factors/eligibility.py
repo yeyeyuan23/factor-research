@@ -1,8 +1,8 @@
-"""Model-input eligibility based on quality, direction and redundancy.
+"""Model-input eligibility based on quality, incrementality and redundancy.
 
-This module deliberately does not select features by positive standalone return.
-Standalone alpha validation remains a separate research result; this layer only
-decides whether a primitive feature is safe and distinct enough to enter a model.
+Standalone alpha validation remains separate. Core BP and ROE are retained as
+the original PB-ROE primitives; extension features must also show development-
+sample incremental information beyond the modern PB-ROE baseline.
 """
 
 from __future__ import annotations
@@ -45,6 +45,7 @@ def build_model_factor_eligibility(
     candidates: Mapping[str, Mapping[str, object]],
     available_features: Sequence[str],
     settings: Mapping[str, object],
+    incremental_analysis: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     """Return eligibility rows, the development correlation matrix and final features."""
 
@@ -56,6 +57,13 @@ def build_model_factor_eligibility(
     opposite_t_threshold = float(settings["significantly_opposite_t"])
     correlation_threshold = float(settings["maximum_absolute_correlation"])
     excluded_derived = set(settings.get("exclude_derived_features", []))
+    core_features = set(settings.get("core_features", []))
+    require_incremental = bool(settings.get("require_incremental_pass", False))
+    incremental_by_feature = (
+        incremental_analysis.set_index("feature")
+        if incremental_analysis is not None and not incremental_analysis.empty
+        else pd.DataFrame()
+    )
     priority = list(settings.get("representative_priority", available_features))
     priority_rank = {feature: rank for rank, feature in enumerate(priority)}
 
@@ -72,6 +80,19 @@ def build_model_factor_eligibility(
         coverage_pass = coverage.ge(minimum_monthly_coverage)
         usable_unique = unique_count[coverage_pass]
         direction = int(specification["direction"])
+        core_feature = feature in core_features
+        incremental_required = bool(
+            require_incremental and not core_feature and feature not in excluded_derived
+        )
+        incremental_row = (
+            incremental_by_feature.loc[feature]
+            if not incremental_by_feature.empty and feature in incremental_by_feature.index
+            else None
+        )
+        incremental_pass = bool(
+            not incremental_required
+            or (incremental_row is not None and incremental_row["incremental_pass"])
+        )
         oriented = f"{feature}_eligibility_oriented"
         working = development.assign(**{oriented: development[feature] * direction})
         ic_summary = summarize_ic(
@@ -96,6 +117,29 @@ def build_model_factor_eligibility(
                 float(ic_summary["newey_west_t"]) <= opposite_t_threshold
             ),
             "derived_feature_exclusion": feature in excluded_derived,
+            "core_feature": core_feature,
+            "incremental_test_required": incremental_required,
+            "incremental_pass": incremental_pass,
+            "failed_incremental_checks": (
+                str(incremental_row["failed_incremental_checks"])
+                if incremental_row is not None
+                else ("missing_incremental_analysis" if incremental_required else "")
+            ),
+            "residual_ic_mean": (
+                float(incremental_row["residual_ic_mean"])
+                if incremental_row is not None
+                else float("nan")
+            ),
+            "add_one_delta_ic": (
+                float(incremental_row["add_one_delta_ic"])
+                if incremental_row is not None
+                else float("nan")
+            ),
+            "add_one_improvement_year_rate": (
+                float(incremental_row["add_one_improvement_year_rate"])
+                if incremental_row is not None
+                else float("nan")
+            ),
         }
         checks = {
             "valid_months": row["valid_months"] >= minimum_valid_months,
@@ -104,6 +148,7 @@ def build_model_factor_eligibility(
             "unique_values": row["minimum_unique_values"] >= minimum_unique_values,
             "direction": not row["direction_conflict"],
             "primitive": not row["derived_feature_exclusion"],
+            "incremental": row["incremental_pass"],
         }
         row["pre_redundancy_eligible"] = all(checks.values())
         row["failed_pre_redundancy_checks"] = "|".join(
