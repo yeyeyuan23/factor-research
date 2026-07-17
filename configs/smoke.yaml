@@ -42,7 +42,13 @@ quality:
 
 evaluation:
   factor_columns: [bp, roe, paper_score]
-  expanded_factor_columns: []
+  expanded_factor_columns:
+    - ep
+    - ocf_to_price
+    - revenue_growth
+    - momentum_12_1
+    - reversal_1m
+    - volatility_60d
   return_column: forward_return
   industry_column: industry
   factor_validation:
@@ -54,8 +60,13 @@ evaluation:
     require_positive_30bp_spread: false
     candidates:
       bp: {category: Value, direction: 1}
-      paper_score: {category: Value, direction: 1}
-      roe: {category: Quality, direction: 1}
+      ep: {category: Value, direction: 1}
+      roe: {category: Quality & Growth, direction: 1}
+      ocf_to_price: {category: Quality & Growth, direction: 1}
+      revenue_growth: {category: Quality & Growth, direction: 1}
+      momentum_12_1: {category: Market Behavior, direction: 1}
+      reversal_1m: {category: Market Behavior, direction: 1}
+      volatility_60d: {category: Risk, direction: -1}
   factor_incremental:
     baseline_feature: paper_score_z
     core_features: [bp_z, roe_z]
@@ -76,10 +87,20 @@ evaluation:
     core_features: [bp_z, roe_z]
     require_incremental_pass: true
     exclude_derived_features: [paper_score_z]
-    representative_priority: [bp_z, roe_z]
+    representative_priority:
+      - bp_z
+      - ep_z
+      - roe_z
+      - ocf_to_price_z
+      - revenue_growth_z
+      - momentum_12_1_z
+      - reversal_1m_z
+      - volatility_60d_z
 
 models:
   evidence_status: smoke_only
+  target_column: model_target
+  target_transform: cross_sectional_rank
   train_months: 12
   validation_months: 3
   minimum_train_months: 6

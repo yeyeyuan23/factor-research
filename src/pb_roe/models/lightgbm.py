@@ -97,7 +97,10 @@ def walk_forward_lightgbm_raw(
             parameters,
             random_seed,
         )
-        predicted = test[["signal_date", "security_id", target_column]].copy()
+        prediction_columns = ["signal_date", "security_id", target_column]
+        if target_column != "target_return" and "target_return" in test:
+            prediction_columns.append("target_return")
+        predicted = test[prediction_columns].copy()
         predicted["prediction"] = values
         predicted["model"] = "lightgbm"
         predicted["training_start"] = pd.Timestamp(fit_dates[0])
@@ -135,6 +138,7 @@ def walk_forward_lightgbm(
         panel,
         feature_columns,
         model_config["lightgbm"],
+        target_column=str(model_config.get("target_column", "target_return")),
         train_months=int(model_config["train_months"]),
         validation_months=int(model_config["validation_months"]),
         minimum_train_months=int(model_config["minimum_train_months"]),

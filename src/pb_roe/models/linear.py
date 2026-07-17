@@ -65,7 +65,10 @@ def walk_forward_elastic_net(
             ]
         )
         model.fit(train[features], train[target_column])
-        predicted = test[["signal_date", "security_id", target_column]].copy()
+        prediction_columns = ["signal_date", "security_id", target_column]
+        if target_column != "target_return" and "target_return" in test:
+            prediction_columns.append("target_return")
+        predicted = test[prediction_columns].copy()
         predicted["prediction"] = model.predict(test[features])
         predicted["model"] = "elastic_net"
         predicted["training_start"] = pd.Timestamp(training_dates[0])

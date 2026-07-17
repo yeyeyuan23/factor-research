@@ -51,11 +51,13 @@ def train_from_cli(
         config.fingerprint,
     )
     model_config = config.section("models")
+    target_column = str(model_config.get("target_column", "target_return"))
     if model_name == "elastic-net":
         parameters = model_config["elastic_net"]
         predictions, diagnostics = walk_forward_elastic_net(
             panel,
             features,
+            target_column=target_column,
             train_months=int(model_config["train_months"]),
             minimum_train_months=int(model_config["minimum_train_months"]),
             alpha=float(parameters["alpha"]),
@@ -127,6 +129,8 @@ def train_from_cli(
         "model": model_name,
         "config_fingerprint": config.fingerprint,
         "features": features,
+        "training_target": target_column,
+        "target_transform": model_config.get("target_transform", "raw"),
         "model_feature_manifest": str(manifest_path),
         "eligibility_sample": feature_manifest.get("eligibility_sample"),
         "strict_standalone_features": feature_manifest.get("strict_standalone_features", []),

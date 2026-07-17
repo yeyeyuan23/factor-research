@@ -51,3 +51,41 @@ def test_lightgbm_walk_forward_uses_past_training_and_validation_only() -> None:
     assert np.isfinite(predictions["prediction"]).all()
     assert diagnostics["best_iteration"].gt(0).all()
     assert set(diagnostics["feature"]) == {"x1", "x2"}
+
+
+def test_lightgbm_rank_target_predictions_keep_realized_return() -> None:
+    rows = []
+    for month in pd.date_range("2021-01-31", periods=8, freq="ME"):
+        for security in range(8):
+            rows.append(
+                {
+                    "signal_date": month,
+                    "exit_date": month + pd.offsets.MonthBegin(2),
+                    "security_id": f"S{security}",
+                    "x": float(security),
+                    "model_target": security / 7 - 0.5,
+                    "target_return": security / 100,
+                }
+            )
+    predictions, _ = walk_forward_lightgbm_raw(
+        pd.DataFrame(rows),
+        ["x"],
+        {
+            "n_estimators": 20,
+            "learning_rate": 0.05,
+            "num_leaves": 7,
+            "max_depth": 3,
+            "min_child_samples": 3,
+            "subsample": 1.0,
+            "colsample_bytree": 1.0,
+            "reg_alpha": 0.0,
+            "reg_lambda": 0.0,
+            "early_stopping_rounds": 3,
+        },
+        target_column="model_target",
+        train_months=5,
+        validation_months=1,
+        minimum_train_months=3,
+    )
+
+    assert {"model_target", "target_return"} <= set(predictions)

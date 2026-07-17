@@ -104,6 +104,7 @@ def compute_price_factors(
             {
                 "signal_date": stock.index,
                 "security_id": security_id,
+                "price": stock["close"],
                 "momentum_12_1": stock["close"].shift(21) / stock["close"].shift(252) - 1,
                 "reversal_1m": -(stock["close"] / stock["close"].shift(21) - 1),
                 "volatility_60d": returns.rolling(60, min_periods=20).std() * np.sqrt(252),

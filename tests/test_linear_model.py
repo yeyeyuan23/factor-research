@@ -35,3 +35,28 @@ def test_elastic_net_walk_forward_never_trains_on_prediction_month() -> None:
     assert (predictions["training_label_exit_end"] <= predictions["signal_date"]).all()
     assert np.isfinite(predictions["prediction"]).all()
     assert set(coefficients["feature"]) == {"x1", "x2"}
+
+
+def test_elastic_net_can_train_on_rank_target_and_keep_realized_return() -> None:
+    rows = []
+    for month in pd.date_range("2021-01-31", periods=8, freq="ME"):
+        for security in range(6):
+            rows.append(
+                {
+                    "signal_date": month,
+                    "exit_date": month + pd.offsets.MonthBegin(2),
+                    "security_id": f"S{security}",
+                    "x": float(security),
+                    "model_target": security / 5 - 0.5,
+                    "target_return": security / 100,
+                }
+            )
+    predictions, _ = walk_forward_elastic_net(
+        pd.DataFrame(rows),
+        ["x"],
+        target_column="model_target",
+        train_months=4,
+        minimum_train_months=3,
+    )
+
+    assert {"model_target", "target_return"} <= set(predictions)

@@ -3,6 +3,7 @@ import pandas as pd
 
 from pb_roe.data.providers.akshare import (
     akshare_symbol,
+    derive_ttm_per_share_metric,
     derive_ttm_roe,
     derive_ttm_roe_from_per_share,
     quarterly_report_to_long,
@@ -82,6 +83,37 @@ def test_quarterly_bulk_report_derives_ttm_roe() -> None:
     row = result[result["report_period"] == pd.Timestamp("2023-03-31")].iloc[0]
 
     assert np.isclose(row["value"], (0.3 + 1.0 - 0.2) / 2.3)
+
+
+def test_cumulative_per_share_metric_is_converted_to_pit_ttm() -> None:
+    rows = []
+    for report_period, effective_date, value in (
+        ("2022-03-31", "2022-04-30", 0.2),
+        ("2022-12-31", "2023-04-20", 1.0),
+        ("2023-03-31", "2023-05-10", 0.3),
+    ):
+        rows.append(
+            {
+                "security_id": "600519.SH",
+                "report_period": report_period,
+                "announce_date": effective_date,
+                "revision_date": pd.NaT,
+                "effective_date": effective_date,
+                "metric": "eps_cumulative",
+                "value": value,
+                "unit": "CNY/share",
+                "statement_type": "performance_report_cumulative",
+                "source": "fixture",
+            }
+        )
+
+    result = derive_ttm_per_share_metric(
+        pd.DataFrame(rows), "eps_cumulative", "eps_ttm"
+    )
+    row = result[result["report_period"].eq(pd.Timestamp("2023-03-31"))].iloc[0]
+
+    assert np.isclose(row["value"], 1.1)
+    assert row["effective_date"] == pd.Timestamp("2023-05-10")
 
 
 def test_raw_quarterly_report_uses_notice_date_not_later_update_date() -> None:

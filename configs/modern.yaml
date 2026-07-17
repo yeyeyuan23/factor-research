@@ -48,15 +48,12 @@ quality:
 evaluation:
   factor_columns: [bp, roe, paper_score]
   expanded_factor_columns:
-    - gross_margin
+    - ep
+    - ocf_to_price
     - revenue_growth
-    - earnings_growth
     - momentum_12_1
     - reversal_1m
     - volatility_60d
-    - liquidity_20d
-    - beta_252d
-    - idiosyncratic_volatility
   return_column: forward_return
   industry_column: industry
   target_neutralization: none
@@ -69,17 +66,13 @@ evaluation:
     require_positive_30bp_spread: true
     candidates:
       bp: {category: Value, direction: 1}
-      paper_score: {category: Value, direction: 1}
-      roe: {category: Quality, direction: 1}
-      gross_margin: {category: Quality, direction: 1}
-      revenue_growth: {category: Growth, direction: 1}
-      earnings_growth: {category: Growth, direction: 1}
-      momentum_12_1: {category: Momentum, direction: 1}
-      reversal_1m: {category: Momentum, direction: 1}
-      volatility_60d: {category: Risk & Trading, direction: -1}
-      liquidity_20d: {category: Risk & Trading, direction: -1}
-      beta_252d: {category: Risk & Trading, direction: -1}
-      idiosyncratic_volatility: {category: Risk & Trading, direction: -1}
+      ep: {category: Value, direction: 1}
+      roe: {category: Quality & Growth, direction: 1}
+      ocf_to_price: {category: Quality & Growth, direction: 1}
+      revenue_growth: {category: Quality & Growth, direction: 1}
+      momentum_12_1: {category: Market Behavior, direction: 1}
+      reversal_1m: {category: Market Behavior, direction: 1}
+      volatility_60d: {category: Risk, direction: -1}
   factor_incremental:
     baseline_feature: paper_score_z
     core_features: [bp_z, roe_z]
@@ -102,19 +95,18 @@ evaluation:
     exclude_derived_features: [paper_score_z]
     representative_priority:
       - bp_z
+      - ep_z
       - roe_z
-      - gross_margin_z
+      - ocf_to_price_z
       - revenue_growth_z
-      - earnings_growth_z
       - momentum_12_1_z
       - reversal_1m_z
       - volatility_60d_z
-      - liquidity_20d_z
-      - beta_252d_z
-      - idiosyncratic_volatility_z
 
 models:
   evidence_status: exploratory_after_prior_oos_review
+  target_column: model_target
+  target_transform: cross_sectional_rank
   train_months: 60
   validation_months: 12
   minimum_train_months: 24

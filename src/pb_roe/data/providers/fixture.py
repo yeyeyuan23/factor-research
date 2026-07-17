@@ -21,7 +21,8 @@ def fixture_bundle() -> DataBundle:
             "source": "fixture",
         }
     )
-    dates = pd.bdate_range("2022-01-03", "2023-12-29")
+    # One extra year is retained as price-factor warm-up for 12-1 momentum.
+    dates = pd.bdate_range("2021-01-04", "2023-12-29")
     trading_calendar = pd.DataFrame(
         {
             "trade_date": dates,
@@ -69,19 +70,43 @@ def fixture_bundle() -> DataBundle:
     prices = pd.DataFrame(price_rows)
     fundamental_rows: list[dict[str, object]] = []
     for security_index, security_id in enumerate(securities):
-        for period, announce_date in (
-            ("2021-12-31", "2022-04-15"),
-            ("2022-03-31", "2022-04-28"),
-            ("2022-06-30", "2022-08-25"),
-            ("2022-09-30", "2022-10-25"),
-            ("2022-12-31", "2023-04-15"),
-            ("2023-03-31", "2023-04-27"),
-            ("2023-06-30", "2023-08-24"),
-            ("2023-09-30", "2023-10-25"),
+        for period_index, (period, announce_date) in enumerate(
+            (
+                ("2021-03-31", "2021-04-28"),
+                ("2021-06-30", "2021-08-25"),
+                ("2021-09-30", "2021-10-25"),
+                ("2021-12-31", "2022-04-15"),
+                ("2022-03-31", "2022-04-28"),
+                ("2022-06-30", "2022-08-25"),
+                ("2022-09-30", "2022-10-25"),
+                ("2022-12-31", "2023-04-15"),
+                ("2023-03-31", "2023-04-27"),
+                ("2023-06-30", "2023-08-24"),
+                ("2023-09-30", "2023-10-25"),
+            )
         ):
+            quarter = pd.Timestamp(period).quarter
+            cumulative_fraction = quarter / 4
             for metric, value, unit in (
                 ("pb", 0.8 + security_index * 0.35, "ratio"),
                 ("roe", 0.05 + security_index * 0.025, "ratio"),
+                (
+                    "eps_cumulative",
+                    cumulative_fraction * (0.7 + security_index * 0.12)
+                    + 0.01 * (period_index // 4),
+                    "CNY/share",
+                ),
+                (
+                    "operating_cash_flow_per_share",
+                    cumulative_fraction * (0.9 + security_index * 0.10)
+                    + 0.015 * (period_index // 4),
+                    "CNY/share",
+                ),
+                (
+                    "revenue_growth",
+                    0.04 + security_index * 0.012 + 0.002 * (period_index // 4),
+                    "ratio",
+                ),
             ):
                 fundamental_rows.append(
                     {

@@ -375,3 +375,67 @@ def derive_ttm_roe_from_per_share(fundamentals: pd.DataFrame) -> pd.DataFrame:
                 }
             )
     return pd.DataFrame(rows, columns=SCHEMAS["fundamentals"])
+
+
+def derive_ttm_per_share_metric(
+    fundamentals: pd.DataFrame,
+    source_metric: str,
+    output_metric: str,
+) -> pd.DataFrame:
+    """Convert a cumulative per-share metric to PIT TTM observations.
+
+    Interim reports in the Eastmoney bulk feed are year-to-date values.  A
+    trailing-twelve-month value therefore combines the current cumulative
+    observation with the previous annual report and subtracts the previous
+    year's same-period cumulative observation.  The derived record only
+    becomes usable after every component has become effective.
+    """
+
+    selected = fundamentals[fundamentals["metric"].eq(source_metric)].copy()
+    if selected.empty:
+        return pd.DataFrame(columns=SCHEMAS["fundamentals"])
+    selected["report_period"] = pd.to_datetime(selected["report_period"]).dt.normalize()
+    selected["effective_date"] = pd.to_datetime(selected["effective_date"]).dt.normalize()
+    selected = selected.sort_values(
+        ["security_id", "report_period", "effective_date"]
+    ).drop_duplicates(["security_id", "report_period"], keep="last")
+    rows: list[dict[str, object]] = []
+    for security_id, stock in selected.groupby("security_id", sort=False):
+        stock = stock.set_index("report_period").sort_index()
+        for report_period, current in stock.iterrows():
+            current_value = pd.to_numeric(current["value"], errors="coerce")
+            component_dates = [current["effective_date"]]
+            if report_period.month == 12:
+                ttm_value = current_value
+            else:
+                prior_annual = pd.Timestamp(report_period.year - 1, 12, 31)
+                prior_same = report_period - pd.DateOffset(years=1)
+                if prior_annual not in stock.index or prior_same not in stock.index:
+                    continue
+                annual_value = pd.to_numeric(stock.loc[prior_annual, "value"], errors="coerce")
+                prior_value = pd.to_numeric(stock.loc[prior_same, "value"], errors="coerce")
+                ttm_value = current_value + annual_value - prior_value
+                component_dates.extend(
+                    [
+                        stock.loc[prior_annual, "effective_date"],
+                        stock.loc[prior_same, "effective_date"],
+                    ]
+                )
+            if not np.isfinite(ttm_value) or any(pd.isna(value) for value in component_dates):
+                continue
+            effective_date = max(pd.Timestamp(value) for value in component_dates)
+            rows.append(
+                {
+                    "security_id": security_id,
+                    "report_period": report_period,
+                    "announce_date": effective_date,
+                    "revision_date": pd.NaT,
+                    "effective_date": effective_date,
+                    "metric": output_metric,
+                    "value": float(ttm_value),
+                    "unit": str(current["unit"]),
+                    "statement_type": "derived_ttm_per_share",
+                    "source": "akshare_eastmoney_yjbb_derived",
+                }
+            )
+    return pd.DataFrame(rows, columns=SCHEMAS["fundamentals"])
