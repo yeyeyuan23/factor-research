@@ -1,13 +1,15 @@
 {
   "modern_run": "results/runs/modern-pb-roe",
   "paper_run": "results/runs/paper-reproduction",
-  "config_fingerprint": "e1a9997cc505fc26",
+  "config_fingerprint": "7db2bcd810915c31",
   "canonical_input_manifest_sha256": "47b90c9e50996fa6a4e5026c79ad022b59f3f2cc5280f2a5864d03cd1977f8d9",
   "files": [
     "core_factor_validation.csv",
     "elastic-net_coefficient_summary.csv",
     "elastic_net_summary.csv",
     "equal_weight_factor_baseline.csv",
+    "factor_incremental_analysis.csv",
+    "factor_incremental_ic_timeseries.csv",
     "factor_validation_summary.csv",
     "lightgbm_feature_importance_summary.csv",
     "lightgbm_summary.csv",
@@ -17,6 +19,7 @@
     "modern_factor_baseline.csv",
     "modern_factor_segments.csv",
     "paper_reproduction_full.csv",
+    "pb_roe_baseline.csv",
     "portfolio_model_comparison.csv",
     "selected_factor_correlations.csv",
     "walk_forward_example.csv"

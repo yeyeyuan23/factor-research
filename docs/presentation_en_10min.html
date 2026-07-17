@@ -325,7 +325,7 @@
       <h1>Reproducing and<br>Modernizing the<br><span class="accent">PB–ROE Strategy</span></h1>
       <p class="subtitle">From a 2011 stock-selection rule to a modern, point-in-time factor portfolio</p>
       <p class="title-meta">10-minute research presentation · CSI 300 · Audited point-in-time workflow</p>
-      <aside class="speaker-notes">Good morning. My project asks how a Chinese PB–ROE rule published in 2011 changes when it is rebuilt as a modern point-in-time research process. I reproduce the historical rule, re-evaluate it, test twelve candidates, separate standalone evidence from model eligibility, compare a simple eleven-factor benchmark with Elastic Net and LightGBM, and build constrained portfolios. The historical rule is broadly reproducible. Simple multi-factor diversification is promising, but machine learning adds no value over equal weighting, and the positive revised result is exploratory rather than untouched out of sample.</aside>
+      <aside class="speaker-notes">Good morning. My project rebuilds a Chinese PB–ROE rule published in 2011 as a modern point-in-time research process. I reproduce the historical rule, diagnose modern PB–ROE, require every extension to prove incremental information beyond that baseline, compare an eight-factor equal-weight score with Elastic Net and LightGBM, and build constrained portfolios. The historical rule is broadly reproducible. Simple diversification improves the baseline, but machine learning adds no value over equal weighting, and the revised result is exploratory rather than untouched out of sample.</aside>
     </section>
 
     <section class="slide" data-title="Economic logic">
@@ -380,8 +380,8 @@
           <div class="engine-facts">
             <div><b>Historical CSI 300</b>Active membership interval at every signal date</div>
             <div><b>Standardized cross-sections</b>Monthly winsorization and z-score</div>
-            <div><b>82 automated tests</b>PIT, factors, models, portfolio and reporting</div>
-            <div><b>27 release audits</b>Hashes, leakage, manifests, four portfolios and offline report</div>
+            <div><b>87 automated tests</b>PIT, factors, models, portfolio and reporting</div>
+            <div><b>31 release audits</b>Hashes, leakage, incrementality, five portfolios and offline report</div>
           </div>
         </div>
         <div class="ai-panel">
@@ -391,7 +391,7 @@
           <div class="ai-block"><b>Independent checks</b><p>Git commits, deterministic seeds, tests, data/result hashes and Python-generated figures.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">The project is an executable cross-sectional research environment, not a spreadsheet backtest. Five canonical Parquet tables feed a point-in-time monthly panel. Twelve factors are winsorized at one and ninety-nine percent and standardized within each month. The same panel supports IC, quantile tests, walk-forward models and a constrained CVXPY portfolio. AI assisted specification review, implementation, debugging and documentation. I retained responsibility for the research choices and conclusions. Eighty-two automated tests, twenty-seven release audits, deterministic plots and hashes provide independent checks, so AI output is never accepted merely because it sounds plausible.</aside>
+      <aside class="speaker-notes">The project is an executable cross-sectional research environment, not a spreadsheet backtest. Five canonical Parquet tables feed a point-in-time monthly panel. Twelve factors are winsorized at one and ninety-nine percent and standardized within each month. The same panel supports IC, quantile tests, incremental screening, walk-forward models and a constrained CVXPY portfolio. AI assisted specification review, implementation, debugging and documentation. I retained responsibility for the research choices and conclusions. Eighty-seven automated tests and thirty-one release audits independently verify the result.</aside>
     </section>
 
     <section class="slide" data-title="Time design">
@@ -401,7 +401,7 @@
         <div class="period"><small>Historical test</small><b>2005–2011</b><p>18 original-paper holding periods. This is the only window used for historical reproduction.</p></div>
         <div class="period"><small>Warm-up</small><b>2010–Apr 2012</b><p>Price history for momentum, beta, volatility and covariance. It is input history, not a missing backtest.</p></div>
         <div class="period"><small>Modern research</small><b>May 2012–2022</b><p>Modern PB–ROE evaluation begins in 2012. Factor selection and model development use 2015–2022.</p></div>
-        <div class="period"><small>Evidence split</small><b>2023–2025</b><p>Prior OOS for the strict reversal rule; exploratory history for the revised 11-factor models.</p></div>
+        <div class="period"><small>Evidence split</small><b>2023–2025</b><p>Prior OOS for strict reversal; exploratory history for the revised 8-factor models.</p></div>
       </div>
       <div class="point-in-time">
         <div><b>Signal</b>Month-end close</div>
@@ -409,7 +409,7 @@
         <div><b>Trade</b>Next trading-day open</div>
         <div><b>Label</b>Usable only after its exit date</div>
       </div>
-      <aside class="speaker-notes">The original reproduction is separate from the modern study and has eighteen real holding periods from 2005 to 2011. In the modern line, 2010 to April 2012 only supplies trailing prices for momentum, beta, volatility and covariance; it is input history, not a missing backtest. Modern PB–ROE evaluation starts in May 2012 when financial coverage becomes usable. Standalone gates and feature eligibility use 2015 through 2022. The strict reversal rule was fixed before the 2023 to 2025 test, but the revised eleven-factor design was created after that period had been inspected, so the same dates are exploratory for the revised models. Every fold still excludes unfinished labels, which prevents code leakage but does not turn observed history back into untouched evidence.</aside>
+      <aside class="speaker-notes">The original reproduction is separate and contains eighteen real holding periods from 2005 to 2011. In the modern line, 2010 to April 2012 supplies trailing prices for momentum, beta, volatility and covariance; it is input history, not a missing backtest. Modern PB–ROE evaluation starts in May 2012. Standalone gates and PB–ROE incremental screening use 2015 through 2022. Strict reversal was fixed before the 2023 to 2025 test, but the revised eight-factor design was created after that period had been inspected, so the same dates are exploratory for the revised models. Every fold still excludes unfinished labels.</aside>
     </section>
 
     <section class="slide" data-title="Historical reproduction">
@@ -517,22 +517,22 @@
         <img data-factor="earnings-growth" data-kind="ic" data-src="results/figures/factor-analysis-12/earnings-growth-ic.png" alt="">
         <img data-factor="earnings-growth" data-kind="quantiles" data-src="results/figures/factor-analysis-12/earnings-growth-quantiles.png" alt="">
       </template>
-      <aside class="speaker-notes">I test twelve candidates with five identical development gates: IC, Newey–West significance, positive-year stability, five-group monotonicity and a positive spread after thirty basis points. Only one-month reversal passes all five. This is the standalone strategy test, not the model-input test. A factor that misses one trading gate may still add diversified information if its data, direction and redundancy checks pass. Eleven primitive factors qualify for the shared model manifest; derived PB–ROE is excluded because BP and ROE are already present. Each interactive tile shows the factor’s market pattern, possible mechanism, limitation, monthly IC and five-group result.</aside>
+      <aside class="speaker-notes">I test twelve candidates with five identical development gates: IC, Newey–West significance, positive-year stability, five-group monotonicity and a positive spread after thirty basis points. Only one-month reversal passes all five, and its later IC falls to minus 1.89 percent. This standalone test is preserved as negative evidence. It is not enough for model eligibility: an extension must separately prove residual information and Add-one improvement beyond PB–ROE. Each interactive tile shows the factor’s market pattern, mechanism, limitation, monthly IC and five-group result.</aside>
     </section>
 
     <section class="slide" data-title="Two-layer factor evidence">
-      <p class="eyebrow">07 · Two-layer factor evidence</p>
-      <h2>The strict winner failed; diversified weak signals remain testable</h2>
+      <p class="eyebrow">07 · From PB–ROE diagnosis to factor extensions</p>
+      <h2>Six extensions add development-sample information beyond PB–ROE</h2>
       <div class="visual-grid wide">
-        <div class="figure-wrap"><img src="results/figures/presentation-en/04-frozen-factor-test.png" alt="PB–ROE and frozen-factor comparison"></div>
+        <div class="figure-wrap"><img src="results/figures/presentation-en/04-factor-incrementality.png" alt="Residual IC, Add-one IC and yearly improvement for nine PB–ROE extensions"></div>
         <div class="facts">
-          <div class="fact orange"><span class="number">−1.89%</span><p>Prior-OOS IC for the strict reversal winner.</p></div>
-          <div class="fact"><span class="number">11</span><p>Primitive factors pass data, direction and redundancy eligibility.</p></div>
-          <div class="fact green"><span class="number">8.37%</span><p>Exploratory IC for direction-adjusted 11-factor equal weight.</p></div>
-          <div class="fact"><p><b>No gate was relaxed.</b><br>Standalone validity and model eligibility answer different questions.</p></div>
+          <div class="fact green"><span class="number">6 / 9</span><p>Extensions pass residual IC, Add-one IC and yearly-improvement gates.</p></div>
+          <div class="fact"><span class="number">8</span><p>Final inputs: core BP and ROE plus six incremental extensions.</p></div>
+          <div class="fact orange"><span class="number">−1.89%</span><p>Strict reversal still fails its prior-OOS standalone test.</p></div>
+          <div class="fact"><p><b>No outcome-driven relaxation.</b><br>The incremental rules were frozen before this rerun.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">The strict list still contains only one-month reversal, and it still fails its prior out-of-sample test with IC minus 1.89 percent. I do not erase that result. I add a separate industry-style eligibility layer: a feature must have point-in-time data, broad coverage, enough variation, no significant conflict with its pre-declared direction and no near-duplicate above 0.85 correlation. Eleven primitive factors qualify. PB–ROE is excluded from the model because it is derived from BP and ROE. Their direction-adjusted equal-weight score has exploratory IC 8.37 percent. This is evidence for diversification, not proof from untouched data.</aside>
+      <aside class="speaker-notes">This slide is the bridge from the PB–ROE diagnosis to the modern extension. BP and ROE are the core. For each of nine other candidates, I regress it on BP and ROE each month and test the residual IC. I then add one-third of the candidate to two-thirds PB–ROE and require a positive IC improvement in at least half of development years. Momentum, reversal, low total volatility, low liquidity, low beta and low idiosyncratic volatility pass. Gross margin, revenue growth and earnings growth fail. The final manifest therefore has eight inputs.</aside>
     </section>
 
     <section class="slide model-slide" data-title="Walk-forward models">
@@ -544,10 +544,10 @@
           <div class="fact"><p><b>Evidence status</b><br>Prior OOS for strict reversal; exploratory for the revised models.</p></div>
           <div class="fact"><p><b>Inside each fold</b><br>Use 60 mature months; LightGBM fits 48 and validates on 12.</p></div>
           <div class="fact orange"><p><b>Monthly roll</b><br>The newest unfinished label is excluded, then the window moves one month.</p></div>
-          <div class="fact"><p><b>Exploratory IC</b><br>Equal weight 8.37%; Elastic Net 1.93%; LightGBM 3.58%.</p></div>
+          <div class="fact"><p><b>Exploratory IC</b><br>PB–ROE 7.22%; 8-factor EW 10.91%; Elastic Net 1.91%; LightGBM 3.48%.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">The upper bar separates warm-up history, modern evaluation, 2015-to-2022 development and the final historical segment. For the revised models, that segment is exploratory because it had already been inspected. The lower panel shows consecutive forecasts. Each fold uses at most sixty mature months and rolls one month forward. LightGBM fits the earlier forty-eight and validates on the final twelve in time order; Elastic Net uses the full mature window. The red segment is an unfinished label and is excluded. The simple equal-weight IC is 8.37 percent, versus 1.93 for Elastic Net and 3.58 for LightGBM. More flexible weighting adds estimation error rather than incremental signal.</aside>
+      <aside class="speaker-notes">Each fold uses at most sixty mature months and rolls one month forward. LightGBM fits the earlier forty-eight and validates on the final twelve in time order; Elastic Net uses the full mature window. The unfinished label is excluded. In exploratory history, PB–ROE IC is 7.22 percent and eight-factor equal weight reaches 10.91 percent. Elastic Net has 1.91 percent and LightGBM 3.48 percent. More flexible weighting adds estimation error rather than incremental signal.</aside>
     </section>
 
     <section class="slide" data-title="Portfolio results">
@@ -556,13 +556,13 @@
       <div class="visual-grid wide">
         <div class="figure-wrap"><img src="results/figures/presentation-en/06-portfolio-comparison.png" alt="Frozen-period return, Sharpe and drawdown comparison"></div>
         <div class="facts">
-          <div class="fact green"><span class="number">9.76%</span><p>11-factor equal-weight annualized return after 30 bp.</p></div>
-          <div class="fact orange"><span class="number">1.85%</span><p>Elastic Net annualized return after 30 bp.</p></div>
-          <div class="fact"><span class="number">5.24%</span><p>LightGBM versus 5.58% for the proxy benchmark.</p></div>
-          <div class="fact orange"><p>Turnover uses drifted pre-trade weights; static current-industry constraints are disabled.</p></div>
+          <div class="fact green"><span class="number">15.87%</span><p>8-factor equal-weight annualized return after 30 bp.</p></div>
+          <div class="fact"><span class="number">11.56%</span><p>PB–ROE baseline annualized return after 30 bp.</p></div>
+          <div class="fact orange"><span class="number">1.65%</span><p>Elastic Net; LightGBM earns 5.25% versus a 5.58% proxy benchmark.</p></div>
+          <div class="fact orange"><p>Costs include forced exits; the 30% discretionary cap expands only to an audited unavoidable floor.</p></div>
         </div>
       </div>
-      <aside class="speaker-notes">I send all four signals through the same fully invested, long-only optimizer with a three-percent stock cap, a thirty-percent turnover limit and transaction costs. Turnover is measured from drifted pre-trade weights, and static current-industry constraints are disabled. After thirty basis points, the eleven-factor equal-weight signal earns 9.76 percent annualized with Sharpe 0.54 and maximum drawdown minus 12.29 percent. Elastic Net earns 1.85 percent, LightGBM 5.24 percent and the proxy benchmark 5.58 percent. The simplest diversified score is best, but the period is exploratory.</aside>
+      <aside class="speaker-notes">I send PB–ROE, eight-factor equal weight, Elastic Net and LightGBM through the same fully invested, long-only optimizer. After thirty basis points, the proxy benchmark earns 5.58 percent, PB–ROE earns 11.56 percent and eight-factor equal weight earns 15.87 percent with Sharpe 0.86 and maximum drawdown minus 12.25 percent. Elastic Net earns 1.65 percent and LightGBM 5.25 percent. Costs include every trade. The thirty-percent discretionary turnover cap expands only when forced exits make it mathematically impossible, and only to the audited minimum.</aside>
     </section>
 
     <section class="slide" data-title="Conclusion">
@@ -583,13 +583,13 @@
           <ul>
             <li>The original paper is not reproduced field by field.</li>
             <li>The development-selected reversal signal does not persist after 2022.</li>
-            <li>Elastic Net and LightGBM do not beat the 11-factor equal-weight baseline.</li>
+            <li>Elastic Net and LightGBM do not beat the 8-factor equal-weight baseline.</li>
             <li>The revised positive result is not untouched out of sample.</li>
           </ul>
         </div>
       </div>
       <div class="closing">The MVP result: diversify reliable weak signals; do not assume complexity is alpha.</div>
-      <aside class="speaker-notes">To conclude, historical PB–ROE is broadly reproducible and retains modern ranking information. The only standalone development winner fails its prior out-of-sample test. A separate eligibility audit finds eleven usable primitive inputs, and their simple direction-adjusted equal weight is promising. Elastic Net and LightGBM do not improve on that baseline. The main contribution is a complete point-in-time process that preserves negative evidence, compares complexity against a simple benchmark and labels revised results honestly. The decisive next step is new data after this code and manifest freeze. Thank you.</aside>
+      <aside class="speaker-notes">To conclude, historical PB–ROE is broadly reproducible and retains modern ranking information. The standalone winner fails its prior out-of-sample test. A separate incremental audit finds six extensions beyond PB and ROE, and their eight-factor equal-weight score is promising. Elastic Net and LightGBM do not improve on that baseline. The main contribution is a point-in-time process that connects diagnosis to extension, preserves negative evidence, compares complexity with a simple benchmark and labels revised results honestly. The decisive next step is new data after this code and manifest freeze. Thank you.</aside>
     </section>
   </main>
 

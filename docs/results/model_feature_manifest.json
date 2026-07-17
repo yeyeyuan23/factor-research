@@ -1,13 +1,10 @@
 {
-  "config_fingerprint": "e1a9997cc505fc26",
+  "config_fingerprint": "7db2bcd810915c31",
   "canonical_input_manifest_sha256": "47b90c9e50996fa6a4e5026c79ad022b59f3f2cc5280f2a5864d03cd1977f8d9",
   "eligibility_sample": "2015-01-01/2022-12-31",
   "eligible_features": [
     "bp_z",
     "roe_z",
-    "gross_margin_z",
-    "revenue_growth_z",
-    "earnings_growth_z",
     "momentum_12_1_z",
     "reversal_1m_z",
     "volatility_60d_z",
@@ -18,9 +15,6 @@
   "feature_directions": {
     "bp_z": 1,
     "roe_z": 1,
-    "gross_margin_z": 1,
-    "revenue_growth_z": 1,
-    "earnings_growth_z": 1,
     "momentum_12_1_z": 1,
     "reversal_1m_z": 1,
     "volatility_60d_z": -1,
@@ -28,11 +22,37 @@
     "beta_252d_z": -1,
     "idiosyncratic_volatility_z": -1
   },
+  "core_features": [
+    "bp_z",
+    "roe_z"
+  ],
+  "incremental_features": [
+    "momentum_12_1_z",
+    "reversal_1m_z",
+    "volatility_60d_z",
+    "liquidity_20d_z",
+    "beta_252d_z",
+    "idiosyncratic_volatility_z"
+  ],
+  "incremental_baseline_feature": "paper_score_z",
+  "incremental_rules": {
+    "baseline_feature": "paper_score_z",
+    "core_features": [
+      "bp_z",
+      "roe_z"
+    ],
+    "candidate_weight": 0.3333333333333333,
+    "cost_rate": 0.003,
+    "maximum_baseline_correlation": 0.85,
+    "minimum_residual_ic": 0.0,
+    "minimum_add_one_delta_ic": 0.0,
+    "minimum_improvement_year_rate": 0.5
+  },
   "strict_standalone_features": [
     "reversal_1m_z"
   ],
   "candidate_count": 12,
-  "eligible_count": 11,
+  "eligible_count": 8,
   "evaluation_period": "2023-01-01/2025-12-31",
   "evaluation_status": "exploratory_after_prior_oos_review",
   "rules": {
@@ -43,6 +63,11 @@
     "minimum_unique_values": 20,
     "significantly_opposite_t": -2.0,
     "maximum_absolute_correlation": 0.85,
+    "core_features": [
+      "bp_z",
+      "roe_z"
+    ],
+    "require_incremental_pass": true,
     "exclude_derived_features": [
       "paper_score_z"
     ],

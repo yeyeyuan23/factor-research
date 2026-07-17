@@ -9,10 +9,10 @@
 - 原研报主复现：`configs/paper.yaml`，2005–2011完整18期；
 - 现代主实验：`configs/modern.yaml`，历史沪深300，2012–2014评价准备，2015–2022开发，2023–2025历史检验；
 - 严格单因子结论：开发期唯一通过全部交易门槛的是1个月反转，但它在预先冻结的2023–2025检验中IC转负；
-- 模型输入资格：11个原始因子通过PIT、覆盖率、方向与冗余审计；派生的PB-ROE分数不与BP、ROE重复输入；
-- 预测模型：11因子简单等权、Elastic Net线性主模型与唯一树模型LightGBM使用同一输入；
-- 当前结果：11因子等权在2023–2025探索性历史检验中优于基准，Elastic Net与LightGBM均未优于简单等权；该区间已经被观察，不能称为新版模型的真正冻结样本外；
-- 自动测试82项通过；正式最终审计27/27通过；deterministic smoke全链路27/27通过。
+- PB-ROE增量资格：BP和ROE为核心；9个扩展候选中，12–1月动量、1个月反转、低总波动、低流动性、低Beta和低特异波动通过残差IC、Add-one IC与年度稳定性门槛；
+- 预测模型：8因子简单等权、Elastic Net与唯一树模型LightGBM读取同一manifest；PB-ROE作为必须比较的基线，不与BP、ROE重复输入模型；
+- 当前结果：8因子等权在2023–2025探索性历史检验中优于PB-ROE与基准，Elastic Net与LightGBM均未优于简单等权；该区间已经被观察，不能称为新版模型的真正冻结样本外；
+- 自动测试87项通过；正式最终审计31/31通过；deterministic smoke全链路31/31通过。
 
 当前正式结果、限制和证据强弱以最终研究报告为准，不以README中的摘要替代研究结论。
 
@@ -116,6 +116,12 @@ $PY -m pb_roe optimize \
   --config configs/modern.yaml \
   --input-dir "$MODERN_DATA" \
   --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
+  --prediction-file results/runs/modern-pb-roe/pb_roe_baseline_predictions.parquet
+
+$PY -m pb_roe optimize \
+  --config configs/modern.yaml \
+  --input-dir "$MODERN_DATA" \
+  --factor-file results/runs/modern-pb-roe/model_factor_panel.parquet \
   --prediction-file results/runs/modern-pb-roe/strict_factor_equal_weight_predictions.parquet
 
 $PY -m pb_roe optimize \
@@ -162,6 +168,7 @@ $PY scripts/freeze_results.py
 .venv/bin/python scripts/plot_all_factor_analysis.py --help
 .venv/bin/python scripts/plot_modern_core_factors.py --help
 .venv/bin/python scripts/plot_model_comparison.py --help
+.venv/bin/python scripts/plot_factor_incremental.py --help
 .venv/bin/python scripts/plot_signal_method_comparison.py --help
 .venv/bin/python scripts/plot_portfolio_analysis.py --help
 .venv/bin/python scripts/plot_paper_reproduction.py --help
@@ -185,10 +192,10 @@ $PY scripts/freeze_results.py
 - ROE首次公告滞后、规范输入manifest和配置指纹；
 - Elastic Net和LightGBM训练、验证、预测的时间顺序，以及收益标签退出日在预测日前已经实现；
 - 静态行业不进入正式历史目标或组合约束；
-- 满仓、非负权重、3%单票上限和漂移后30%换手上限；
+- 满仓、非负权重、3%单票上限和漂移后30%可自主换手上限；若强制退出和单票上限修复已使30%不可行，只扩展到逐月审计的不可避免下限，成本仍按全部换手收取；
 - Dashboard不依赖外部Plotly CDN；
 - 严格因子2023–2025冻结检验与新版多因子模型探索性检验的证据标签；
-- 模型输入manifest、派生特征排除以及两模型特征完全一致；
+- PB-ROE增量分析、核心BP/ROE、Add-one规则、派生特征排除以及两模型特征完全一致；
 - 冻结结果文件SHA-256清单。
 
 机器可读摘要见[`docs/results/final_audit_summary.json`](docs/results/final_audit_summary.json)。
@@ -238,4 +245,4 @@ factor-research/
 - BaoStock行业字段是当前静态快照，因此正式现代层未做历史行业约束；
 - 缺少可靠历史沪深300真实权重和历史总市值，现代基准使用成分等权代理；
 - 组合缺失下一月收益当前按0计，尚未实现完整退市/长期停牌持仓账本；
-- 11因子等权在已观察的2023–2025历史区间跑赢基准，但这仍是探索性结果，不能宣称获得可持续样本外Alpha。
+- 8因子等权在已观察的2023–2025历史区间跑赢PB-ROE与基准，但这仍是探索性结果，不能宣称获得可持续样本外Alpha。

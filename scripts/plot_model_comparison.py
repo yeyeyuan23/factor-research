@@ -64,7 +64,7 @@ def plot_segment_comparison(run_dir: Path, output: Path) -> None:
     axes[1].set_title("Newey–West t值", fontweight="bold")
     axes[1].axhline(2, color="#777777", linestyle="--", linewidth=1.2, label="t = 2")
     axes[1].legend(frameon=False)
-    figure.suptitle("11因子模型输入：预测能力对比", fontsize=16, fontweight="bold")
+    figure.suptitle("8因子模型输入：预测能力对比", fontsize=16, fontweight="bold")
     figure.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")

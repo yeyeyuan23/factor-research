@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare strict, eligible equal-weight, and model IC with Matplotlib."""
+"""Compare PB-ROE, eligible equal-weight, and model IC with Matplotlib."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 COLORS = {
-    "严格反转信号": "#7a7f87",
-    "11因子等权": "#2a9d6f",
+    "PB-ROE": "#7a7f87",
+    "8因子等权": "#2a9d6f",
     "Elastic Net": "#2878b5",
     "LightGBM": "#d65a31",
 }
@@ -22,18 +22,13 @@ SEGMENTS = {
 
 
 def load_results(run_dir: Path) -> pd.DataFrame:
-    strict = pd.read_csv(run_dir / "equal_weight_factor_ic.csv").assign(
-        method="严格反转信号"
-    )
-    strict["segment"] = strict["segment"].replace(
-        {"frozen_oos": "exploratory_2023_2025"}
-    )
+    pb_roe = pd.read_csv(run_dir / "pb_roe_baseline_ic.csv").assign(method="PB-ROE")
     eligible = pd.read_csv(run_dir / "model_input_equal_weight_ic.csv").assign(
-        method="11因子等权"
+        method="8因子等权"
     )
     elastic = pd.read_csv(run_dir / "elastic-net_ic_segments.csv").assign(method="Elastic Net")
     lightgbm = pd.read_csv(run_dir / "lightgbm_ic_segments.csv").assign(method="LightGBM")
-    return pd.concat([strict, eligible, elastic, lightgbm], ignore_index=True)
+    return pd.concat([pb_roe, eligible, elastic, lightgbm], ignore_index=True)
 
 
 def plot(frame: pd.DataFrame, output: Path) -> None:
@@ -66,7 +61,7 @@ def plot(frame: pd.DataFrame, output: Path) -> None:
     axes[0].legend(frameon=False)
     axes[1].set_title("Newey–West t值", fontweight="bold")
     axes[1].axhline(2, color="#777777", linestyle="--", linewidth=1.2)
-    figure.suptitle("严格信号、合格多因子等权与模型预测能力", fontsize=16)
+    figure.suptitle("PB-ROE基线、增量合格因子等权与模型预测能力", fontsize=16)
     figure.tight_layout()
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output, bbox_inches="tight")

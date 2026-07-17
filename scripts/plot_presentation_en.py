@@ -185,45 +185,50 @@ def factor_gates(results: Path, output: Path) -> None:
     save(figure, output)
 
 
-def frozen_factor_test(results: Path, output: Path) -> None:
-    factors = pd.read_csv(results / "factor_validation_summary.csv").set_index("factor")
-    strict = pd.read_csv(results / "equal_weight_factor_baseline.csv")
-    strict_30 = strict[strict["cost_bps"] == 30].set_index("segment")
-    eligible = pd.read_csv(results / "model_input_equal_weight_baseline.csv")
-    eligible_30 = eligible[eligible["cost_bps"] == 30].set_index("segment")
-    labels = [
-        "PB–ROE\nDevelopment",
-        "Strict reversal\nDevelopment",
-        "Strict reversal\nPrior OOS",
-        "11-factor EW\nExploratory",
-    ]
-    ic = [
-        factors.loc["paper_score", "development_ic_mean"] * 100,
-        strict_30.loc["development", "ic_mean"] * 100,
-        strict_30.loc["frozen_oos", "ic_mean"] * 100,
-        eligible_30.loc["exploratory_2023_2025", "ic_mean"] * 100,
-    ]
-    returns = [
-        factors.loc["paper_score", "long_short_annual_return_30bp"] * 100,
-        strict_30.loc["development", "annual_return"] * 100,
-        strict_30.loc["frozen_oos", "annual_return"] * 100,
-        eligible_30.loc["exploratory_2023_2025", "annual_return"] * 100,
-    ]
-    colors = [GRAY, GREEN, BLUE, ORANGE]
-    figure, axes = plt.subplots(1, 2, figsize=(12.8, 4.8))
-    for axis, values, title, ylabel in (
-        (axes[0], ic, "Rank IC", "Mean Rank IC (%)"),
-        (axes[1], returns, "30 bp long–short return", "Annualized return (%)"),
-    ):
-        bars = axis.bar(range(4), values, color=colors)
-        axis.bar_label(bars, fmt="%.2f", padding=3)
-        axis.set_xticks(range(4), labels)
+def factor_incrementality(results: Path, output: Path) -> None:
+    frame = pd.read_csv(results / "factor_incremental_analysis.csv")
+    names = {
+        "gross_margin": "Gross margin",
+        "revenue_growth": "Revenue growth",
+        "earnings_growth": "Earnings growth",
+        "momentum_12_1": "12–1 momentum",
+        "reversal_1m": "1M reversal",
+        "volatility_60d": "Low total vol",
+        "liquidity_20d": "Low liquidity",
+        "beta_252d": "Low beta",
+        "idiosyncratic_volatility": "Low idio vol",
+    }
+    frame["label"] = frame["factor"].map(names)
+    colors = frame["incremental_pass"].map({True: GREEN, False: GRAY})
+    x = np.arange(len(frame))
+    figure, axes = plt.subplots(1, 3, figsize=(15, 5.2))
+    specs = (
+        ("residual_ic_mean", 100, "Residual Rank IC", "Mean IC (%)", 0),
+        ("add_one_delta_ic", 100, "Add-one IC improvement", "Delta IC (pp)", 0),
+        (
+            "add_one_improvement_year_rate",
+            100,
+            "Years beating PB–ROE",
+            "Development years (%)",
+            50,
+        ),
+    )
+    for axis, (column, scale, title, ylabel, gate) in zip(axes, specs, strict=True):
+        values = frame[column] * scale
+        bars = axis.bar(x, values, color=colors)
+        axis.bar_label(bars, fmt="%.1f", padding=2, fontsize=8)
+        axis.set_xticks(x, frame["label"], rotation=55, ha="right")
         axis.set_title(title, weight="bold")
         axis.set_ylabel(ylabel)
+        axis.axhline(gate, color="#333333", linewidth=1, linestyle="--")
         axis.grid(axis="y", alpha=0.22)
-    figure.suptitle(
-        "The strict winner failed; qualified multi-factor diversification is exploratory"
+    figure.legend(
+        handles=[Patch(color=GREEN, label="Eligible"), Patch(color=GRAY, label="Rejected")],
+        frameon=False,
+        loc="center left",
+        bbox_to_anchor=(0.995, 0.5),
     )
+    figure.suptitle("Six extensions add development-sample information beyond PB–ROE")
     save(figure, output)
 
 
@@ -376,28 +381,28 @@ def portfolio_comparison(results: Path, output: Path) -> None:
     ].set_index("model")
     labels = [
         "CSI 300 EW",
-        "Strict reversal",
-        "11-factor EW",
+        "PB–ROE",
+        "8-factor EW",
         "Elastic Net",
         "LightGBM",
     ]
     returns = [
         evaluation.loc["EligibleEqualWeight", "benchmark_annual_return"] * 100,
-        evaluation.loc["StrictReversal", "net_annual_return"] * 100,
+        evaluation.loc["PBROE", "net_annual_return"] * 100,
         evaluation.loc["EligibleEqualWeight", "net_annual_return"] * 100,
         evaluation.loc["ElasticNet", "net_annual_return"] * 100,
         evaluation.loc["LightGBM", "net_annual_return"] * 100,
     ]
     sharpes = [
         evaluation.loc["EligibleEqualWeight", "benchmark_sharpe"],
-        evaluation.loc["StrictReversal", "net_sharpe"],
+        evaluation.loc["PBROE", "net_sharpe"],
         evaluation.loc["EligibleEqualWeight", "net_sharpe"],
         evaluation.loc["ElasticNet", "net_sharpe"],
         evaluation.loc["LightGBM", "net_sharpe"],
     ]
     drawdowns = [
         evaluation.loc["EligibleEqualWeight", "benchmark_max_drawdown"] * 100,
-        evaluation.loc["StrictReversal", "net_max_drawdown"] * 100,
+        evaluation.loc["PBROE", "net_max_drawdown"] * 100,
         evaluation.loc["EligibleEqualWeight", "net_max_drawdown"] * 100,
         evaluation.loc["ElasticNet", "net_max_drawdown"] * 100,
         evaluation.loc["LightGBM", "net_max_drawdown"] * 100,
@@ -439,7 +444,7 @@ def main() -> int:
     paper_reproduction(results, output / "01-paper-reproduction.png")
     modern_baseline(results, output / "02-modern-baseline.png")
     factor_gates(results, output / "03-factor-gates.png")
-    frozen_factor_test(results, output / "04-frozen-factor-test.png")
+    factor_incrementality(results, output / "04-factor-incrementality.png")
     walk_forward_models(results, output / "05-walk-forward-timeline.png")
     portfolio_comparison(results, output / "06-portfolio-comparison.png")
     return 0

@@ -11,15 +11,15 @@ import pandas as pd
 
 COLORS = {
     "基准": "#7a7f87",
-    "严格反转": "#9c755f",
-    "11因子等权": "#2a9d6f",
+    "PB-ROE": "#9c755f",
+    "8因子等权": "#2a9d6f",
     "Elastic Net": "#2878b5",
     "LightGBM": "#d65a31",
 }
 
 METHOD_FILES = {
-    "严格反转": "strict_factor_equal_weight",
-    "11因子等权": "model_input_equal_weight",
+    "PB-ROE": "pb_roe_baseline",
+    "8因子等权": "model_input_equal_weight",
     "Elastic Net": "elastic-net",
     "LightGBM": "lightgbm",
 }
@@ -63,14 +63,14 @@ def plot_performance(returns: pd.DataFrame, output: Path) -> None:
             wealth(sample[label]),
             label=label,
             color=COLORS[label],
-            linewidth=2.3 if label == "11因子等权" else 1.5,
+            linewidth=2.3 if label == "8因子等权" else 1.5,
         )
         axes[1].plot(
             sample.index,
             drawdown(sample[label]) * 100,
             label=label,
             color=COLORS[label],
-            linewidth=2.1 if label == "11因子等权" else 1.4,
+            linewidth=2.1 if label == "8因子等权" else 1.4,
         )
     for axis in axes:
         axis.axvline(pd.Timestamp("2023-01-01"), color="#555555", linestyle="--")
