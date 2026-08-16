@@ -77,9 +77,7 @@ def compute_price_factors(
     working = prices.loc[~prices["is_suspended"].fillna(False)].copy()
     working["trade_date"] = pd.to_datetime(working["trade_date"]).dt.normalize()
     working = working.sort_values(["security_id", "trade_date"])
-    working["daily_return"] = working.groupby("security_id")["close"].pct_change(
-        fill_method=None
-    )
+    working["daily_return"] = working.groupby("security_id")["close"].pct_change(fill_method=None)
     market = working.groupby("trade_date")["daily_return"].mean().rename("market_return")
     signals = {pd.Timestamp(value).normalize() for value in signal_dates}
     frames: list[pd.DataFrame] = []
@@ -87,19 +85,11 @@ def compute_price_factors(
         stock = stock.set_index("trade_date").sort_index()
         returns = stock["daily_return"]
         market_returns = market.reindex(stock.index)
-        covariance = returns.rolling(252, min_periods=minimum_beta_observations).cov(
-            market_returns
-        )
-        market_variance = market_returns.rolling(
-            252, min_periods=minimum_beta_observations
-        ).var()
-        stock_variance = returns.rolling(
-            252, min_periods=minimum_beta_observations
-        ).var()
+        covariance = returns.rolling(252, min_periods=minimum_beta_observations).cov(market_returns)
+        market_variance = market_returns.rolling(252, min_periods=minimum_beta_observations).var()
+        stock_variance = returns.rolling(252, min_periods=minimum_beta_observations).var()
         beta = covariance / market_variance.where(market_variance > 0)
-        residual_variance = (stock_variance - covariance.pow(2) / market_variance).clip(
-            lower=0
-        )
+        residual_variance = (stock_variance - covariance.pow(2) / market_variance).clip(lower=0)
         factors = pd.DataFrame(
             {
                 "signal_date": stock.index,

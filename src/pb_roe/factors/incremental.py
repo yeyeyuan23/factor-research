@@ -36,18 +36,14 @@ SUMMARY_COLUMNS = (
 )
 
 
-def _residualize_by_month(
-    panel: pd.DataFrame, target: str, controls: Sequence[str]
-) -> pd.Series:
+def _residualize_by_month(panel: pd.DataFrame, target: str, controls: Sequence[str]) -> pd.Series:
     residuals = pd.Series(np.nan, index=panel.index, dtype=float)
     columns = [target, *controls]
     for _, snapshot in panel.groupby("signal_date", sort=True):
         valid = snapshot[columns].dropna()
         if len(valid) <= len(controls) + 1 or valid[target].nunique() < 2:
             continue
-        matrix = np.column_stack(
-            [np.ones(len(valid)), valid[list(controls)].to_numpy(dtype=float)]
-        )
+        matrix = np.column_stack([np.ones(len(valid)), valid[list(controls)].to_numpy(dtype=float)])
         values = valid[target].to_numpy(dtype=float)
         coefficients = np.linalg.lstsq(matrix, values, rcond=None)[0]
         residuals.loc[valid.index] = values - matrix @ coefficients
@@ -65,16 +61,14 @@ def _score_economics(
         cost_rate=cost_rate,
     )
     means = (
-        quantile_returns.groupby("quantile")["net_return"]
-        .mean()
-        .reindex(range(1, quantiles + 1))
+        quantile_returns.groupby("quantile")["net_return"].mean().reindex(range(1, quantiles + 1))
     )
     monotonicity = means.corr(
         pd.Series(range(1, quantiles + 1), index=means.index), method="spearman"
     )
-    annual_return = performance_metrics(
-        long_short_spread(quantile_returns)["net_spread"]
-    )["annual_return"]
+    annual_return = performance_metrics(long_short_spread(quantile_returns)["net_spread"])[
+        "annual_return"
+    ]
     return float(monotonicity), float(annual_return)
 
 
@@ -129,31 +123,24 @@ def build_pb_roe_incremental_analysis(
         working = development.copy()
         working[oriented] = working[feature] * direction
         working[residual] = _residualize_by_month(working, oriented, core_features)
-        working[add_one] = (
-            (1 - candidate_weight) * working[baseline_feature]
-            + candidate_weight * working[oriented]
-        )
+        working[add_one] = (1 - candidate_weight) * working[
+            baseline_feature
+        ] + candidate_weight * working[oriented]
 
         monthly_correlations = working.groupby("signal_date").apply(
-            lambda snapshot, oriented=oriented: snapshot[
-                [baseline_feature, oriented]
-            ].corr(
-                method="spearman"
-            ).iloc[0, 1],
+            lambda snapshot, oriented=oriented: (
+                snapshot[[baseline_feature, oriented]].corr(method="spearman").iloc[0, 1]
+            ),
             include_groups=False,
         )
-        residual_ic = calculate_ic(
-            working, [residual], return_column="target_return"
-        ).rename(columns={"ic": "residual_ic"})
-        add_one_ic = calculate_ic(
-            working, [add_one], return_column="target_return"
-        ).rename(columns={"ic": "add_one_ic"})
-        residual_summary = summarize_ic(
-            residual_ic.rename(columns={"residual_ic": "ic"})
-        ).iloc[0]
-        add_one_summary = summarize_ic(
-            add_one_ic.rename(columns={"add_one_ic": "ic"})
-        ).iloc[0]
+        residual_ic = calculate_ic(working, [residual], return_column="target_return").rename(
+            columns={"ic": "residual_ic"}
+        )
+        add_one_ic = calculate_ic(working, [add_one], return_column="target_return").rename(
+            columns={"ic": "add_one_ic"}
+        )
+        residual_summary = summarize_ic(residual_ic.rename(columns={"residual_ic": "ic"})).iloc[0]
+        add_one_summary = summarize_ic(add_one_ic.rename(columns={"add_one_ic": "ic"})).iloc[0]
         comparison = baseline_ic.merge(
             add_one_ic[["signal_date", "add_one_ic"]],
             on="signal_date",
@@ -172,9 +159,7 @@ def build_pb_roe_incremental_analysis(
             "baseline_correlation": float(monthly_correlations.abs().mean())
             < maximum_baseline_correlation,
             "residual_ic": float(residual_summary["ic_mean"]) > minimum_residual_ic,
-            "add_one_ic": (
-                float(add_one_summary["ic_mean"]) - float(baseline_summary["ic_mean"])
-            )
+            "add_one_ic": (float(add_one_summary["ic_mean"]) - float(baseline_summary["ic_mean"]))
             > minimum_add_one_delta_ic,
             "year_stability": improvement_rate >= minimum_improvement_year_rate,
         }
@@ -185,9 +170,7 @@ def build_pb_roe_incremental_analysis(
                 "category": str(specification["category"]),
                 "expected_direction": direction,
                 "baseline_feature": baseline_feature,
-                "mean_absolute_baseline_correlation": float(
-                    monthly_correlations.abs().mean()
-                ),
+                "mean_absolute_baseline_correlation": float(monthly_correlations.abs().mean()),
                 "residual_ic_mean": float(residual_summary["ic_mean"]),
                 "residual_newey_west_t": float(residual_summary["newey_west_t"]),
                 "baseline_ic_mean": float(baseline_summary["ic_mean"]),
@@ -198,12 +181,10 @@ def build_pb_roe_incremental_analysis(
                 "add_one_improvement_year_rate": improvement_rate,
                 "baseline_monotonicity_30bp": baseline_monotonicity,
                 "add_one_monotonicity_30bp": add_one_monotonicity,
-                "add_one_delta_monotonicity_30bp": add_one_monotonicity
-                - baseline_monotonicity,
+                "add_one_delta_monotonicity_30bp": add_one_monotonicity - baseline_monotonicity,
                 "baseline_long_short_annual_return_30bp": baseline_return,
                 "add_one_long_short_annual_return_30bp": add_one_return,
-                "add_one_delta_long_short_annual_return_30bp": add_one_return
-                - baseline_return,
+                "add_one_delta_long_short_annual_return_30bp": add_one_return - baseline_return,
                 "incremental_pass": all(checks.values()),
                 "failed_incremental_checks": "|".join(
                     key for key, passed in checks.items() if not passed

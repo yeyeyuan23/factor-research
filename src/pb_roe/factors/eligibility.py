@@ -108,14 +108,10 @@ def build_model_factor_eligibility(
             "coverage_pass_rate": float(coverage_pass.mean()),
             "minimum_monthly_coverage": float(coverage.min()),
             "median_valid_stock_count": float(valid_count.median()),
-            "minimum_unique_values": (
-                int(usable_unique.min()) if not usable_unique.empty else 0
-            ),
+            "minimum_unique_values": (int(usable_unique.min()) if not usable_unique.empty else 0),
             "oriented_development_ic_mean": float(ic_summary["ic_mean"]),
             "oriented_development_newey_west_t": float(ic_summary["newey_west_t"]),
-            "direction_conflict": bool(
-                float(ic_summary["newey_west_t"]) <= opposite_t_threshold
-            ),
+            "direction_conflict": bool(float(ic_summary["newey_west_t"]) <= opposite_t_threshold),
             "derived_feature_exclusion": feature in excluded_derived,
             "core_feature": core_feature,
             "incremental_test_required": incremental_required,
@@ -178,25 +174,17 @@ def build_model_factor_eligibility(
             representative_by_feature[feature] = representative
 
     eligibility["redundancy_cluster"] = eligibility["feature"].map(cluster_by_feature)
-    eligibility["cluster_representative"] = eligibility["feature"].map(
-        representative_by_feature
-    )
+    eligibility["cluster_representative"] = eligibility["feature"].map(representative_by_feature)
     eligibility["maximum_absolute_correlation"] = eligibility["feature"].map(
         lambda feature: (
-            float(
-                correlations.loc[feature]
-                .drop(labels=[feature], errors="ignore")
-                .abs()
-                .max()
-            )
+            float(correlations.loc[feature].drop(labels=[feature], errors="ignore").abs().max())
             if feature in correlations.index and len(correlations.index) > 1
             else 0.0
         )
     )
     eligibility["redundant_feature"] = eligibility.apply(
         lambda row: bool(
-            row["pre_redundancy_eligible"]
-            and row["feature"] != row["cluster_representative"]
+            row["pre_redundancy_eligible"] and row["feature"] != row["cluster_representative"]
         ),
         axis=1,
     )

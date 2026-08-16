@@ -304,9 +304,7 @@ def validate_factors_from_cli(
     incremental_analysis.round(6).to_csv(
         output / "factor_incremental_analysis.csv", index=False, float_format="%.6f"
     )
-    incremental_timeseries.to_csv(
-        output / "factor_incremental_ic_timeseries.csv", index=False
-    )
+    incremental_timeseries.to_csv(output / "factor_incremental_ic_timeseries.csv", index=False)
     eligibility.round(6).to_csv(
         output / "model_factor_eligibility.csv", index=False, float_format="%.6f"
     )
@@ -338,9 +336,9 @@ def validate_factors_from_cli(
     data_audit_path = output / "data_audit.json"
     input_manifest_sha256 = None
     if data_audit_path.is_file():
-        input_manifest_sha256 = json.loads(
-            data_audit_path.read_text(encoding="utf-8")
-        ).get("input_manifest_sha256")
+        input_manifest_sha256 = json.loads(data_audit_path.read_text(encoding="utf-8")).get(
+            "input_manifest_sha256"
+        )
     model_payload = {
         "config_fingerprint": config.fingerprint,
         "canonical_input_manifest_sha256": input_manifest_sha256,

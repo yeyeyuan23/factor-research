@@ -46,9 +46,7 @@ class AuditReport:
         payload = self.to_dict()
         if metadata:
             payload.update(metadata)
-        output.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _duplicate_check(name: str, frame: pd.DataFrame) -> AuditCheck:
@@ -238,10 +236,11 @@ def _factor_coverage_check(
     valid_dates = coverage.index[continuous]
     passed = bool(len(valid_dates))
     valid_start = pd.Timestamp(valid_dates.min()).date() if passed else None
-    observed = {
-        factor: round(float(coverage.loc[valid_dates, factor].min()), 6)
-        for factor in factors
-    } if passed else {factor: round(float(coverage[factor].max()), 6) for factor in factors}
+    observed = (
+        {factor: round(float(coverage.loc[valid_dates, factor].min()), 6) for factor in factors}
+        if passed
+        else {factor: round(float(coverage[factor].max()), 6) for factor in factors}
+    )
     return AuditCheck(
         "fundamentals.factor_coverage",
         "fundamentals",
@@ -295,9 +294,7 @@ def audit_bundle(
         )
     if maximum_roe_announcement_lag_days is not None:
         checks.append(
-            _roe_announcement_lag_check(
-                bundle.fundamentals, maximum_roe_announcement_lag_days
-            )
+            _roe_announcement_lag_check(bundle.fundamentals, maximum_roe_announcement_lag_days)
         )
     return AuditReport(tuple(checks))
 
@@ -330,9 +327,9 @@ def _fundamental_audit_sample(
     ]
     if not public_reports.empty:
         available = public_reports
-    available = available.sort_values(
-        ["security_id", "report_period", "metric"]
-    ).drop_duplicates(["security_id", "report_period"], keep="first")
+    available = available.sort_values(["security_id", "report_period", "metric"]).drop_duplicates(
+        ["security_id", "report_period"], keep="first"
+    )
     count = min(sample_size, len(available))
     return available.sample(n=count, random_state=random_seed).sort_values(
         ["security_id", "report_period", "metric"]
@@ -368,9 +365,7 @@ def audit_from_cli(config_path: str, input_dir: str | None) -> int:
     else:
         from pb_roe.evaluation.panel import month_end_dates
 
-        membership_dates = month_end_dates(
-            open_dates, research["start_date"], research["end_date"]
-        )
+        membership_dates = month_end_dates(open_dates, research["start_date"], research["end_date"])
     report = audit_bundle(
         bundle,
         announcement_threshold=float(quality["announcement_coverage"]),

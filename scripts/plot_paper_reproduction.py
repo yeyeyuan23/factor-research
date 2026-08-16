@@ -26,9 +26,7 @@ def main() -> int:
 
     frame = pd.read_csv(args.input)
     frame = frame[frame["strategy"].isin(STRATEGIES)].copy()
-    frame["strategy"] = pd.Categorical(
-        frame["strategy"], categories=list(STRATEGIES), ordered=True
-    )
+    frame["strategy"] = pd.Categorical(frame["strategy"], categories=list(STRATEGIES), ordered=True)
     pivot = frame.pivot(index="strategy", columns="source", values="annualized_net_return")
     pivot = pivot.reindex(list(STRATEGIES)) * 100
 

@@ -65,8 +65,8 @@ def backtest_paper_holdings(
                 .tail(1)
                 .set_index("security_id")
             )
-            end_prices = selected["security_id"].map(exit_observations["close"]).to_numpy(
-                dtype=float
+            end_prices = (
+                selected["security_id"].map(exit_observations["close"]).to_numpy(dtype=float)
             )
             exit_dates = pd.to_datetime(
                 selected["security_id"].map(exit_observations["trade_date"])

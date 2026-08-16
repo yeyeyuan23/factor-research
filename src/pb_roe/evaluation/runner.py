@@ -222,9 +222,7 @@ def evaluate_from_cli(
     ic_summary.to_csv(output / "ic_summary.csv", index=False)
     annual_ic.to_csv(output / "ic_annual.csv", index=False)
     segment_ic.to_csv(output / "ic_segments.csv", index=False)
-    validation.to_csv(
-        output / "core_factor_validation.csv", index=False, float_format="%.6f"
-    )
+    validation.to_csv(output / "core_factor_validation.csv", index=False, float_format="%.6f")
     quantile_returns.to_csv(output / "quantile_returns.csv", index=False)
     spreads.to_csv(output / "long_short_spreads.csv", index=False)
     performance.to_csv(output / "long_short_performance.csv", index=False)

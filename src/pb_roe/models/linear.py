@@ -39,8 +39,7 @@ def walk_forward_elastic_net(
     for date in dates:
         prediction_date = pd.Timestamp(date)
         mature = working[
-            (working["signal_date"] < prediction_date)
-            & (working["exit_date"] <= prediction_date)
+            (working["signal_date"] < prediction_date) & (working["exit_date"] <= prediction_date)
         ].dropna(subset=[target_column])
         training_dates = sorted(mature["signal_date"].unique())[-train_months:]
         if len(training_dates) < minimum_train_months:

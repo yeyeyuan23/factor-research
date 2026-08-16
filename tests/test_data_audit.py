@@ -102,9 +102,9 @@ def test_stale_roe_announcement_dates_fail_audit() -> None:
     fundamentals = bundle.fundamentals.copy()
     fundamentals["effective_date"] = pd.to_datetime(fundamentals["effective_date"])
     roe = fundamentals["metric"].eq("roe")
-    fundamentals.loc[roe, "effective_date"] = (
-        pd.to_datetime(fundamentals.loc[roe, "report_period"]) + pd.Timedelta(days=400)
-    )
+    fundamentals.loc[roe, "effective_date"] = pd.to_datetime(
+        fundamentals.loc[roe, "report_period"]
+    ) + pd.Timedelta(days=400)
 
     report = audit_bundle(
         replace(bundle, fundamentals=fundamentals),
@@ -112,9 +112,7 @@ def test_stale_roe_announcement_dates_fail_audit() -> None:
     )
 
     check = next(
-        check
-        for check in report.checks
-        if check.check_id == "fundamentals.roe_announcement_lag"
+        check for check in report.checks if check.check_id == "fundamentals.roe_announcement_lag"
     )
     assert not check.passed
     assert check.observed == 400.0

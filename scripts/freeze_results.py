@@ -152,16 +152,18 @@ def freeze_factor_validation(run_dir: Path, output: Path) -> None:
     pb_roe_ic = pd.read_csv(run_dir / "pb_roe_baseline_ic.csv")
     pb_roe_performance = pd.read_csv(run_dir / "pb_roe_baseline_performance.csv")
     pb_roe_ic = pb_roe_ic[["segment", "ic_mean", "newey_west_t"]]
-    pb_roe_performance.merge(pb_roe_ic, on="segment", validate="many_to_one")[[
-        "segment",
-        "cost_bps",
-        "ic_mean",
-        "newey_west_t",
-        "cumulative_return",
-        "annual_return",
-        "sharpe",
-        "max_drawdown",
-    ]].to_csv(output / "pb_roe_baseline.csv", index=False)
+    pb_roe_performance.merge(pb_roe_ic, on="segment", validate="many_to_one")[
+        [
+            "segment",
+            "cost_bps",
+            "ic_mean",
+            "newey_west_t",
+            "cumulative_return",
+            "annual_return",
+            "sharpe",
+            "max_drawdown",
+        ]
+    ].to_csv(output / "pb_roe_baseline.csv", index=False)
 
 
 def freeze_walk_forward_example(run_dir: Path, output: Path) -> None:
@@ -185,13 +187,15 @@ def freeze_walk_forward_example(run_dir: Path, output: Path) -> None:
         )[:3]
         for prediction_date in prediction_dates:
             current = panel.loc[panel["signal_date"].eq(prediction_date)].iloc[0]
-            excluded = panel.loc[
-                panel["signal_date"].lt(prediction_date)
-                & panel["exit_date"].gt(prediction_date)
-            ].sort_values("signal_date").iloc[-1]
-            row = predictions.loc[
-                predictions["signal_date"].eq(prediction_date)
-            ].iloc[0]
+            excluded = (
+                panel.loc[
+                    panel["signal_date"].lt(prediction_date)
+                    & panel["exit_date"].gt(prediction_date)
+                ]
+                .sort_values("signal_date")
+                .iloc[-1]
+            )
+            row = predictions.loc[predictions["signal_date"].eq(prediction_date)].iloc[0]
             rows.append(
                 {
                     "model": model,
@@ -201,9 +205,7 @@ def freeze_walk_forward_example(run_dir: Path, output: Path) -> None:
                     "validation_start": row.get("validation_start", pd.NaT),
                     "validation_end": row.get("validation_end", pd.NaT),
                     "training_label_exit_end": row["training_label_exit_end"],
-                    "validation_label_exit_end": row.get(
-                        "validation_label_exit_end", pd.NaT
-                    ),
+                    "validation_label_exit_end": row.get("validation_label_exit_end", pd.NaT),
                     "excluded_signal_date": excluded["signal_date"],
                     "excluded_label_exit_date": excluded["exit_date"],
                     "trade_date": current["entry_date"],
@@ -243,9 +245,9 @@ def freeze_modern_baseline(run_dir: Path, output: Path) -> None:
     mapped = segments["factor"].map(FACTOR_NAMES)
     segments["factor"] = mapped.map(lambda value: value[0])
     segments["variant"] = mapped.map(lambda value: value[1])
-    segments[
-        ["segment", "factor", "variant", "periods", "ic_mean", "newey_west_t"]
-    ].to_csv(output / "modern_factor_segments.csv", index=False)
+    segments[["segment", "factor", "variant", "periods", "ic_mean", "newey_west_t"]].to_csv(
+        output / "modern_factor_segments.csv", index=False
+    )
 
 
 def freeze_model_summary(run_dir: Path, output: Path, stem: str, model: str) -> pd.DataFrame:
@@ -301,10 +303,7 @@ def freeze_portfolios(run_dir: Path, output: Path) -> None:
     ):
         frame = pd.read_csv(run_dir / f"{stem}_portfolio_summary.csv")
         frame.insert(0, "model", model)
-        keep = frame[
-            frame["cost_bps"].eq(30)
-            | frame["segment"].eq("exploratory_2023_2025")
-        ]
+        keep = frame[frame["cost_bps"].eq(30) | frame["segment"].eq("exploratory_2023_2025")]
         rows.append(keep)
     pd.concat(rows, ignore_index=True).to_csv(
         output / "portfolio_model_comparison.csv", index=False

@@ -23,9 +23,7 @@ SEGMENTS = {
 
 def load_results(run_dir: Path) -> pd.DataFrame:
     pb_roe = pd.read_csv(run_dir / "pb_roe_baseline_ic.csv").assign(method="PB-ROE")
-    eligible = pd.read_csv(run_dir / "model_input_equal_weight_ic.csv").assign(
-        method="5因子等权"
-    )
+    eligible = pd.read_csv(run_dir / "model_input_equal_weight_ic.csv").assign(method="5因子等权")
     elastic = pd.read_csv(run_dir / "elastic-net_ic_segments.csv").assign(method="Elastic Net")
     lightgbm = pd.read_csv(run_dir / "lightgbm_ic_segments.csv").assign(method="LightGBM")
     return pd.concat([pb_roe, eligible, elastic, lightgbm], ignore_index=True)
@@ -38,17 +36,12 @@ def plot(frame: pd.DataFrame, output: Path) -> None:
     for index, method in enumerate(COLORS):
         selected = frame[frame["method"] == method].set_index("segment")
         positions = [
-            position + (index - (len(COLORS) - 1) / 2) * width
-            for position in range(len(segments))
+            position + (index - (len(COLORS) - 1) / 2) * width for position in range(len(segments))
         ]
         ic_values = [selected.loc[segment, "ic_mean"] * 100 for segment in segments]
         t_values = [selected.loc[segment, "newey_west_t"] for segment in segments]
-        ic_bars = axes[0].bar(
-            positions, ic_values, width, label=method, color=COLORS[method]
-        )
-        t_bars = axes[1].bar(
-            positions, t_values, width, label=method, color=COLORS[method]
-        )
+        ic_bars = axes[0].bar(positions, ic_values, width, label=method, color=COLORS[method])
+        t_bars = axes[1].bar(positions, t_values, width, label=method, color=COLORS[method])
         axes[0].bar_label(ic_bars, fmt="%.2f%%", padding=2, fontsize=8)
         axes[1].bar_label(t_bars, fmt="%.2f", padding=2, fontsize=8)
     for axis in axes:

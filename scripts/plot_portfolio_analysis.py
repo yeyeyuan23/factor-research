@@ -116,18 +116,13 @@ def plot_segment_metrics(run_dir: Path, output: Path) -> None:
                     },
                 ]
             )
-    frame = pd.DataFrame(rows).drop_duplicates(
-        subset=["segment", "series"], keep="last"
-    )
+    frame = pd.DataFrame(rows).drop_duplicates(subset=["segment", "series"], keep="last")
     figure, axes = plt.subplots(1, 2, figsize=(11, 4.8), dpi=160)
     segments = ["开发期", "探索性历史检验"]
     width = 0.15
     for index, series in enumerate(COLORS):
         subset = frame[frame["series"] == series].set_index("segment")
-        x = [
-            position + (index - (len(COLORS) - 1) / 2) * width
-            for position in range(2)
-        ]
+        x = [position + (index - (len(COLORS) - 1) / 2) * width for position in range(2)]
         annual = [subset.loc[segment, "annual_return"] for segment in segments]
         sharpe = [subset.loc[segment, "sharpe"] for segment in segments]
         bars = axes[0].bar(x, annual, width, label=series, color=COLORS[series])
@@ -152,17 +147,12 @@ def plot_segment_metrics(run_dir: Path, output: Path) -> None:
 def plot_oos_yearly(returns: pd.DataFrame, output: Path) -> None:
     sample = returns[returns["signal_date"] >= pd.Timestamp("2023-01-01")].copy()
     sample["year"] = sample["signal_date"].dt.year
-    annual = sample.groupby("year")[list(COLORS)].apply(
-        lambda frame: (1 + frame).prod() - 1
-    )
+    annual = sample.groupby("year")[list(COLORS)].apply(lambda frame: (1 + frame).prod() - 1)
     figure, axis = plt.subplots(figsize=(10, 4.8), dpi=160)
     width = 0.15
     years = annual.index.tolist()
     for index, series in enumerate(COLORS):
-        x = [
-            position + (index - (len(COLORS) - 1) / 2) * width
-            for position in range(len(years))
-        ]
+        x = [position + (index - (len(COLORS) - 1) / 2) * width for position in range(len(years))]
         bars = axis.bar(x, annual[series] * 100, width, label=series, color=COLORS[series])
         axis.bar_label(bars, fmt="%.1f%%", padding=3, fontsize=9)
     axis.set_xticks(range(len(years)), [str(year) for year in years])

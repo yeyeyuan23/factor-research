@@ -91,8 +91,7 @@ class EarlyPaperSource:
             snapshots[signal_date] = pd.DataFrame(
                 {
                     "code": [
-                        f"{security_id[-2:].lower()}.{security_id[:6]}"
-                        for security_id in members
+                        f"{security_id[-2:].lower()}.{security_id[:6]}" for security_id in members
                     ],
                     "code_name": "",
                 }
@@ -164,9 +163,7 @@ class EarlyPaperSource:
         combined = combined.iloc[1:, :]
         combined.index = table.columns.tolist()[1:]
         combined = combined.dropna(how="all").reset_index(names="report_period")
-        combined["report_period"] = pd.to_datetime(
-            combined["report_period"], errors="coerce"
-        )
+        combined["report_period"] = pd.to_datetime(combined["report_period"], errors="coerce")
         cache.parent.mkdir(parents=True, exist_ok=True)
         combined.to_parquet(cache, index=False)
         return combined
@@ -215,6 +212,8 @@ class EarlyPaperSource:
             )
             if index % 25 == 0 or index == len(securities):
                 LOGGER.info("early Sina ROE transforms: %d/%d", index, len(securities))
-        return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(
-            columns=SCHEMAS["fundamentals"]
+        return (
+            pd.concat(rows, ignore_index=True)
+            if rows
+            else pd.DataFrame(columns=SCHEMAS["fundamentals"])
         )

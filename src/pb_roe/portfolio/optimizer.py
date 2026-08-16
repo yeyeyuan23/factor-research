@@ -111,9 +111,7 @@ def optimize_portfolio(
         if previous_all.sum() > 0:
             previous_all = previous_all / previous_all.sum()
         previous = previous_all.reindex(securities).fillna(0.0)
-        forced_exit_weight = float(
-            previous_all.loc[~previous_all.index.isin(securities)].sum()
-        )
+        forced_exit_weight = float(previous_all.loc[~previous_all.index.isin(securities)].sum())
     else:
         previous = benchmark.copy()
         forced_exit_weight = 0.0
@@ -124,9 +122,7 @@ def optimize_portfolio(
     weights = cp.Variable(len(securities))
     covariance_array = cp.psd_wrap(sigma.to_numpy())
     active_weights = weights - benchmark.to_numpy()
-    turnover_expression = 0.5 * (
-        cp.norm1(weights - previous.to_numpy()) + forced_exit_weight
-    )
+    turnover_expression = 0.5 * (cp.norm1(weights - previous.to_numpy()) + forced_exit_weight)
     objective = cp.Maximize(
         mu.to_numpy() @ weights
         - 0.5 * settings.risk_aversion * cp.quad_form(active_weights, covariance_array)
@@ -145,8 +141,7 @@ def optimize_portfolio(
             restrictions.extend(
                 [
                     mask @ weights <= benchmark_share + settings.max_industry_deviation,
-                    mask @ weights
-                    >= max(0.0, benchmark_share - settings.max_industry_deviation),
+                    mask @ weights >= max(0.0, benchmark_share - settings.max_industry_deviation),
                 ]
             )
     problem = cp.Problem(objective, restrictions)

@@ -243,9 +243,7 @@ def _model_feature_manifest_check(run_dir: Path, config: ResearchConfig) -> Fina
     settings = config.section("evaluation")["factor_incremental"]
     expected_core = list(settings["core_features"])
     audit_path = run_dir / "data_audit.json"
-    data_audit = (
-        json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.is_file() else {}
-    )
+    data_audit = json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.is_file() else {}
     derived_duplicate = "paper_score_z" in features and {"bp_z", "roe_z"} <= set(features)
     incremental_path = run_dir / "factor_incremental_analysis.csv"
     incremental_table = (
@@ -293,8 +291,7 @@ def _model_feature_alignment_check(run_dir: Path, config: ResearchConfig) -> Fin
         )
     expected = list(json.loads(manifest_path.read_text(encoding="utf-8"))["eligible_features"])
     observed = [
-        list(json.loads(path.read_text(encoding="utf-8")).get("features", []))
-        for path in run_paths
+        list(json.loads(path.read_text(encoding="utf-8")).get("features", [])) for path in run_paths
     ]
     valid = all(features == expected for features in observed)
     return FinalCheck(
@@ -340,9 +337,7 @@ def _portfolio_check(run_dir: Path, config: ResearchConfig, model: str = "") -> 
         max_turnover = float(config.section("portfolio")["max_turnover"])
         diagnostics_path = run_dir / f"{prefix}optimization_diagnostics.csv"
         diagnostics = (
-            pd.read_csv(diagnostics_path)
-            if diagnostics_path.is_file()
-            else pd.DataFrame()
+            pd.read_csv(diagnostics_path) if diagnostics_path.is_file() else pd.DataFrame()
         )
         if {
             "signal_date",
@@ -364,13 +359,9 @@ def _portfolio_check(run_dir: Path, config: ResearchConfig, model: str = "") -> 
                 validate="one_to_one",
             )
             justified_floor = turnover_audit["unavoidable_turnover_floor"].fillna(0.0)
-            allowed = justified_floor.clip(
-                lower=max_turnover
-            )
+            allowed = justified_floor.clip(lower=max_turnover)
             valid_turnover = turnover_audit["turnover"] <= allowed + 1e-6
-            valid_turnover &= (
-                turnover_audit["effective_turnover_limit"] - allowed
-            ).abs() <= 1e-6
+            valid_turnover &= (turnover_audit["effective_turnover_limit"] - allowed).abs() <= 1e-6
             maximum_excess = float((turnover_audit["turnover"] - allowed).max())
             maximum_forced_exit = float(turnover_audit["forced_exit_weight"].max())
             maximum_floor = float(justified_floor.max())

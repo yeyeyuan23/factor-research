@@ -10,17 +10,13 @@ from pb_roe.data.providers.early_paper import (
 def test_initial_members_and_july_adjustment_reconstruct_300_stocks() -> None:
     initial_codes = [f"000{index:03d}" for index in range(1, 300)] + ["600001"]
     initial_html = (
-        '<div id="article">指数代码 000300 '
-        + " ".join(initial_codes)
-        + "</div>"
+        '<div id="article">指数代码 000300 ' + " ".join(initial_codes) + "</div>"
     ).encode()
     removed_codes = initial_codes[:14]
     added_codes = [f"002{index:03d}" for index in range(1, 15)]
     adjustment_html = (
         '<div id="article">'
-        + " ".join(
-            value for pair in zip(removed_codes, added_codes, strict=True) for value in pair
-        )
+        + " ".join(value for pair in zip(removed_codes, added_codes, strict=True) for value in pair)
         + "</div>"
     ).encode()
 

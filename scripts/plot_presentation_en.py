@@ -75,9 +75,7 @@ def modern_baseline(results: Path, output: Path) -> None:
     labels = {"BP": "BP", "ROE_TTM": "ROE", "PB_ROE": "PB–ROE"}
     order = list(labels)
     raw = frame[frame["variant"] == "raw"].set_index("factor").reindex(order)
-    adjusted = (
-        frame[frame["variant"] == "industry_adjusted"].set_index("factor").reindex(order)
-    )
+    adjusted = frame[frame["variant"] == "industry_adjusted"].set_index("factor").reindex(order)
     x = np.arange(len(order))
     width = 0.34
     figure, axes = plt.subplots(1, 2, figsize=(12.5, 4.8))
@@ -90,9 +88,7 @@ def modern_baseline(results: Path, output: Path) -> None:
             "Annualized net return (%)",
         ),
     ):
-        raw_bars = axis.bar(
-            x - width / 2, raw[column] * 100, width, label="Raw", color=BLUE
-        )
+        raw_bars = axis.bar(x - width / 2, raw[column] * 100, width, label="Raw", color=BLUE)
         adj_bars = axis.bar(
             x + width / 2,
             adjusted[column] * 100,
@@ -124,12 +120,8 @@ def factor_gates(results: Path, output: Path) -> None:
         "roe": "ROE",
         "revenue_growth": "Revenue Growth",
     }
-    selected = frame[frame["selected"]].sort_values(
-        "development_ic_mean", ascending=False
-    )
-    failed = frame[~frame["selected"]].sort_values(
-        "development_ic_mean", ascending=False
-    )
+    selected = frame[frame["selected"]].sort_values("development_ic_mean", ascending=False)
+    failed = frame[~frame["selected"]].sort_values("development_ic_mean", ascending=False)
     ordered = pd.concat([selected, failed], ignore_index=True)
     checks = pd.DataFrame(
         {
@@ -150,9 +142,7 @@ def factor_gates(results: Path, output: Path) -> None:
         vmax=1,
     )
     axis.set_xticks(range(checks.shape[1]), checks.columns, rotation=18, ha="right")
-    axis.set_yticks(
-        range(len(ordered)), [names[value] for value in ordered["factor"]]
-    )
+    axis.set_yticks(range(len(ordered)), [names[value] for value in ordered["factor"]])
     for row in range(matrix.shape[0]):
         for column in range(matrix.shape[1]):
             axis.text(
@@ -163,9 +153,7 @@ def factor_gates(results: Path, output: Path) -> None:
                 va="center",
                 fontsize=8,
             )
-    for tick, is_selected in zip(
-        axis.get_yticklabels(), ordered["selected"], strict=True
-    ):
+    for tick, is_selected in zip(axis.get_yticklabels(), ordered["selected"], strict=True):
         if is_selected:
             tick.set_weight("bold")
             tick.set_color(GREEN)
@@ -233,9 +221,7 @@ def walk_forward_models(results: Path, output: Path) -> None:
     example = pd.read_csv(results / "walk_forward_example.csv")
     for column in example.columns.difference(["model"]):
         example[column] = pd.to_datetime(example[column])
-    light = example.loc[example["model"].eq("LightGBM")].sort_values(
-        "prediction_date"
-    )
+    light = example.loc[example["model"].eq("LightGBM")].sort_values("prediction_date")
     figure, (sample_axis, fold_axis) = plt.subplots(
         2,
         1,

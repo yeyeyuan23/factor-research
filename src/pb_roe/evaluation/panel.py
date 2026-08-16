@@ -41,9 +41,13 @@ def next_open_forward_returns(
     price_frame["previous_close"] = price_frame.groupby("security_id")["close"].shift()
     gap = price_frame["open"] / price_frame["previous_close"] - 1
     one_price = (
-        price_frame[["open", "high", "low", "close"]].max(axis=1)
-        - price_frame[["open", "high", "low", "close"]].min(axis=1)
-    ).abs().le(1e-10)
+        (
+            price_frame[["open", "high", "low", "close"]].max(axis=1)
+            - price_frame[["open", "high", "low", "close"]].min(axis=1)
+        )
+        .abs()
+        .le(1e-10)
+    )
     limit_threshold = np.where(price_frame.get("is_st", False), 0.045, 0.095)
     price_frame["is_locked_limit"] = one_price & gap.abs().ge(limit_threshold)
     all_dates = pd.DatetimeIndex(price_frame["trade_date"].unique()).sort_values()
@@ -84,9 +88,7 @@ def next_open_forward_returns(
         exit_snapshot = execution_snapshot(intended_exit_date)
         entry = entry_snapshot[execution_price].to_numpy(dtype=float)
         exit_values = exit_snapshot[execution_price].to_numpy(dtype=float)
-        intended_entry_index = pd.MultiIndex.from_product(
-            [[intended_entry_date], securities]
-        )
+        intended_entry_index = pd.MultiIndex.from_product([[intended_entry_date], securities])
         entry_locked = (
             locked_lookup.reindex(intended_entry_index).fillna(False).to_numpy(dtype=bool)
         )

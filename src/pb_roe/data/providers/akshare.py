@@ -88,17 +88,13 @@ def statement_metrics_to_long(
     )
 
 
-def derive_ttm_roe(
-    profit: pd.DataFrame, balance: pd.DataFrame, security_id: str
-) -> pd.DataFrame:
+def derive_ttm_roe(profit: pd.DataFrame, balance: pd.DataFrame, security_id: str) -> pd.DataFrame:
     """Derive TTM ROE while carrying the latest component effective date."""
 
     profit_base = _statement_base(profit, security_id)
     profit_base["income"] = _coalesce_numeric(profit, ("PARENT_NETPROFIT", "NETPROFIT"))
     balance_base = _statement_base(balance, security_id)
-    balance_base["equity"] = _coalesce_numeric(
-        balance, ("TOTAL_PARENT_EQUITY", "TOTAL_EQUITY")
-    )
+    balance_base["equity"] = _coalesce_numeric(balance, ("TOTAL_PARENT_EQUITY", "TOTAL_EQUITY"))
     profit_base = (
         profit_base.dropna(subset=["report_period", "effective_date", "income"])
         .sort_values("effective_date")
@@ -134,8 +130,7 @@ def derive_ttm_roe(
         if report_period not in balance_base.index or prior_same not in balance_base.index:
             continue
         average_equity = float(
-            (balance_base.loc[report_period, "equity"] + balance_base.loc[prior_same, "equity"])
-            / 2
+            (balance_base.loc[report_period, "equity"] + balance_base.loc[prior_same, "equity"]) / 2
         )
         if not np.isfinite(average_equity) or abs(average_equity) <= 1e-12:
             continue
@@ -342,8 +337,7 @@ def derive_ttm_roe_from_per_share(fundamentals: pd.DataFrame) -> pd.DataFrame:
                     stock_dates.loc[prior_same, "eps_cumulative"],
                 ]
             average_equity = (
-                current.get("book_value_per_share")
-                + stock.loc[prior_same, "book_value_per_share"]
+                current.get("book_value_per_share") + stock.loc[prior_same, "book_value_per_share"]
             ) / 2
             component_dates.extend(
                 [

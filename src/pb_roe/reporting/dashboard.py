@@ -140,9 +140,7 @@ def _model_ic_figure(run_dir: Path) -> go.Figure:
         if frame.empty:
             continue
         frame = frame.copy()
-        frame["segment"] = frame["segment"].replace(
-            {"frozen_oos": "exploratory_2023_2025"}
-        )
+        frame["segment"] = frame["segment"].replace({"frozen_oos": "exploratory_2023_2025"})
         for row in frame.itertuples(index=False):
             rows.append(
                 {
@@ -159,9 +157,7 @@ def _model_ic_figure(run_dir: Path) -> go.Figure:
             ("exploratory_2023_2025", "2023–2025历史检验"),
         ):
             selected = comparison[comparison["segment"].eq(segment)]
-            figure.add_bar(
-                x=selected["method"], y=selected["ic_mean"], name=label
-            )
+            figure.add_bar(x=selected["method"], y=selected["ic_mean"], name=label)
         figure.update_layout(barmode="group", yaxis_title="Mean Rank IC")
     return figure
 

@@ -79,9 +79,7 @@ def test_ex_ante_snapshot_does_not_filter_on_future_returns() -> None:
 
 
 def test_ex_ante_snapshot_keeps_missing_static_industry() -> None:
-    snapshot = pd.DataFrame(
-        {"prediction": [0.1], "industry": [None], "forward_return": [0.02]}
-    )
+    snapshot = pd.DataFrame({"prediction": [0.1], "industry": [None], "forward_return": [0.02]})
 
     selected = _ex_ante_snapshot(snapshot)
 
@@ -136,9 +134,7 @@ def test_unavoidable_forced_exit_sets_the_turnover_floor() -> None:
         max_turnover=0.30,
         enforce_industry_constraints=False,
     )
-    previous = pd.Series(
-        {**{security: 0.015 for security in securities}, "EXIT": 0.40}
-    )
+    previous = pd.Series({**{security: 0.015 for security in securities}, "EXIT": 0.40})
 
     result = optimize_portfolio(
         pd.Series(range(40), index=securities, dtype=float),

@@ -268,8 +268,10 @@ class BaoStockCanonicalIngestor:
         research = self.config.section("research")
         buffer_days = 14 if self.config.mode == "paper" else 400
         start = (
-            pd.Timestamp(research["start_date"]) - pd.Timedelta(days=buffer_days)
-        ).date().isoformat()
+            (pd.Timestamp(research["start_date"]) - pd.Timedelta(days=buffer_days))
+            .date()
+            .isoformat()
+        )
         end = pd.Timestamp(research["end_date"]).date().isoformat()
         price_cache = self.cache_dir / "prices"
         early_fill = (
@@ -454,12 +456,14 @@ class BaoStockCanonicalIngestor:
                     "security_id",
                 ].unique()
             )
-            early = EarlyPaperSource(
-                self.cache_dir / "early_fill"
-            ).roe_fundamentals(early_securities, early_periods)
-            existing_keys = set(
-                zip(financials["security_id"], financials["report_period"], strict=True)
-            ) if not financials.empty else set()
+            early = EarlyPaperSource(self.cache_dir / "early_fill").roe_fundamentals(
+                early_securities, early_periods
+            )
+            existing_keys = (
+                set(zip(financials["security_id"], financials["report_period"], strict=True))
+                if not financials.empty
+                else set()
+            )
             early_keys = list(zip(early["security_id"], early["report_period"], strict=True))
             early = early[[key not in existing_keys for key in early_keys]]
             financials = pd.concat([financials, early], ignore_index=True)
@@ -467,9 +471,9 @@ class BaoStockCanonicalIngestor:
             from pb_roe.data.providers.akshare import AkShareFinancialIngestor
 
             research = self.config.section("research")
-            financials = AkShareFinancialIngestor(
-                self.cache_dir / "akshare"
-            ).fundamentals(securities, research["start_date"], research["end_date"])
+            financials = AkShareFinancialIngestor(self.cache_dir / "akshare").fundamentals(
+                securities, research["start_date"], research["end_date"]
+            )
         else:
             raise ValueError(f"Unsupported fundamentals provider: {fundamental_provider}")
         if financials.empty:

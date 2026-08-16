@@ -20,9 +20,7 @@ def _add_per_share_valuation_factors(panel: pd.DataFrame) -> pd.DataFrame:
         return result
     price = pd.to_numeric(result["price"], errors="coerce")
     if "eps_ttm" in result:
-        result["ep"] = pd.to_numeric(result["eps_ttm"], errors="coerce") / price.where(
-            price > 0
-        )
+        result["ep"] = pd.to_numeric(result["eps_ttm"], errors="coerce") / price.where(price > 0)
     if "ocf_per_share_ttm" in result:
         result["ocf_to_price"] = pd.to_numeric(
             result["ocf_per_share_ttm"], errors="coerce"
@@ -40,11 +38,7 @@ def _append_ttm_per_share_metrics(fundamentals: pd.DataFrame) -> pd.DataFrame:
         ),
     ]
     available = [frame for frame in derived if not frame.empty]
-    return (
-        pd.concat([fundamentals, *available], ignore_index=True)
-        if available
-        else fundamentals
-    )
+    return pd.concat([fundamentals, *available], ignore_index=True) if available else fundamentals
 
 
 def load_model_panel(
@@ -66,17 +60,13 @@ def load_model_panel(
             minimum_listing_days=int(research.get("minimum_listing_days", 0)),
         )
         signals = panel[["signal_date", "security_id"]].drop_duplicates()
-        fundamental_names = [
-            factor for factor in expanded_factors if factor in {"revenue_growth"}
-        ]
+        fundamental_names = [factor for factor in expanded_factors if factor in {"revenue_growth"}]
         derived_inputs = {
             "ep": "eps_ttm",
             "ocf_to_price": "ocf_per_share_ttm",
         }
         fundamental_names.extend(
-            derived_inputs[factor]
-            for factor in expanded_factors
-            if factor in derived_inputs
+            derived_inputs[factor] for factor in expanded_factors if factor in derived_inputs
         )
         if fundamental_names:
             fundamentals = _append_ttm_per_share_metrics(bundle.fundamentals)
@@ -134,9 +124,7 @@ def load_model_panel(
         selected = fundamentals_asof(
             signals,
             fundamentals[
-                fundamentals["metric"].isin(
-                    ["eps_ttm", "ocf_per_share_ttm", "revenue_growth"]
-                )
+                fundamentals["metric"].isin(["eps_ttm", "ocf_per_share_ttm", "revenue_growth"])
             ],
         )
         if not selected.empty:
@@ -172,20 +160,16 @@ def load_model_panel(
     elif target_neutralization == "none":
         processed["target_return"] = pd.to_numeric(processed[return_column], errors="coerce")
     else:
-        raise ValueError(
-            "evaluation.target_neutralization must be either 'none' or 'industry'"
-        )
+        raise ValueError("evaluation.target_neutralization must be either 'none' or 'industry'")
     target_transform = str(config.section("models").get("target_transform", "raw"))
     if target_transform == "cross_sectional_rank":
-        processed["model_target"] = processed.groupby("signal_date")[
-            "target_return"
-        ].transform(lambda values: values.rank(method="average", pct=True) - 0.5)
+        processed["model_target"] = processed.groupby("signal_date")["target_return"].transform(
+            lambda values: values.rank(method="average", pct=True) - 0.5
+        )
     elif target_transform == "raw":
         processed["model_target"] = processed["target_return"]
     else:
-        raise ValueError(
-            "models.target_transform must be either 'raw' or 'cross_sectional_rank'"
-        )
+        raise ValueError("models.target_transform must be either 'raw' or 'cross_sectional_rank'")
     feature_columns = [f"{factor}_z" for factor in available]
     coverage_threshold = float(config.section("quality")["factor_coverage"])
     coverage = (

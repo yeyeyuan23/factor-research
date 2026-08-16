@@ -107,9 +107,7 @@ def test_cumulative_per_share_metric_is_converted_to_pit_ttm() -> None:
             }
         )
 
-    result = derive_ttm_per_share_metric(
-        pd.DataFrame(rows), "eps_cumulative", "eps_ttm"
-    )
+    result = derive_ttm_per_share_metric(pd.DataFrame(rows), "eps_cumulative", "eps_ttm")
     row = result[result["report_period"].eq(pd.Timestamp("2023-03-31"))].iloc[0]
 
     assert np.isclose(row["value"], 1.1)

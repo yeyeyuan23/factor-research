@@ -107,9 +107,7 @@ def test_backtest_marks_suspended_exit_at_last_observable_close() -> None:
     )
     prices = pd.DataFrame(
         {
-            "trade_date": pd.to_datetime(
-                ["2022-01-03", "2022-01-05", "2022-01-03", "2022-01-04"]
-            ),
+            "trade_date": pd.to_datetime(["2022-01-03", "2022-01-05", "2022-01-03", "2022-01-04"]),
             "security_id": ["A", "A", "B", "B"],
             "close": [10.0, 11.0, 20.0, 24.0],
             "is_suspended": False,

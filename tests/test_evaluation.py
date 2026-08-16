@@ -32,8 +32,7 @@ def test_locked_limit_entry_is_delayed_to_next_tradable_open() -> None:
     security_id = prices["security_id"].iloc[0]
     entry_date = pd.Timestamp("2022-02-01")
     previous = prices.loc[
-        (prices["security_id"] == security_id)
-        & (prices["trade_date"] < entry_date),
+        (prices["security_id"] == security_id) & (prices["trade_date"] < entry_date),
         "close",
     ].iloc[-1]
     locked_price = previous * 1.10
@@ -61,13 +60,9 @@ def test_modern_panel_applies_signal_date_tradability_filters() -> None:
     ] = True
     from dataclasses import replace
 
-    panel = build_modern_panel(
-        replace(bundle, prices=prices), "2022-04-01", "2022-06-30"
-    )
+    panel = build_modern_panel(replace(bundle, prices=prices), "2022-04-01", "2022-06-30")
 
-    assert not (
-        (panel["signal_date"] == signal_date) & (panel["security_id"] == security_id)
-    ).any()
+    assert not ((panel["signal_date"] == signal_date) & (panel["security_id"] == security_id)).any()
 
 
 def test_winsorized_zscores_are_cross_sectionally_standardized() -> None:
@@ -122,9 +117,7 @@ def test_capacity_estimate_uses_conservative_full_rebalance_limit() -> None:
         }
     )
 
-    capacity = top_quantile_capacity(
-        panel, "factor", quantiles=2, participation_rate=0.10
-    )
+    capacity = top_quantile_capacity(panel, "factor", quantiles=2, participation_rate=0.10)
 
     assert capacity.iloc[0]["constituents"] == 2
     assert np.isclose(capacity.iloc[0]["full_rebalance_capacity_cny"], 60.0)
@@ -190,9 +183,7 @@ def test_quantile_returns_turnover_cost_and_spread() -> None:
         .all()
     )
     assert np.allclose(spreads["gross_spread"], 0.02)
-    assert np.allclose(
-        spreads["net_spread"], spreads["gross_spread"] - spreads["transaction_cost"]
-    )
+    assert np.allclose(spreads["net_spread"], spreads["gross_spread"] - spreads["transaction_cost"])
 
 
 def test_long_short_cost_is_paid_on_both_legs() -> None:
@@ -204,12 +195,8 @@ def test_long_short_cost_is_paid_on_both_legs() -> None:
             "forward_return": [0.01, 0.02, 0.03, 0.04],
         }
     )
-    low_cost = long_short_spread(
-        quantile_backtest(panel, "factor", quantiles=2, cost_rate=0.001)
-    )
-    high_cost = long_short_spread(
-        quantile_backtest(panel, "factor", quantiles=2, cost_rate=0.005)
-    )
+    low_cost = long_short_spread(quantile_backtest(panel, "factor", quantiles=2, cost_rate=0.001))
+    high_cost = long_short_spread(quantile_backtest(panel, "factor", quantiles=2, cost_rate=0.005))
 
     assert high_cost.iloc[0]["net_spread"] < low_cost.iloc[0]["net_spread"]
 

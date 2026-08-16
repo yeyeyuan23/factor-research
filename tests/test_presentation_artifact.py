@@ -13,9 +13,7 @@ def test_presentation_is_complete_and_shareable() -> None:
     factor_buttons = re.findall(
         r'<button class="factor-button[^"]*"[^>]*data-factor="([^"]+)"', source
     )
-    factor_assets = re.findall(
-        r'<img data-factor="([^"]+)" data-kind="([^"]+)" data-src=', source
-    )
+    factor_assets = re.findall(r'<img data-factor="([^"]+)" data-kind="([^"]+)" data-src=', source)
     assert source.count('<section class="slide') == 11
     assert source.count('<aside class="speaker-notes') == 11
     assert len(image_sources) == 5
@@ -26,8 +24,7 @@ def test_presentation_is_complete_and_shareable() -> None:
         (factor, kind) for factor in factor_buttons for kind in ("ic", "quantiles")
     }
     assert all(
-        (SOURCE.parent / reference).is_file()
-        for reference in image_sources + factor_sources
+        (SOURCE.parent / reference).is_file() for reference in image_sources + factor_sources
     )
 
     standalone = STANDALONE.read_text(encoding="utf-8")

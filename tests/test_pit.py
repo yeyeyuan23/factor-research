@@ -42,9 +42,7 @@ def test_fundamentals_asof_never_uses_future_revision() -> None:
 
 
 def test_fundamentals_asof_selects_each_metric_independently() -> None:
-    signals = pd.DataFrame(
-        {"signal_date": ["2022-04-20"], "security_id": ["000001.SZ"]}
-    )
+    signals = pd.DataFrame({"signal_date": ["2022-04-20"], "security_id": ["000001.SZ"]})
     fundamentals = pd.DataFrame(
         {
             "security_id": ["000001.SZ", "000001.SZ", "000001.SZ"],

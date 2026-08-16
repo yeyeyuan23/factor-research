@@ -152,9 +152,7 @@ def test_formal_model_manifest_rejects_derived_duplicate(tmp_path) -> None:
 def test_formal_models_must_use_identical_manifest_features(tmp_path) -> None:
     config = load_config("configs/modern.yaml")
     manifest = {"eligible_features": ["bp_z", "roe_z"]}
-    (tmp_path / "model_feature_manifest.json").write_text(
-        json.dumps(manifest), encoding="utf-8"
-    )
+    (tmp_path / "model_feature_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     (tmp_path / "elastic-net_run.json").write_text(
         json.dumps({"features": ["bp_z", "roe_z"]}), encoding="utf-8"
     )
