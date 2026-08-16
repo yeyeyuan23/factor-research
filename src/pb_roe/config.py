@@ -66,14 +66,21 @@ def _validate(values: Any) -> dict[str, Any]:
     missing = [section for section in REQUIRED_SECTIONS if section not in values]
     if missing:
         raise ConfigError(f"Missing config sections: {', '.join(missing)}")
+    not_mappings = [
+        section for section in REQUIRED_SECTIONS if not isinstance(values[section], dict)
+    ]
+    if not_mappings:
+        raise ConfigError(f"Config sections must be mappings: {', '.join(not_mappings)}")
 
     project = values["project"]
-    if not isinstance(project, dict) or not project.get("run_id") or not project.get("mode"):
+    if not project.get("run_id") or not project.get("mode"):
         raise ConfigError("project.run_id and project.mode are required")
 
+    universe = values["universe"]
+    if not universe.get("id"):
+        raise ConfigError("universe.id is required")
+
     quality = values["quality"]
-    if not isinstance(quality, dict):
-        raise ConfigError("quality must be a mapping")
     for name in ("membership_coverage", "announcement_coverage", "factor_coverage"):
         threshold = quality.get(name)
         if not isinstance(threshold, int | float) or not 0 <= float(threshold) <= 1:
