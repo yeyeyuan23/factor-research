@@ -478,6 +478,8 @@ factor-research/
 
 按以下顺序独立提交，每个阶段通过验收后再进入下一阶段：
 
+下表中的"计划 Commit"指开发阶段编号，不是字面意义上的单个git commit；同一阶段的验收与后续修复常常跨越多个真实commit（例如`06-factor-library-and-freeze`阶段，从最初的`f5fe62f`到后来的重新设计`c6b524b`，实际对应8个以上commit）。
+
 | 计划 Commit | 工程交付 | 当前状态 | 推荐模型 |
 |---|---|---|---|
 | `01-research-spec-and-data-audit` | 研究口径、数据字典、覆盖率审计和停止条件 | 已完成（`bb59ab8`） | 最强可用模型，High reasoning |
