@@ -1,4 +1,6 @@
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,7 +17,7 @@ def test_presentation_is_complete_and_shareable() -> None:
     )
     factor_assets = re.findall(r'<img data-factor="([^"]+)" data-kind="([^"]+)" data-src=', source)
     assert source.count('<section class="slide') == 11
-    assert source.count('<aside class="speaker-notes') == 11
+    assert "speaker-notes" not in source
     assert len(image_sources) == 5
     assert len(factor_buttons) == 8
     assert len(set(factor_buttons)) == 8
@@ -28,8 +30,31 @@ def test_presentation_is_complete_and_shareable() -> None:
     )
 
     standalone = STANDALONE.read_text(encoding="utf-8")
+    assert "speaker-notes" not in standalone
     assert standalone.count("data:image/png;base64,") == 21
     assert 'src="results/figures/' not in standalone
     assert 'data-src="results/figures/' not in standalone
     assert "https://" not in standalone
     assert "http://" not in standalone
+
+
+def test_presentation_exports_do_not_include_powerpoint() -> None:
+    assert not any(
+        path.suffix.lower() in {".ppt", ".pptx"} for path in (ROOT / "docs").rglob("*")
+    )
+
+
+def test_standalone_build_uses_neutral_default_filename(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "pre.html").write_text("<!doctype html>\n<p>Local presentation</p>\n", encoding="utf-8")
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "build_standalone_presentation.py")],
+        cwd=tmp_path,
+        check=True,
+    )
+    assert (docs / "presentation_standalone.html").is_file()
+    assert sorted(path.name for path in docs.iterdir()) == [
+        "pre.html",
+        "presentation_standalone.html",
+    ]

@@ -4,6 +4,15 @@
 
 研究结论见[`docs/final_research_report.md`](docs/final_research_report.md)。10阶段开发计划、验收状态和模型使用建议只在[`docs/project_plan.md`](docs/project_plan.md)维护，README不重复保存Commit计划。
 
+## 推荐阅读顺序
+
+1. [`docs/final_research_report.md`](docs/final_research_report.md)：研究问题、方法、时间切分、结果和证据边界；
+2. [`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)：因子定义、经济逻辑、单因子与增量检验；
+3. [`docs/code_walkthrough.md`](docs/code_walkthrough.md)：从PIT数据到组合优化的代码路径；
+4. [`docs/runbook.md`](docs/runbook.md)：安装、复现命令和输出位置。
+
+快速验证用`./scripts/run_smoke.sh`；完整实验需要本地canonical数据，Git仓库仅保留可审计汇总结果，不提交原始大文件。
+
 ## 当前工程状态
 
 - 原研报主复现：`configs/paper.yaml`，2005–2011完整18期；
@@ -177,7 +186,7 @@ $PY scripts/freeze_results.py
 .venv/bin/python scripts/build_standalone_presentation.py --help
 ```
 
-绘图脚本只读取冻结结果。输出图保存在`docs/results/figures/`。普通HTML保留相对图片便于开发；`build_standalone_presentation.py`把图片嵌入单个HTML，适合直接发送和离线打开。
+绘图脚本只读取冻结结果，输出图保存在`docs/results/figures/`。英文10分钟展示统一使用[`docs/presentation_standalone.html`](docs/presentation_standalone.html)，内嵌全部图片，可直接发送和离线打开。`docs/pre.html`是同一展示的维护源文件，修改后用`build_standalone_presentation.py`重新生成单文件版。
 
 ## 测试与质量检查
 
@@ -233,10 +242,7 @@ factor-research/
 - 运行手册：[`docs/runbook.md`](docs/runbook.md)
 - 8因子分析：[`docs/factor_analysis_report.md`](docs/factor_analysis_report.md)
 - 模型与组合分析：[`docs/portfolio_analysis_report.md`](docs/portfolio_analysis_report.md)
-- 英文10分钟HTML展示：[`docs/pre.html`](docs/pre.html)
-- 可直接发送的单文件HTML：[`docs/presentation_standalone.html`](docs/presentation_standalone.html)
-- PowerPoint展示：[`docs/presentation_standalone.pptx`](docs/presentation_standalone.pptx)
-- 英文10分钟逐页讲稿：[`docs/presentation_script_en_10min.md`](docs/presentation_script_en_10min.md)
+- 英文10分钟展示（单文件HTML，可直接发送）：[`docs/presentation_standalone.html`](docs/presentation_standalone.html)
 - 工程代码走读：[`docs/code_walkthrough.md`](docs/code_walkthrough.md)
 
 ## 已知限制
